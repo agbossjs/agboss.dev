@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.astro/
+.vercel/
+.firebase/
+
+# env
+.env
+.env.*
+!.env.example
+
+# editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.log
