@@ -1,0 +1,67 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+---
+
+<button class="agb-theme-toggle" type="button" aria-label="Toggle light and dark theme" title="Toggle theme">
+	<Icon name="sun" class="agb-theme-icon agb-theme-sun" size="1.15rem" />
+	<Icon name="moon" class="agb-theme-icon agb-theme-moon" size="1.15rem" />
+</button>
+
+<script>
+	const storageKey = 'starlight-theme';
+
+	function current(): 'light' | 'dark' {
+		return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('.agb-theme-toggle').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const next = current() === 'light' ? 'dark' : 'light';
+			document.documentElement.dataset.theme = next;
+			try {
+				localStorage.setItem(storageKey, next);
+			} catch {
+				/* storage unavailable — the toggle still works for this page */
+			}
+		});
+	});
+
+	// Spell out the name on hover over the logo (rendered on every page via the header)
+	document.querySelectorAll<HTMLAnchorElement>('.site-title').forEach((a) => {
+		a.title = 'AGBoss — Agent Graph Builder, Open-Source Software';
+	});
+</script>
+
+<style>
+	.agb-theme-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2rem;
+		height: 2rem;
+		padding: 0;
+		border: 1px solid transparent;
+		border-radius: 8px;
+		background: none;
+		color: var(--sl-color-gray-2);
+		cursor: pointer;
+		transition: color 0.15s ease, border-color 0.15s ease;
+	}
+
+	.agb-theme-toggle:hover {
+		color: var(--sl-color-white);
+		border-color: var(--sl-color-hairline);
+	}
+
+	.agb-theme-toggle :global(.agb-theme-sun) {
+		display: none;
+	}
+
+	:global(:root[data-theme='light']) .agb-theme-toggle :global(.agb-theme-sun) {
+		display: block;
+	}
+
+	:global(:root[data-theme='light']) .agb-theme-toggle :global(.agb-theme-moon) {
+		display: none;
+	}
+</style>

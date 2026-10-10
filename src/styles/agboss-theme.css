@@ -1,0 +1,725 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@600;750&family=Ubuntu+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root,
+::backdrop {
+	/* AGBoss brand — dark mode (default) */
+	--sl-color-accent-low: #113a66;
+	--sl-color-accent: #258ceb;
+	--sl-color-accent-high: #8dc6f7;
+
+	--sl-color-bg: #0d111c;
+	--sl-color-bg-nav: #121826;
+	--sl-color-bg-sidebar: #121826;
+	--sl-color-hairline: #1e293b;
+	--sl-color-hairline-light: #1e293b;
+	--sl-color-hairline-shade: #0d111c;
+
+	--sl-font: 'IBM Plex Sans', sans-serif;
+	--sl-font-mono: 'IBM Plex Mono', monospace;
+}
+
+:root:not([data-theme='light']) {
+	/* Brighter body text in the dark theme (Starlight's defaults read too grey on our navy) */
+	--sl-color-gray-2: #dadde4;
+	--sl-color-gray-3: #a9aebb;
+}
+
+:root[data-theme='light'] {
+	/* AGBoss brand — light mode */
+	--sl-color-accent-low: #dceefc;
+	--sl-color-accent: #258ceb;
+	--sl-color-accent-high: #1864ac;
+
+	--sl-color-bg: #ffffff;
+	--sl-color-bg-nav: #ffffff;
+	--sl-color-bg-sidebar: #ffffff;
+	--sl-color-hairline: #e2e8f0;
+	--sl-color-hairline-light: #e2e8f0;
+	--sl-color-hairline-shade: #e2e8f0;
+}
+
+.site-title span {
+	font-family: 'Exo 2', sans-serif;
+	font-weight: 750;
+}
+
+.site-title {
+	gap: 0.45rem;
+}
+
+.site-title::after {
+	content: 'Framework';
+	margin-left: -0.15rem;
+	font-family: 'Exo 2', sans-serif;
+	font-weight: 600;
+	font-size: var(--sl-text-h4);
+	color: var(--sl-color-gray-2);
+	white-space: nowrap;
+}
+
+/* ---------- Home hero (no image — simple, centered, Spring-style) ---------- */
+
+.hero {
+	position: relative;
+	isolation: isolate;
+	padding-top: 1.5rem;
+	padding-bottom: 2.5rem;
+}
+
+.hero::before {
+	content: '';
+	position: absolute;
+	inset: -4rem -12% -1rem;
+	z-index: -1;
+	background:
+		radial-gradient(48% 55% at 16% 18%, rgba(141, 198, 247, 0.26), transparent 70%),
+		radial-gradient(38% 42% at 86% 12%, rgba(141, 198, 247, 0.28), transparent 70%),
+		radial-gradient(
+			circle at 1px 1px,
+			color-mix(in srgb, var(--sl-color-hairline) 70%, transparent) 1px,
+			transparent 1px
+		);
+	background-size: auto, auto, 22px 22px;
+	filter: blur(2px);
+	pointer-events: none;
+	/* runs right up to the banner; fades out at the sides and the bottom (no hard rectangle) */
+	mask-image:
+		linear-gradient(to bottom, black 0%, black 55%, transparent 95%),
+		linear-gradient(to right, transparent 0%, black 18%, black 82%, transparent 100%);
+	mask-composite: intersect;
+	-webkit-mask-composite: source-in;
+}
+
+@media (min-width: 50rem) {
+	.hero {
+		grid-template-columns: 1fr;
+		justify-items: center;
+	}
+
+	.hero .stack {
+		display: grid;
+		grid-template-columns: auto auto;
+		justify-content: center;
+		align-items: center;
+		column-gap: 1.25rem;
+		row-gap: 1.5rem;
+		width: 100%;
+		max-width: 56rem;
+		text-align: left;
+	}
+
+	.hero .copy {
+		display: contents;
+	}
+
+	.hero [data-page-title] {
+		grid-column: 1 / -1;
+		text-align: center;
+		margin-bottom: 2.75rem;
+	}
+
+	.hero .copy > .tagline {
+		grid-column: 1;
+		grid-row: 2;
+		max-width: 58ch;
+		margin: 0;
+	}
+
+	.hero .actions {
+		grid-column: 2;
+		grid-row: 2;
+		align-self: center;
+		justify-content: center;
+	}
+}
+
+h1[data-page-title] {
+	font-family: 'Exo 2', sans-serif;
+	font-weight: 750;
+}
+
+/* Home hero headline: terminal type (Ubuntu Mono), both lines one size */
+.hero h1[data-page-title] {
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+/* Header: logo on the left, search pushed right next to the social links */
+@media (min-width: 50rem) {
+	.header {
+		display: flex;
+		justify-content: flex-start;
+		width: 100%;
+	}
+
+	.header > div:nth-child(2) {
+		flex: 0 1 22rem;
+		margin-inline-start: auto;
+	}
+
+	.header > div:nth-child(2) site-search {
+		width: 100%;
+	}
+}
+
+.hero-eyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.35rem 0.9rem;
+	margin-bottom: 1.1rem;
+	border-radius: 999px;
+	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-accent-high);
+	font-family: var(--sl-font);
+	font-size: var(--sl-text-xs);
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+}
+
+.hero-gradient {
+	background: linear-gradient(135deg, var(--sl-color-accent-high), var(--sl-color-accent));
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+.hero-lead {
+	display: inline-block;
+	white-space: nowrap;
+	font-size: 0.95em;
+}
+
+/* Typewriter word: types, holds, erases, types the next one */
+.hero-rotator {
+	display: block;
+	font-size: 0.95em;
+	line-height: 1.15;
+	height: 1.15em;
+	margin-top: 0.08em;
+	color: var(--sl-color-accent);
+	white-space: nowrap;
+}
+
+/* Before JS runs: show only the first word */
+.hero-rotator:not(.is-typing) .hero-trait:not(:first-child) {
+	display: none;
+}
+
+.hero-caret {
+	display: inline-block;
+	width: 0.5em;
+	height: 0.95em;
+	margin-left: 0.08em;
+	vertical-align: -0.1em;
+	background: currentColor;
+	opacity: 0.85;
+}
+
+.hero-caret.is-blinking {
+	animation: hero-caret-blink 1s steps(1) infinite;
+}
+
+@keyframes hero-caret-blink {
+	50% {
+		opacity: 0;
+	}
+}
+
+/* ---------- Lede (no-lock-in line above install snippet) ---------- */
+
+.agboss-lede {
+	max-width: 64rem;
+	margin: 1rem auto 1.75rem;
+	text-align: center;
+}
+
+.agboss-lede p {
+	margin: 0 auto;
+	max-width: 46ch;
+	color: var(--sl-color-gray-2);
+}
+
+.agboss-lede .agboss-slogan {
+	max-width: none;
+	margin-bottom: 0.6rem;
+	font-family: 'Exo 2', sans-serif;
+	font-weight: 750;
+	font-size: clamp(1.5rem, 0.9rem + 1.8vw, 2.25rem);
+	line-height: 1.15;
+	letter-spacing: -0.01em;
+	color: var(--sl-color-white);
+}
+
+.agboss-lede a {
+	color: var(--sl-color-accent-high);
+}
+
+/* ---------- Install snippet ---------- */
+
+.agboss-install {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.9rem;
+	width: fit-content;
+	margin: 0 auto 3rem;
+	padding: 0.85rem 1.75rem;
+	border-radius: 999px;
+	border: 1px solid var(--sl-color-hairline);
+	background: var(--sl-color-bg-nav);
+	box-shadow: 0 16px 40px -20px rgba(37, 140, 235, 0.35);
+	font-family: var(--sl-font-mono);
+	font-size: 1.05rem;
+}
+
+.agboss-install-prompt {
+	color: var(--sl-color-accent);
+	font-weight: 700;
+	font-size: 1.1rem;
+}
+
+.agboss-install code {
+	background: none;
+	padding: 0;
+	border: none;
+	color: inherit;
+	font-size: inherit;
+	font-weight: 600;
+}
+
+.agboss-copy {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--sl-color-gray-3, #64748b);
+	font-size: 1.1rem;
+	line-height: 1;
+	padding: 0 0 0 0.25rem;
+}
+
+.agboss-copy:hover {
+	color: var(--sl-color-accent);
+}
+
+/* ---------- Feature explorer: features on the left, live code on the right ---------- */
+
+.agx {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1.5rem;
+	margin: 1.5rem 0 4rem;
+}
+
+@media (min-width: 60rem) {
+	.agx {
+		grid-template-columns: minmax(15rem, 19rem) 1fr;
+		align-items: start;
+		gap: 2rem;
+	}
+}
+
+.agx-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0 !important;
+}
+
+.agx-item {
+	margin: 0 !important;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 12px;
+	background: var(--sl-color-bg-nav);
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.agx-item:hover {
+	border-color: color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-hairline));
+}
+
+.agx-item.is-active {
+	border-color: var(--sl-color-accent);
+	box-shadow: 0 10px 30px -18px rgba(37, 140, 235, 0.6);
+}
+
+.agx-tab {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	width: 100%;
+	margin: 0 !important;
+	padding: 0.85rem 1rem;
+	border: none;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.agx-title {
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+
+.agx-desc {
+	font-size: var(--sl-text-sm);
+	line-height: 1.45;
+	color: var(--sl-color-gray-3);
+}
+
+.agx-subs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin: 0 !important;
+	padding: 0 1rem 0.9rem;
+}
+
+.agx-item:not(.is-active) .agx-sub.is-active {
+	border-color: var(--sl-color-hairline);
+	background: none;
+	color: var(--sl-color-gray-2);
+}
+
+.agx-sub {
+	margin: 0 !important;
+	padding: 0.25rem 0.6rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 999px;
+	background: none;
+	color: var(--sl-color-gray-2);
+	font-family: var(--sl-font-mono);
+	font-size: 0.78rem;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.agx-sub:hover {
+	border-color: var(--sl-color-accent);
+	color: var(--sl-color-accent);
+}
+
+.agx-sub.is-active {
+	border-color: var(--sl-color-accent);
+	background: var(--sl-color-accent);
+	color: #fff;
+}
+
+.agx-code {
+	margin: 0 !important;
+	min-width: 0;
+}
+
+@media (min-width: 60rem) {
+	.agx-code {
+		position: sticky;
+		top: calc(var(--sl-nav-height) + 1rem);
+	}
+}
+
+.agx-win {
+	margin: 0 !important;
+	border-radius: 14px;
+	overflow: hidden;
+	background: var(--agx-bg);
+	border: 1px solid var(--agx-border);
+	box-shadow: var(--agx-shadow);
+	font-family: var(--sl-font-mono);
+	transition: opacity 0.14s ease, background 0.2s ease;
+}
+
+.agx-win.is-swapping {
+	opacity: 0.25;
+}
+
+.agx-bar {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	margin: 0 !important;
+	padding: 0.7rem 1rem;
+	border-bottom: 1px solid var(--agx-border);
+	background: var(--agx-bar);
+}
+
+.agx-bar > span:not(.agx-file) {
+	width: 11px;
+	height: 11px;
+	margin: 0 !important;
+	border-radius: 50%;
+}
+
+.agx-bar > span:nth-child(1) {
+	background: #ef4444;
+}
+.agx-bar > span:nth-child(2) {
+	background: #f59e0b;
+}
+.agx-bar > span:nth-child(3) {
+	background: #22c55e;
+}
+
+.agx-file {
+	margin: 0 0 0 0.5rem !important;
+	font-size: 0.8rem;
+	color: var(--agx-muted);
+}
+
+.agx-body {
+	margin: 0 !important;
+	padding: 1.25rem 1.4rem;
+	overflow: hidden;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	border: none !important;
+	background: transparent !important;
+	font-size: 0.86rem;
+	line-height: 1.7;
+	color: var(--agx-text);
+	text-align: left;
+}
+
+.agx-body code {
+	white-space: inherit;
+	background: none;
+	padding: 0;
+	border: none;
+	font-size: inherit;
+	color: inherit;
+}
+
+.tok-kw {
+	color: var(--agx-kw);
+}
+.tok-cls {
+	color: var(--agx-cls);
+}
+.tok-str {
+	color: var(--agx-str);
+}
+.tok-dec {
+	color: var(--agx-dec);
+}
+.tok-com {
+	color: var(--agx-com);
+	font-style: italic;
+}
+
+/* Code window follows the site theme */
+:root {
+	--agx-bg: #0d111c;
+	--agx-bar: #121826;
+	--agx-border: #1e293b;
+	--agx-text: #d6deeb;
+	--agx-muted: #7c8aa5;
+	--agx-kw: #c678dd;
+	--agx-cls: var(--sl-color-accent-high); /* brand light blue — no extra shade */
+	--agx-str: #a0d97e;
+	--agx-dec: #f0c674;
+	--agx-com: #6b7a99;
+	--agx-shadow: 0 28px 70px -24px rgba(37, 140, 235, 0.45);
+}
+
+:root[data-theme='light'] {
+	--agx-bg: #fbfcfe;
+	--agx-bar: #f1f5f9;
+	--agx-border: #e2e8f0;
+	--agx-text: #1e293b;
+	--agx-muted: #64748b;
+	--agx-kw: #a626a4;
+	--agx-cls: var(--sl-color-accent-high); /* brand dark blue in light theme */
+	--agx-str: #3d7a1e;
+	--agx-dec: #b45309;
+	--agx-com: #8a94a6;
+	--agx-shadow: 0 24px 60px -28px rgba(37, 140, 235, 0.35);
+}
+
+.agx-about {
+	margin: 1rem 0.25rem 0 !important;
+	font-size: var(--sl-text-sm);
+	line-height: 1.6;
+	color: var(--sl-color-gray-2);
+}
+
+.agx-about code {
+	font-size: 0.85em;
+}
+
+/* ---------- Ubuntu Mono: headings only ---------- */
+
+:root {
+	--agb-font-term: 'Ubuntu Mono', var(--sl-font-mono);
+}
+
+.sl-markdown-content :is(h1, h2, h3, h4),
+h1[data-page-title],
+.agboss-lede .agboss-slogan {
+	font-family: var(--agb-font-term);
+}
+
+.sl-markdown-content :is(h2, h3) {
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+
+#what-agboss-can-do {
+	font-size: 2rem;
+	white-space: nowrap;
+}
+
+/* ---------- Soft blue glows further down the page (same palette as the hero) ---------- */
+
+.agboss-lede,
+.agx {
+	position: relative;
+	isolation: isolate;
+}
+
+.agboss-lede::before,
+.agx::before {
+	content: '';
+	position: absolute;
+	z-index: -1;
+	pointer-events: none;
+	filter: blur(24px);
+}
+
+/* a faint wash behind the slogan, offset right */
+.agboss-lede::before {
+	inset: -3rem -10% -2rem 35%;
+	background: radial-gradient(45% 60% at 60% 45%, rgba(141, 198, 247, 0.22), transparent 70%);
+}
+
+/* two strokes behind the feature explorer: one under the list, one behind the code */
+.agx::before {
+	inset: -4rem -12% -4rem -12%;
+	background:
+		radial-gradient(30% 40% at 6% 30%, rgba(141, 198, 247, 0.24), transparent 70%),
+		radial-gradient(36% 34% at 94% 72%, rgba(141, 198, 247, 0.24), transparent 70%);
+}
+
+:root[data-theme='light'] .agboss-lede::before {
+	background: radial-gradient(45% 60% at 60% 45%, rgba(37, 140, 235, 0.12), transparent 70%);
+}
+
+:root[data-theme='light'] .agx::before {
+	background:
+		radial-gradient(28% 38% at 8% 30%, rgba(141, 198, 247, 0.28), transparent 70%),
+		radial-gradient(34% 30% at 92% 72%, rgba(37, 140, 235, 0.14), transparent 70%);
+}
+
+/* Experiment (dark theme): one light blue (#8dc6f7, same as the AGBoss wordmark) everywhere */
+:root:not([data-theme='light']) .hero-rotator {
+	color: var(--sl-color-accent-high);
+}
+:root:not([data-theme='light']) .agx-sub.is-active {
+	border-color: var(--sl-color-accent-high);
+	background: var(--sl-color-accent-high);
+	color: var(--sl-color-black);
+}
+:root:not([data-theme='light']) .agx-sub:hover {
+	border-color: var(--sl-color-accent-high);
+	color: var(--sl-color-accent-high);
+}
+:root:not([data-theme='light']) .agx-sub.is-active:hover {
+	color: var(--sl-color-black);
+}
+
+/* Primary CTA turns white on hover */
+.sl-link-button.primary {
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.sl-link-button.primary:hover {
+	background: var(--sl-color-gray-2);
+	border-color: var(--sl-color-gray-2);
+	color: var(--sl-color-black);
+}
+
+/* Social icons: quiet grey, white on hover (no accent blue) */
+header a[rel='me'] {
+	color: var(--sl-color-gray-2);
+	transition: color 0.15s ease;
+}
+header a[rel='me']:hover {
+	color: var(--sl-color-white);
+}
+
+/* Keep the hero glow from washing over the announcement banner */
+.sl-banner {
+	position: relative;
+	z-index: 1;
+}
+
+/* ---------- "Flashlight" code: real AGBoss code everywhere, visible only as strongly as the glow lights it ---------- */
+
+.hero::after,
+.agboss-lede::after,
+.agx::after {
+	content: ' \A  \A  \A  \A  \A  \A   @Router({\A     name: "main",\A     maxVisits: 3,\A   })\A  \A  \A  \A                   @Rag({ name: "company_notes", topK: 3 })\A  \A  \A  \A  \A  \A  \A  \A  \A                                                                                                                                                   guards: {\A                                                                                                                                                     input: {\A                                                                                                                                                       prompt_injection: { threshold: 0.7 },\A                                                                                                                                                     },\A                                                                                                                                                   },\A  \A                                                                                                                                   settings(): WorkflowSettings {\A                                                                                                                                     return WorkflowSettings.builder()\A                                                                                                                                       .limits({ perRun: { cost: usd(0.1) } })\A                                                                                                                                       .build();\A                                                                                                                                   }';
+	/* content set per element below: a few small, properly formatted fragments with lots of empty space */
+	position: absolute;
+	z-index: -1;
+	overflow: hidden;
+	white-space: pre;
+	font-family: var(--sl-font-mono);
+	font-size: 0.78rem;
+	line-height: 2.1;
+	text-align: left;
+	color: var(--sl-color-accent-high);
+	opacity: 0.28;
+	pointer-events: none;
+	user-select: none;
+}
+
+/* hero: same light spots as the hero glow, but never behind the headline */
+.hero::after {
+	inset: -4rem -12% -1rem;
+	/* lit spots ... minus a clear band in the middle so nothing competes with the headline */
+	mask-image:
+		linear-gradient(to right, black 0%, black 20%, transparent 33%, transparent 67%, black 80%, black 100%),
+		radial-gradient(38% 42% at 86% 12%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%),
+		radial-gradient(48% 55% at 16% 18%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%);
+	/* band ∩ (right spot ∪ left spot) */
+	mask-composite: intersect, add, add;
+}
+
+/* slogan: same box and spot as its glow */
+.agboss-lede::after {
+	content: ' \A  \A                                                 @Agent({\A                                                   name: "scout",\A                                                   thinking: "none",\A                                                   tools: [GreenhouseJobs],\A                                                 })\A                                                                       from(ChatWorkflowStart)\A                                                                         .next(MainRouter),';
+	inset: -3rem -10% -2rem 35%;
+	padding-top: 0.5rem;
+	mask-image: radial-gradient(45% 60% at 60% 45%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%);
+	-webkit-mask-image: radial-gradient(45% 60% at 60% 45%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%);
+}
+
+/* explorer: same box and both spots as its glow */
+.agx::after {
+	inset: -4rem -12% -4rem -12%;
+	mask-image:
+		radial-gradient(30% 40% at 6% 30%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%),
+		radial-gradient(36% 34% at 94% 72%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%);
+	-webkit-mask-image:
+		radial-gradient(30% 40% at 6% 30%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%),
+		radial-gradient(36% 34% at 94% 72%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%);
+}
+
+:root[data-theme='light'] .hero::after,
+:root[data-theme='light'] .agboss-lede::after,
+:root[data-theme='light'] .agx::after {
+	color: var(--sl-color-accent);
+	opacity: 0.28;
+}
+
+@media (max-width: 50rem) {
+	.hero::after,
+	.agboss-lede::after,
+	.agx::after {
+		display: none;
+	}
+}
