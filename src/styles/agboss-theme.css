@@ -654,6 +654,11 @@ header a[rel='me']:hover {
 .sl-banner {
 	position: relative;
 	z-index: 1;
+	font-size: 1rem;
+	font-weight: 600;
+}
+.sl-banner a {
+	font-weight: 700;
 }
 
 /* ---------- "Flashlight" code: real AGBoss code everywhere, visible only as strongly as the glow lights it ---------- */
