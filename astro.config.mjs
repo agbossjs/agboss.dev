@@ -21,6 +21,11 @@ export default defineConfig({
 				{ icon: 'twitter', label: 'Twitter', href: 'https://twitter.com/agbossjs' },
 				{ icon: 'linkedin', label: 'LinkedIn', href: 'https://www.linkedin.com/company/agbossjs' },
 			],
+			// SVG mark adapts to the browser's light/dark tab; .ico is the fallback for older browsers
+			favicon: '/favicon.svg',
+			head: [
+				{ tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' } },
+			],
 			editLink: {
 				baseUrl: 'https://github.com/agbossjs/agboss.dev/edit/main/',
 			},
