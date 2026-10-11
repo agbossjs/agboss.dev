@@ -124,12 +124,12 @@ main:has(.agp) h1#_top {
 /* cards */
 .agp-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
 	gap: 1rem;
 }
 
 .agp-grid.is-2 {
-	grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
 }
 
 .agp-card {
@@ -182,7 +182,7 @@ a.agp-card:hover {
 /* "Spring is …" feature rows */
 .agp-features {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
 	gap: 2.75rem 3rem;
 }
 
@@ -417,7 +417,7 @@ a.agp-item:hover {
 
 .agp-split {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
 	gap: 1rem;
 }
 
@@ -561,7 +561,7 @@ a.agp-item:hover {
 
 .agp-phase-items {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
 	gap: 0.5rem 1.75rem;
 	margin: 0;
 	padding: 0;
@@ -598,7 +598,7 @@ a.agp-item:hover {
 
 .agp-phase-groups {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
 	gap: 1rem 1.75rem;
 }
 

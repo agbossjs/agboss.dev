@@ -553,7 +553,7 @@ h1[data-page-title],
 
 
 #what-agboss-can-do {
-	font-size: 2rem;
+	font-size: clamp(1.6rem, 1rem + 3vw, 2rem);
 	white-space: nowrap;
 }
 
@@ -710,5 +710,17 @@ header a[rel='me']:hover {
 	.agboss-lede::after,
 	.agx::after {
 		display: none;
+	}
+}
+
+/* Decorative glows extend past the content column with negative insets; keep them from widening the page. */
+.main-frame {
+	overflow-x: clip;
+}
+
+/* The one-line hero lead is wider than a phone screen: let it wrap there. */
+@media (max-width: 30rem) {
+	.hero-lead {
+		white-space: normal;
 	}
 }
