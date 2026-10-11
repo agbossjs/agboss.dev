@@ -724,3 +724,36 @@ header a[rel='me']:hover {
 		white-space: normal;
 	}
 }
+
+/* Wider lede: the one-sentence description fits on one line on desktop */
+.agboss-lede.is-wide p {
+	max-width: 62ch;
+}
+
+/* Feature explorer on phones: code keeps its lines and scrolls sideways inside the window */
+@media (max-width: 59.99rem) {
+	.agx-body {
+		white-space: pre;
+		overflow-wrap: normal;
+		overflow-x: auto;
+		font-size: 0.8rem;
+		padding: 1rem 1.1rem;
+	}
+}
+
+/* Links in the hero tagline: quiet underline, so they don't compete with the main button */
+.hero .tagline a {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.2em;
+}
+
+.hero .tagline a:hover {
+	text-decoration-color: currentColor;
+}
+
+.agx-list {
+	min-width: 0;
+}

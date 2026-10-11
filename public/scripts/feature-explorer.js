@@ -387,9 +387,35 @@
 		var items = root.querySelectorAll(".agx-item");
 		var subs = root.querySelectorAll(".agx-sub");
 		var current = null;
+		var codeBox = root.querySelector(".agx-code");
+		var narrow = window.matchMedia("(max-width: 59.99rem)");
+
+		// On phones the list and the code are one column: put the example right under the chosen card,
+		// so the result of a tap is on screen. On desktop the code sits in its own column.
+		function placeCode(scroll) {
+			var active = root.querySelector(".agx-item.is-active");
+			if (narrow.matches && active) {
+				if (active.nextElementSibling !== codeBox) { active.after(codeBox); }
+				if (scroll) {
+					var top = active.getBoundingClientRect().top;
+					var nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sl-nav-height")) * 16 || 64;
+					if (top < nav || top > window.innerHeight * 0.25) {
+						window.scrollTo({ top: window.scrollY + top - nav - 12, behavior: "smooth" });
+					}
+				}
+			} else if (codeBox.parentElement !== root) {
+				root.appendChild(codeBox);
+			}
+		}
 
 		// Size the window once for the tallest snippet: no scrollbars, no jumps when switching.
 		function fitHeight() {
+			if (narrow.matches) {
+				// Phones: the example sits under its card, so let each one take its own height.
+				body.style.minHeight = "0px";
+				aboutEl.style.minHeight = "0px";
+				return;
+			}
 			var tallest = 0;
 			var tallestAbout = 0;
 			body.style.minHeight = "0px";
@@ -422,6 +448,7 @@
 			var tab = item.querySelector(".agx-tab");
 			tab.addEventListener("click", function () {
 				items.forEach(function (i) { i.classList.toggle("is-active", i === item); });
+				placeCode(true);
 				var activeSub = item.querySelector(".agx-sub.is-active");
 				show(activeSub ? activeSub.getAttribute("data-key") : tab.getAttribute("data-key"));
 			});
@@ -432,18 +459,20 @@
 				var owner = sub.closest(".agx-item");
 				items.forEach(function (i) { i.classList.toggle("is-active", i === owner); });
 				subs.forEach(function (s) { s.classList.toggle("is-active", s === sub); });
+				placeCode(true);
 				show(sub.getAttribute("data-key"));
 			});
 		});
 
 		current = "workflow";
 		fileEl.textContent = SNIPPETS.workflow.file;
+		placeCode(false);
 		fitHeight();
 
 		var resizeTimer;
 		window.addEventListener("resize", function () {
 			clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(fitHeight, 150);
+			resizeTimer = setTimeout(function () { placeCode(false); fitHeight(); }, 150);
 		});
 	}
 
