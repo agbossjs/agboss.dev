@@ -36,6 +36,10 @@ npm run preview    # serve the built site locally
 Pushes to `main` build and deploy to Firebase Hosting via Workload Identity Federation (no stored
 keys — see `.github/workflows/`). Pull requests build only; they never touch GCP.
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## License
 
 Code in this repository is MIT licensed (see [LICENSE](./LICENSE)).
