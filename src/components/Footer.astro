@@ -1,0 +1,137 @@
+---
+// Starlight Footer override: the default doc footer (edit link, last updated, pagination)
+// followed by a Spring-style sitemap that mirrors the main menu.
+import EditLink from 'virtual:starlight/components/EditLink';
+import LastUpdated from 'virtual:starlight/components/LastUpdated';
+import Pagination from 'virtual:starlight/components/Pagination';
+import { NAV } from './nav';
+
+const isSplash = Astro.locals.starlightRoute?.entry?.data?.template === 'splash';
+const columns = NAV.filter((i) => i.groups).map((i) => ({
+	label: i.label,
+	links: i.groups!.flatMap((g) => g.links).filter((l) => l.href),
+}));
+const year = new Date().getFullYear();
+---
+
+<footer class="agb-footer">
+	{
+		!isSplash && (
+			<>
+				<div class="meta">
+					<EditLink />
+					<LastUpdated />
+				</div>
+				<Pagination />
+			</>
+		)
+	}
+
+	<div class="agb-sitemap">
+		<div class="agb-sitemap-brand">
+			<a href="/" class="agb-sitemap-logo">AGBoss <span>Framework</span></a>
+			<p>Agent Graph Builder, Open-Source Software.<br />MIT licensed.</p>
+			<a class="agb-sitemap-roadmap" href="/roadmap/">See the roadmap →</a>
+		</div>
+		{
+			columns.map((c) => (
+				<div class="agb-sitemap-col">
+					<p>{c.label}</p>
+					<ul>
+						{c.links.map((l) => (
+							<li>
+								<a href={l.href}>{l.label}</a>
+							</li>
+						))}
+					</ul>
+				</div>
+			))
+		}
+	</div>
+	<p class="agb-copy">© {year} AGBoss. Not affiliated with LangChain or the Spring project.</p>
+</footer>
+
+<style>
+	.agb-footer {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.75rem 3rem;
+		margin-top: 3rem;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+	}
+
+	.agb-sitemap {
+		display: grid;
+		grid-template-columns: minmax(12rem, 1.4fr) repeat(auto-fit, minmax(8rem, 1fr));
+		gap: 2rem 1.5rem;
+		margin-top: 3rem;
+		padding-top: 2.5rem;
+		border-top: 1px solid var(--sl-color-hairline);
+	}
+
+	.agb-sitemap-logo {
+		font-family: 'Exo 2', sans-serif;
+		font-weight: 750;
+		font-size: 1.1rem;
+		color: var(--sl-color-accent-high);
+		text-decoration: none;
+	}
+
+	.agb-sitemap-logo span {
+		font-weight: 600;
+		color: var(--sl-color-gray-2);
+	}
+
+	.agb-sitemap-brand p {
+		margin: 0.6rem 0 0.9rem;
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-sm);
+		line-height: 1.55;
+	}
+
+	.agb-sitemap-roadmap {
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		color: var(--sl-color-accent-high);
+		text-decoration: none;
+	}
+
+	.agb-sitemap-col p {
+		margin: 0 0 0.6rem;
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+	}
+
+	.agb-sitemap-col ul {
+		display: grid;
+		gap: 0.35rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.agb-sitemap-col a {
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-sm);
+		text-decoration: none;
+	}
+
+	.agb-sitemap-col a:hover {
+		color: var(--sl-color-white);
+	}
+
+	.agb-copy {
+		margin: 0.5rem 0 1rem;
+		color: var(--sl-color-gray-4);
+		font-size: var(--sl-text-xs);
+	}
+</style>

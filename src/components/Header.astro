@@ -1,0 +1,443 @@
+---
+// Starlight Header override: logo · Spring-style mega menu · search · socials · theme.
+import config from 'virtual:starlight/user-config';
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import { NAV } from './nav';
+
+const shouldRenderSearch =
+	config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+
+const here = Astro.url.pathname;
+const isActive = (item: (typeof NAV)[number]) => {
+	const hrefs = item.href
+		? [item.href]
+		: (item.groups ?? []).flatMap((g) => g.links.map((l) => l.href)).filter(Boolean);
+	return hrefs.some((h) => h && h.startsWith('/') && h !== '/' && here.startsWith(h.split('#')[0]));
+};
+---
+
+<div class="header agb-header">
+	<div class="title-wrapper sl-flex">
+		<SiteTitle />
+	</div>
+
+	<button class="agb-burger" type="button" aria-label="Menu" aria-expanded="false">
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+	</button>
+
+	<nav class="agb-nav" aria-label="Main">
+		<ul class="agb-nav-list">
+			{
+				NAV.map((item) => (
+					<li class:list={['agb-nav-item', { 'is-active': isActive(item) }]}>
+						{item.href ? (
+							<a class="agb-nav-top" href={item.href}>
+								{item.label}
+							</a>
+						) : (
+							<>
+								<button class="agb-nav-top" type="button" aria-expanded="false">
+									{item.label}
+									{item.soon && <span class="agb-pill">Soon</span>}
+									<svg class="agb-chev" viewBox="0 0 12 12" aria-hidden="true">
+										<path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+									</svg>
+								</button>
+								<div class="agb-panel">
+									<div class="agb-panel-inner">
+										{item.blurb && (
+											<p class="agb-panel-blurb">
+												<span class="agb-panel-title">{item.label}</span>
+												{item.blurb}
+											</p>
+										)}
+										{item.groups?.map((g) => (
+											<div class="agb-panel-group">
+												{g.title && <p class="agb-panel-group-title">{g.title}</p>}
+												<ul>
+													{g.links.map((l) =>
+														l.href ? (
+															<li>
+																<a href={l.href} {...(l.href.startsWith('http') ? { rel: 'noopener', target: '_blank' } : {})}>
+																	{l.label}
+																</a>
+															</li>
+														) : (
+															<li>
+																<span class="agb-soon" title="Coming soon">
+																	{l.label}
+																	<span class="agb-pill">Soon</span>
+																</span>
+															</li>
+														),
+													)}
+												</ul>
+											</div>
+										))}
+									</div>
+								</div>
+							</>
+						)}
+					</li>
+				))
+			}
+		</ul>
+	</nav>
+
+	<div class="agb-search sl-flex print:hidden">
+		{shouldRenderSearch && <Search />}
+	</div>
+
+	<div class="sl-hidden md:sl-flex print:hidden right-group">
+		<div class="sl-flex social-icons">
+			<SocialIcons />
+		</div>
+		<ThemeSelect />
+		<LanguageSelect />
+	</div>
+</div>
+
+<script>
+	// Click / keyboard support for the dropdowns (hover already works via CSS on desktop).
+	const items = document.querySelectorAll<HTMLLIElement>('.agb-nav-item');
+	const closeAll = (except?: Element) =>
+		items.forEach((li) => {
+			if (li === except) return;
+			li.classList.remove('is-open');
+			li.querySelector('button')?.setAttribute('aria-expanded', 'false');
+		});
+
+	items.forEach((li) => {
+		const btn = li.querySelector('button');
+		if (!btn) return;
+		btn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			const open = !li.classList.contains('is-open');
+			closeAll(li);
+			li.classList.toggle('is-open', open);
+			btn.setAttribute('aria-expanded', String(open));
+		});
+	});
+	document.addEventListener('click', () => closeAll());
+
+	// Narrow screens: the whole menu opens as one panel under the header
+	const header = document.querySelector<HTMLElement>('.agb-header');
+	const burger = document.querySelector<HTMLButtonElement>('.agb-burger');
+	burger?.addEventListener('click', (e) => {
+		e.stopPropagation();
+		const open = !header?.classList.contains('menu-open');
+		header?.classList.toggle('menu-open', open);
+		burger.setAttribute('aria-expanded', String(open));
+	});
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape') closeAll();
+	});
+</script>
+
+<style>
+	.agb-header {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+		height: 100%;
+		width: 100%;
+	}
+
+	.title-wrapper {
+		overflow: clip;
+		padding: 0.25rem;
+		margin: -0.25rem;
+		min-width: 0;
+		flex: none;
+	}
+
+	/* ---------- menu ---------- */
+	.agb-nav {
+		display: none;
+		height: 100%;
+	}
+
+	.agb-nav-list {
+		display: flex;
+		align-items: stretch;
+		gap: 0.15rem;
+		height: 100%;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.agb-nav-item {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.agb-nav-top {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.4rem 0.7rem;
+		border: 0;
+		border-radius: 8px;
+		background: none;
+		color: var(--sl-color-gray-2);
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		text-decoration: none;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: color 0.15s ease, background-color 0.15s ease;
+	}
+
+	.agb-nav-item:hover .agb-nav-top,
+	.agb-nav-item.is-open .agb-nav-top,
+	.agb-nav-top:focus-visible {
+		color: var(--sl-color-white);
+		background: color-mix(in srgb, var(--sl-color-gray-5) 45%, transparent);
+	}
+
+	.agb-nav-item.is-active .agb-nav-top {
+		color: var(--sl-color-white);
+	}
+
+	.agb-chev {
+		width: 0.75rem;
+		height: 0.75rem;
+		opacity: 0.7;
+		transition: transform 0.15s ease;
+	}
+
+	.agb-nav-item:hover .agb-chev,
+	.agb-nav-item.is-open .agb-chev {
+		transform: rotate(180deg);
+	}
+
+	.agb-pill {
+		display: inline-block;
+		padding: 0.05rem 0.4rem;
+		border-radius: 999px;
+		border: 1px solid color-mix(in srgb, var(--sl-color-accent-high) 45%, transparent);
+		color: var(--sl-color-accent-high);
+		font-size: 0.65rem;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		line-height: 1.4;
+	}
+
+	/* dropdown panel */
+	.agb-panel {
+		position: absolute;
+		top: 100%;
+		left: -0.5rem;
+		z-index: 30;
+		display: none;
+		padding-top: 0.5rem; /* hover bridge between the button and the panel */
+	}
+
+	.agb-nav-item:hover .agb-panel,
+	.agb-nav-item:focus-within .agb-panel,
+	.agb-nav-item.is-open .agb-panel {
+		display: block;
+	}
+
+	.agb-panel-inner {
+		display: flex;
+		gap: 2rem;
+		padding: 1.25rem 1.5rem;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 12px;
+		background: var(--sl-color-bg-nav);
+		box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.55);
+	}
+
+	.agb-panel-blurb {
+		width: 13rem;
+		margin: 0;
+		padding-right: 1.5rem;
+		border-right: 1px solid var(--sl-color-hairline);
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-sm);
+		line-height: 1.5;
+	}
+
+	.agb-panel-title {
+		display: block;
+		margin-bottom: 0.4rem;
+		color: var(--sl-color-white);
+		font-family: 'Ubuntu Mono', var(--sl-font-mono);
+		font-size: 1.15rem;
+		font-weight: 700;
+	}
+
+	.agb-panel-group {
+		min-width: 9.5rem;
+	}
+
+	.agb-panel-group-title {
+		margin: 0 0 0.5rem;
+		color: var(--sl-color-gray-3);
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.agb-panel-group ul {
+		display: grid;
+		gap: 0.15rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.agb-panel-group a,
+	.agb-soon {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.3rem 0;
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-sm);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.agb-panel-group a:hover {
+		color: var(--sl-color-accent-high);
+	}
+
+	.agb-soon {
+		color: var(--sl-color-gray-4);
+		cursor: default;
+	}
+
+	/* ---------- right side ---------- */
+	.agb-search {
+		flex: 0 1 15rem;
+		margin-inline-start: auto;
+		min-width: 0;
+	}
+
+	.agb-search :global(site-search) {
+		width: 100%;
+	}
+
+	.right-group,
+	.social-icons {
+		gap: 1rem;
+		align-items: center;
+	}
+
+	.social-icons::after {
+		content: '';
+		height: 2rem;
+		border-inline-end: 1px solid var(--sl-color-gray-5);
+	}
+
+	/* burger + stacked menu below 72rem */
+	.agb-burger {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		padding: 0;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 8px;
+		background: none;
+		color: var(--sl-color-gray-2);
+		cursor: pointer;
+		flex: none;
+		order: 10;
+	}
+	.agb-burger svg {
+		width: 1.2rem;
+		height: 1.2rem;
+	}
+
+	@media (max-width: 71.99rem) {
+		.agb-header.menu-open .agb-nav {
+			display: block;
+			position: fixed;
+			top: var(--sl-nav-height);
+			left: 0;
+			right: 0;
+			bottom: 0;
+			z-index: 40;
+			height: auto;
+			overflow-y: auto;
+			padding: 1rem 1.25rem 3rem;
+			background: var(--sl-color-bg-nav);
+			border-top: 1px solid var(--sl-color-hairline);
+		}
+		.agb-header.menu-open .agb-nav-list {
+			flex-direction: column;
+			gap: 1.25rem;
+			height: auto;
+		}
+		.agb-header.menu-open .agb-nav-item {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		.agb-header.menu-open .agb-nav-top {
+			padding: 0.2rem 0;
+			font-size: var(--sl-text-lg);
+			color: var(--sl-color-white);
+			background: none;
+			pointer-events: none;
+		}
+		.agb-header.menu-open a.agb-nav-top {
+			pointer-events: auto;
+		}
+		.agb-header.menu-open .agb-chev,
+		.agb-header.menu-open .agb-panel-blurb {
+			display: none;
+		}
+		.agb-header.menu-open .agb-panel {
+			display: block;
+			position: static;
+			padding: 0;
+		}
+		.agb-header.menu-open .agb-panel-inner {
+			flex-wrap: wrap;
+			gap: 0.75rem 2rem;
+			padding: 0.25rem 0 0;
+			border: 0;
+			box-shadow: none;
+			background: none;
+		}
+	}
+
+	/* docs pages on phones already have Starlight's sidebar toggle */
+	@media (max-width: 49.99rem) {
+		:global(:root[data-has-sidebar]) .agb-burger {
+			display: none;
+		}
+	}
+
+	@media (min-width: 72rem) {
+		/* menu pushed right, next to the search */
+		.agb-nav {
+			display: block;
+			margin-inline-start: auto;
+		}
+		.agb-search {
+			margin-inline-start: 0;
+		}
+		/* panels of the right-most items open leftwards so they stay on screen */
+		.agb-nav-item:nth-last-child(-n + 2) .agb-panel {
+			left: auto;
+			right: -0.5rem;
+		}
+		.agb-burger {
+			display: none;
+		}
+	}
+</style>

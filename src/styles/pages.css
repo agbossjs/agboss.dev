@@ -1,0 +1,756 @@
+/* ---------- Spring-style content pages: Why AGBoss, Roadmap, Community, Enterprise ----------
+   Each page wraps its body in <div class="agp not-content">. The Starlight page title (h1#_top)
+   becomes the page hero. */
+
+main:has(.agp) .content-panel:first-of-type {
+	position: relative;
+	padding-top: 3.5rem;
+	padding-bottom: 0.5rem;
+}
+
+/* soft glow behind the page title, same language as the homepage */
+main:has(.agp) .content-panel:first-of-type::before {
+	content: '';
+	position: absolute;
+	inset: -2rem -10% -4rem;
+	z-index: -1;
+	pointer-events: none;
+	background: radial-gradient(40% 70% at 22% 30%, rgba(141, 198, 247, 0.18), transparent 70%);
+}
+
+:root[data-theme='light'] main:has(.agp) .content-panel:first-of-type::before {
+	background: radial-gradient(40% 70% at 22% 30%, rgba(37, 140, 235, 0.1), transparent 70%);
+}
+
+main:has(.agp) h1#_top {
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-weight: 700;
+	font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.6rem);
+	letter-spacing: -0.01em;
+	line-height: 1.05;
+}
+
+.agp {
+	--agp-card: color-mix(in srgb, var(--sl-color-gray-6) 55%, transparent);
+	--agp-line: var(--sl-color-hairline);
+	--agp-green: #4ade80;
+	position: relative;
+	display: grid;
+	gap: 4.5rem;
+	padding-bottom: 2rem;
+	font-size: var(--sl-text-base);
+	color: var(--sl-color-gray-2);
+}
+
+:root[data-theme='light'] .agp {
+	--agp-card: #f6f8fb;
+	--agp-green: #15803d;
+}
+
+.agp a {
+	color: var(--sl-color-accent-high);
+}
+
+.agp-lead {
+	max-width: 46rem;
+	margin: -0.5rem 0 0;
+	font-size: var(--sl-text-xl);
+	line-height: 1.55;
+	color: var(--sl-color-gray-2);
+}
+
+.agp-lead + .agp-actions,
+.agp-lead + .agp-legend {
+	margin-top: -3rem;
+}
+
+.agp-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1.25rem;
+}
+
+.agp-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.7rem 1.35rem;
+	border-radius: 999px;
+	border: 1px solid var(--sl-color-accent-high);
+	background: var(--sl-color-accent-high);
+	color: var(--sl-color-black) !important;
+	font-weight: 600;
+	text-decoration: none;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.agp-btn:hover {
+	background: var(--sl-color-gray-2);
+	border-color: var(--sl-color-gray-2);
+}
+
+.agp-btn.is-ghost {
+	background: none;
+	border-color: var(--agp-line);
+	color: var(--sl-color-white) !important;
+}
+
+.agp-btn.is-ghost:hover {
+	border-color: var(--sl-color-gray-3);
+}
+
+/* section heading */
+.agp-section {
+	display: grid;
+	gap: 1.5rem;
+}
+
+.agp-h2 {
+	margin: 0;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 1.15;
+	color: var(--sl-color-white);
+}
+
+.agp-sub {
+	max-width: 44rem;
+	margin: -0.75rem 0 0;
+	color: var(--sl-color-gray-3);
+}
+
+/* cards */
+.agp-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+	gap: 1rem;
+}
+
+.agp-grid.is-2 {
+	grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+}
+
+.agp-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 1.35rem 1.4rem 1.4rem;
+	border: 1px solid var(--agp-line);
+	border-radius: 14px;
+	background: var(--agp-card);
+	color: inherit;
+	text-decoration: none;
+	transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+a.agp-card:hover {
+	border-color: color-mix(in srgb, var(--sl-color-accent-high) 55%, var(--agp-line));
+	transform: translateY(-2px);
+}
+
+.agp-card h3 {
+	margin: 0;
+	font-size: var(--sl-text-lg);
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+
+.agp-card p {
+	margin: 0;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+	line-height: 1.55;
+}
+
+.agp-card .agp-more {
+	margin-top: auto;
+	padding-top: 0.5rem;
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+	color: var(--sl-color-accent-high);
+}
+
+.agp-kicker {
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 0.95rem;
+	color: var(--sl-color-accent-high);
+}
+
+/* "Spring is …" feature rows */
+.agp-features {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+	gap: 2.75rem 3rem;
+}
+
+.agp-feature {
+	display: grid;
+	grid-template-columns: 2.75rem 1fr;
+	gap: 0 1rem;
+}
+
+.agp-feature-icon {
+	display: grid;
+	place-items: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 12px;
+	border: 1px solid color-mix(in srgb, var(--sl-color-accent-high) 35%, var(--agp-line));
+	background: color-mix(in srgb, var(--sl-color-accent-high) 10%, transparent);
+	color: var(--sl-color-accent-high);
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-weight: 700;
+	font-size: 1.05rem;
+}
+
+.agp-feature h3 {
+	margin: 0.15rem 0 0.45rem;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 1.45rem;
+	font-weight: 700;
+	color: var(--sl-color-white);
+}
+
+.agp-feature p {
+	margin: 0;
+	color: var(--sl-color-gray-3);
+	line-height: 1.6;
+}
+
+.agp-feature p + p {
+	margin-top: 0.6rem;
+}
+
+/* closing call to action */
+.agp-cta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1.25rem 2rem;
+	padding: 2rem 2.25rem;
+	border: 1px solid var(--agp-line);
+	border-radius: 18px;
+	background:
+		radial-gradient(60% 120% at 0% 0%, rgba(141, 198, 247, 0.14), transparent 70%),
+		var(--agp-card);
+}
+
+:root[data-theme='light'] .agp-cta {
+	background:
+		radial-gradient(60% 120% at 0% 0%, rgba(37, 140, 235, 0.1), transparent 70%),
+		var(--agp-card);
+}
+
+.agp-cta h2 {
+	margin: 0 0 0.35rem;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 1.75rem;
+	color: var(--sl-color-white);
+}
+
+.agp-cta p {
+	margin: 0;
+	color: var(--sl-color-gray-3);
+}
+
+/* pills */
+.agp-pill {
+	display: inline-block;
+	padding: 0.1rem 0.55rem;
+	border-radius: 999px;
+	border: 1px solid color-mix(in srgb, var(--sl-color-accent-high) 45%, transparent);
+	color: var(--sl-color-accent-high);
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	vertical-align: middle;
+}
+
+/* ---------- roadmap board ---------- */
+.agp-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1.5rem;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+.agp-board {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1.25rem;
+	align-items: start;
+}
+
+.agp-lane {
+	display: grid;
+	gap: 0.75rem;
+	padding: 1rem;
+	border: 1px solid var(--agp-line);
+	border-radius: 16px;
+	background: color-mix(in srgb, var(--agp-card) 60%, transparent);
+}
+
+.agp-lane-head {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.25rem 0.35rem 0.5rem;
+}
+
+.agp-lane-head h2 {
+	margin: 0;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 1.35rem;
+	font-weight: 700;
+	color: var(--sl-color-white);
+}
+
+.agp-lane-head span {
+	margin-left: auto;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+.agp-dot {
+	width: 0.65rem;
+	height: 0.65rem;
+	border-radius: 50%;
+	flex: none;
+}
+
+.agp-dot.is-done {
+	background: var(--agp-green);
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--agp-green) 18%, transparent);
+}
+
+.agp-dot.is-wip {
+	background: var(--sl-color-accent-high);
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--sl-color-accent-high) 20%, transparent);
+}
+
+.agp-dot.is-next {
+	background: transparent;
+	border: 2px solid var(--sl-color-gray-3);
+}
+
+.agp-item {
+	display: grid;
+	gap: 0.3rem;
+	padding: 0.85rem 0.95rem;
+	border: 1px solid var(--agp-line);
+	border-radius: 12px;
+	background: var(--sl-color-bg);
+	text-decoration: none;
+	transition: border-color 0.15s ease;
+}
+
+a.agp-item:hover {
+	border-color: color-mix(in srgb, var(--sl-color-accent-high) 55%, var(--agp-line));
+}
+
+.agp-item strong {
+	color: var(--sl-color-white);
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.agp-item small {
+	color: var(--sl-color-gray-3);
+	font-size: 0.8rem;
+	line-height: 1.45;
+}
+
+.agp-item em {
+	font-style: normal;
+	font-family: var(--sl-font-mono);
+	font-size: 0.75rem;
+	color: var(--sl-color-gray-3);
+}
+
+@media (max-width: 60rem) {
+	.agp-board {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 50rem) {
+	.agp-lead {
+		font-size: var(--sl-text-lg);
+	}
+	.agp-cta {
+		padding: 1.5rem;
+	}
+}
+
+.agp-legend span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+/* ---------- roadmap: idea, plans, timeline ---------- */
+.agp-manifesto {
+	display: grid;
+	gap: 1rem;
+	max-width: 48rem;
+	padding-left: 1.25rem;
+	border-left: 3px solid var(--sl-color-accent-high);
+}
+
+.agp-manifesto p {
+	margin: 0;
+	font-size: var(--sl-text-lg);
+	line-height: 1.6;
+	color: var(--sl-color-gray-2);
+}
+
+.agp-manifesto strong {
+	color: var(--sl-color-white);
+}
+
+.agp-split {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+	gap: 1rem;
+}
+
+.agp-plan {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	padding: 1.6rem 1.75rem;
+	border: 1px solid var(--agp-line);
+	border-radius: 16px;
+	background: var(--agp-card);
+}
+
+.agp-plan.is-enterprise {
+	border-color: color-mix(in srgb, var(--sl-color-accent-high) 40%, var(--agp-line));
+	background:
+		radial-gradient(70% 90% at 100% 0%, rgba(141, 198, 247, 0.12), transparent 70%),
+		var(--agp-card);
+}
+
+.agp-plan h3 {
+	margin: 0;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 1.4rem;
+	color: var(--sl-color-white);
+}
+
+.agp-plan ul {
+	display: grid;
+	gap: 0.45rem;
+	margin: 0.25rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.agp-plan li {
+	position: relative;
+	padding-left: 1.4rem;
+	color: var(--sl-color-gray-2);
+	font-size: var(--sl-text-sm);
+	line-height: 1.5;
+}
+
+.agp-plan li::before {
+	content: '✓';
+	position: absolute;
+	left: 0;
+	color: var(--sl-color-accent-high);
+	font-weight: 700;
+}
+
+.agp-plan-note {
+	margin: auto 0 0;
+	padding-top: 0.75rem;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+/* vertical timeline */
+.agp-timeline {
+	position: relative;
+	display: grid;
+	gap: 2.25rem;
+	margin: 0.5rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.agp-timeline::before {
+	content: '';
+	position: absolute;
+	top: 0.5rem;
+	bottom: 0.5rem;
+	left: 0.55rem;
+	width: 2px;
+	background: linear-gradient(
+		to bottom,
+		var(--agp-green) 0%,
+		var(--sl-color-accent-high) 35%,
+		var(--agp-line) 70%
+	);
+}
+
+.agp-phase {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1.2rem 1fr;
+	gap: 1.5rem;
+}
+
+.agp-phase-mark {
+	position: relative;
+	z-index: 1;
+	width: 1.2rem;
+	height: 1.2rem;
+	margin-top: 0.15rem;
+	border-radius: 50%;
+	border: 2px solid var(--sl-color-gray-4);
+	background: var(--sl-color-bg);
+}
+
+.agp-phase.is-done .agp-phase-mark {
+	border-color: var(--agp-green);
+	background: var(--agp-green);
+}
+
+.agp-phase.is-now .agp-phase-mark {
+	border-color: var(--sl-color-accent-high);
+	background: var(--sl-color-accent-high);
+	box-shadow: 0 0 0 6px color-mix(in srgb, var(--sl-color-accent-high) 22%, transparent);
+}
+
+.agp-phase.is-next .agp-phase-mark {
+	border-color: var(--sl-color-accent-high);
+}
+
+.agp-phase-label {
+	margin: 0 0 0.2rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--sl-color-gray-3);
+}
+
+.agp-phase.is-now .agp-phase-label {
+	color: var(--sl-color-accent-high);
+}
+
+.agp-phase-body h3 {
+	margin: 0;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 1.6rem;
+	color: var(--sl-color-white);
+}
+
+.agp-phase-goal {
+	margin: 0.35rem 0 0.9rem;
+	color: var(--sl-color-gray-3);
+}
+
+.agp-phase-items {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+	gap: 0.5rem 1.75rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.agp-phase-items li {
+	display: grid;
+	gap: 0.1rem;
+	padding: 0.55rem 0;
+	border-top: 1px solid var(--agp-line);
+}
+
+.agp-phase-items a {
+	color: var(--sl-color-white) !important;
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.agp-phase-items a:hover {
+	color: var(--sl-color-accent-high) !important;
+}
+
+.agp-phase-items span {
+	color: var(--sl-color-gray-3);
+	font-size: 0.8rem;
+	line-height: 1.45;
+}
+
+.agp-phase.is-done .agp-phase-items a {
+	color: var(--sl-color-gray-2) !important;
+}
+
+.agp-phase-groups {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+	gap: 1rem 1.75rem;
+}
+
+.agp-phase-group {
+	margin: 0 0 0.35rem;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 1rem;
+	font-weight: 700;
+	color: var(--agp-green);
+}
+
+.agp-phase-items.is-stack {
+	grid-template-columns: 1fr;
+	gap: 0;
+}
+
+.agp-phase-items strong {
+	color: var(--sl-color-white);
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+}
+
+
+/* ---------- page title with "Agent Graph Builder, Open-Source Software" set above "AGBoss" ---------- */
+/* Source paragraph; public/scripts/acronym.js moves it into the title and removes it. */
+.agp-acronym {
+	display: none;
+}
+
+.agp-tagged {
+	position: relative;
+	display: inline-block;
+	margin-top: 1.4rem;
+	color: var(--sl-color-accent-high);
+}
+
+.agp-tag {
+	position: absolute;
+	left: 0.1em;
+	bottom: calc(100% + 0.15em);
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 0.72rem;
+	font-weight: 400;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	color: var(--sl-color-gray-3);
+}
+
+.agp-tag b {
+	color: var(--sl-color-accent-high);
+	font-weight: 700;
+}
+
+@media (max-width: 50rem) {
+	.agp-tag {
+		font-size: 0.6rem;
+		letter-spacing: 0.1em;
+	}
+}
+
+/* ---------- roadmap: compact "Shipped", more air under the title ---------- */
+main:has(.agp.is-roadmap) .content-panel:first-of-type {
+	padding-bottom: 1.75rem;
+}
+
+.agp.is-roadmap {
+	padding-top: 1.5rem;
+}
+
+.agp-shipped {
+	display: grid;
+	gap: 0.9rem;
+}
+
+.agp-shipped-row {
+	display: grid;
+	grid-template-columns: 9rem 1fr;
+	align-items: start;
+	gap: 0.5rem 1rem;
+}
+
+.agp-shipped-row .agp-phase-group {
+	margin: 0;
+	padding-top: 0.3rem;
+}
+
+.agp-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.agp-chips li {
+	margin: 0;
+}
+
+.agp-chips a {
+	display: inline-block;
+	padding: 0.28rem 0.7rem;
+	border: 1px solid var(--agp-line);
+	border-radius: 999px;
+	background: var(--agp-card);
+	font-size: 0.82rem;
+	line-height: 1.3;
+	color: var(--sl-color-gray-2) !important;
+	text-decoration: none;
+	transition: border-color 0.15s, color 0.15s;
+}
+
+.agp-chips a:hover {
+	border-color: var(--agp-green);
+	color: var(--sl-color-white) !important;
+}
+
+@media (max-width: 50rem) {
+	.agp-shipped-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* roadmap: the line between what is built independently and what funding unlocks */
+.agp-phase-break {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1.2rem 1fr;
+	gap: 1.5rem;
+}
+
+.agp-break-box {
+	padding: 1rem 1.25rem;
+	border: 1px dashed color-mix(in srgb, var(--sl-color-accent-high) 45%, transparent);
+	border-radius: 0.75rem;
+	background: color-mix(in srgb, var(--sl-color-accent-high) 6%, transparent);
+}
+
+.agp-break-box p {
+	margin: 0;
+	max-width: 46rem;
+	color: var(--sl-color-gray-2);
+	font-size: var(--sl-text-sm);
+	line-height: 1.6;
+}
+
+.agp-break-box .agp-break-kicker {
+	margin-bottom: 0.35rem;
+	font-family: 'Ubuntu Mono', var(--sl-font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--sl-color-accent-high);
+}

@@ -63,17 +63,15 @@ export default defineConfig({
 					items: [{ label: 'job-scout', slug: 'examples/job-scout' }],
 				},
 				{
-					label: 'Roadmap',
-					items: [{ label: 'Roadmap', slug: 'roadmap' }],
-				},
-				{
 					label: 'About',
 					items: [{ label: 'About AGBoss', slug: 'about' }],
 				},
 			],
-			customCss: ['./src/styles/agboss-theme.css'],
+			customCss: ['./src/styles/agboss-theme.css', './src/styles/pages.css'],
 			components: {
 				ThemeSelect: './src/components/ThemeToggle.astro',
+				Header: './src/components/Header.astro',
+				Footer: './src/components/Footer.astro',
 			},
 			plugins: [
 				starlightLlmsTxt({

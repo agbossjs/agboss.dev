@@ -1,0 +1,125 @@
+---
+title: Roadmap
+description: What AGBoss is for, how it's funded, and where it's going next.
+template: splash
+---
+
+<div class="agp is-roadmap not-content">
+
+<p class="agp-acronym" id="agp-acronym"><b>A</b>gent <b>G</b>raph <b>B</b>uilder, <b>O</b>pen-<b>S</b>ource <b>S</b>oftware</p>
+
+<script src="/scripts/acronym.js" is:inline></script>
+
+
+<section class="agp-section">
+<h2 class="agp-h2">The idea</h2>
+<div class="agp-manifesto">
+<p>Most agent frameworks today are really platforms. Your runs, traces and data live on their side, and the bill grows with every one of them. Developers recognise that shape: it's a trap.</p>
+<p>And it's not only the bill. When prompts and customer data sit on someone else's servers, security teams, compliance officers and regulators start asking hard questions: where is the data, who can see it, can it leave the country?</p>
+<p>AGBoss takes the path Spring took for Java: a <strong>DSL, not a platform</strong>, made just for agents. It runs inside your backend, with the model provider you choose, so your data stays inside your perimeter. You declare components; the framework wires, tests and traces them, and tells you what they cost.</p>
+<p>And it's <strong>open source, all of it</strong>. Developers should use AGBoss because it's convenient and it works — not because leaving is expensive.</p>
+</div>
+</section>
+
+<section class="agp-section">
+<h2 class="agp-h2">Free for everyone. Support for those who need it.</h2>
+<div class="agp-split">
+<div class="agp-plan">
+<p class="agp-kicker">Open source · MIT</p>
+<h3>Everything in the framework</h3>
+<ul>
+<li>Every component, decorator and integration</li>
+<li>Testing, A/B comparison, tracing and cost tracking</li>
+<li>Deploy anywhere: your cloud, your servers, your rules</li>
+<li>Community help through GitHub</li>
+</ul>
+<p class="agp-plan-note">Take it, run it, change it. No guarantees — but nothing to pay.</p>
+</div>
+<div class="agp-plan is-enterprise">
+<p class="agp-kicker">Enterprise <span class="agp-pill">Coming</span></p>
+<h3>Guarantees from the people who build it</h3>
+<ul>
+<li>A team that answers within an SLA</li>
+<li>Long-term support and Day-0 security patches</li>
+<li>Help with security reviews and compliance</li>
+<li>Custom development and architecture help</li>
+</ul>
+<p class="agp-plan-note">This is how AGBoss is funded. <a href="/enterprise/">See what's planned →</a></p>
+</div>
+</div>
+</section>
+
+<section class="agp-section">
+<h2 class="agp-h2">Where we're going</h2>
+<p class="agp-sub">No dates — milestones. Each item links to its GitHub issue, where the discussion happens.</p>
+<ol class="agp-timeline">
+<li class="agp-phase is-done">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">Shipped</p>
+<h3>A typed core you can trust</h3>
+<p class="agp-phase-goal">Declarative components wired by dependency injection — with safety rails, tests and traces on every run. Hover an item for details, click for its issue.</p>
+<div class="agp-shipped">
+<div class="agp-shipped-row"><p class="agp-phase-group">Build</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/181" target="_blank" rel="noopener" title="@Agent, @Tool, @Injectable, @WorkflowAction; run-scoped components, typed environments.">Typed DI core</a></li><li><a href="https://github.com/agbossjs/agboss/issues/116" target="_blank" rel="noopener" title="chain, catchError, @Router, per-run and per-day limits.">Flow DSL &amp; limits</a></li><li><a href="https://github.com/agbossjs/agboss/issues/174" target="_blank" rel="noopener" title="parallel(A, B) with quorum joins; the remaining branches are cancelled.">Parallel branches &amp; joins</a></li><li><a href="https://github.com/agbossjs/agboss/issues/168" target="_blank" rel="noopener" title="Detached executions with background() in the flow.">Background branches</a></li><li><a href="https://github.com/agbossjs/agboss/issues/162" target="_blank" rel="noopener" title="Run a step over runtime items with bounded concurrency.">Batch over items</a></li><li><a href="https://github.com/agbossjs/agboss/issues/158" target="_blank" rel="noopener" title="@WorkflowStart / @WorkflowFinish and subgraphs with visible boundaries.">Nested workflows</a></li><li><a href="https://github.com/agbossjs/agboss/issues/169" target="_blank" rel="noopener" title="Images and other content blocks flow through agents.">Multimodal input</a></li></ul></div>
+<div class="agp-shipped-row"><p class="agp-phase-group">Run safely</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/120" target="_blank" rel="noopener" title="@Guardrail and @PiiPolicy as components.">Guardrails &amp; PII policy</a></li><li><a href="https://github.com/agbossjs/agboss/issues/123" target="_blank" rel="noopener" title="@Judge on agents, with its own model and retries.">Judges &amp; quality gates</a></li><li><a href="https://github.com/agbossjs/agboss/issues/152" target="_blank" rel="noopener" title="Decision questions and approval channels.">Human decisions &amp; approval</a></li><li><a href="https://github.com/agbossjs/agboss/issues/160" target="_blank" rel="noopener" title="Compensating agents and actions roll back completed steps.">Saga &amp; compensation</a></li><li><a href="https://github.com/agbossjs/agboss/issues/201" target="_blank" rel="noopener" title="Durable paused runs that survive a redeploy; app.cancel stops a run.">Safe resume &amp; cancel</a></li><li><a href="https://github.com/agbossjs/agboss/issues/202" target="_blank" rel="noopener" title="Thread owners, budget reservation, redaction.">Isolation &amp; spend safety</a></li><li><a href="https://github.com/agbossjs/agboss/issues/97" target="_blank" rel="noopener" title="Timeouts, retries, fallback models and an output ceiling.">Resilient model calls</a></li></ul></div>
+<div class="agp-shipped-row"><p class="agp-phase-group">Test & observe</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/135" target="_blank" rel="noopener" title="testWith, scripted models, MCP stubs, VCR replay in CI.">Testing toolkit</a></li><li><a href="https://github.com/agbossjs/agboss/issues/125" target="_blank" rel="noopener" title="Profiles of one workflow compared side by side.">A/B comparisons</a></li><li><a href="https://github.com/agbossjs/agboss/issues/173" target="_blank" rel="noopener" title="Runs, agents, guardrails, PII, actions and channels.">Typed observer hooks</a></li><li><a href="https://github.com/agbossjs/agboss/issues/59" target="_blank" rel="noopener" title="Every run traced in Langfuse, linked from the answer.">Tracing</a></li><li><a href="https://github.com/agbossjs/agboss/issues/198" target="_blank" rel="noopener" title="check, describe, chat, eval, scaffold; --json and exit codes.">CLI</a></li></ul></div>
+<div class="agp-shipped-row"><p class="agp-phase-group">Connect</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/164" target="_blank" rel="noopener" title="Use MCP tools, and expose your tools and workflows over MCP.">MCP client &amp; server</a></li><li><a href="https://github.com/agbossjs/agboss/issues/163" target="_blank" rel="noopener" title="Generate typed, wired tools from a spec.">Tools from OpenAPI</a></li><li><a href="https://github.com/agbossjs/agboss/issues/165" target="_blank" rel="noopener" title="Expose and call workflows agent-to-agent.">A2A</a></li><li><a href="https://github.com/agbossjs/agboss/issues/88" target="_blank" rel="noopener" title="@Rag with a connector contract; SQLite full-text built in.">Knowledge bases (RAG)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/128" target="_blank" rel="noopener" title="Bring your own memory strategy and store.">Pluggable memory</a></li></ul></div>
+</div>
+</div>
+</li>
+<li class="agp-phase is-now">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">Now</p>
+<h3>The road to 1.0</h3>
+<p class="agp-phase-goal">The last pieces before the first stable release. 1.0 ships when these are done.</p>
+<ul class="agp-phase-items"><li><a href="https://github.com/agbossjs/agboss/issues/249" target="_blank" rel="noopener">AGBoss on npm</a><span>The package, the agb CLI and imports under the new name.</span></li>
+<li><a href="https://github.com/agbossjs/agboss/issues/159" target="_blank" rel="noopener">Caller context &amp; authorization</a><span>Trusted caller identity through DI; your app owns the rules.</span></li>
+<li><a href="https://github.com/agbossjs/agboss/issues/161" target="_blank" rel="noopener">Partial results on cancel</a><span>A cancelled run keeps what its finished steps produced.</span></li>
+<li><a href="https://github.com/agbossjs/agboss/issues/235" target="_blank" rel="noopener">API gaps from the review</a><span>Close the gaps found in the October framework review.</span></li>
+<li><a href="https://github.com/agbossjs/agboss/issues/252" target="_blank" rel="noopener">Open-source readiness</a><span>Changelog and security policy next to the contribution guide.</span></li></ul>
+</div>
+</li>
+<li class="agp-phase-break">
+<div></div>
+<div class="agp-break-box">
+<p class="agp-break-kicker">Built independently · funding takes it further</p>
+<p>Everything above is built independently: the core and the road to 1.0 don't wait on anyone's money. What comes next takes people, not just code — writers, developer advocates, a support team. Funding is what turns these stages from a plan into a schedule.</p>
+</div>
+</li>
+<li class="agp-phase is-next">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">After 1.0</p>
+<h3>Adoption</h3>
+<p class="agp-phase-goal">Make AGBoss easy to learn and easy to start with.</p>
+<ul class="agp-phase-items"><li><strong>A guide for every pattern</strong><span>Routing, RAG, MCP tools and human approval — each with a working example.</span></li>
+<li><strong>Starter templates</strong><span>agb new: start from a ready project instead of an empty folder.</span></li>
+<li><strong>Real-world case studies</strong><span>How teams build and run agents with AGBoss in production.</span></li>
+<li><strong>Talks &amp; workshops</strong><span>Conference talks, meetups and hands-on sessions.</span></li>
+<li><strong>Office hours</strong><span>A regular place to ask the people who build the framework.</span></li></ul>
+</div>
+</li>
+<li class="agp-phase is-later">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">Then</p>
+<h3>Enterprise support</h3>
+<p class="agp-phase-goal">Paid support for teams that need guarantees — the framework itself stays free.</p>
+<ul class="agp-phase-items"><li><strong>A dedicated support team</strong><span>Engineers who know the framework from the inside, answering within an SLA.</span></li>
+<li><strong>Long-term support</strong><span>LTS release lines with a published support window.</span></li>
+<li><strong>Day-0 security patches</strong><span>Fixes the day a vulnerability is disclosed.</span></li>
+<li><strong>Security review</strong><span>A review of your agents, tools and data flows.</span></li>
+<li><strong>Automated upgrades</strong><span>Tooling that moves your workflows to the next version.</span></li>
+<li><strong>Compliance add-ons</strong><span>Audit trails, PII controls, SBOM.</span></li></ul>
+</div>
+</li>
+</ol>
+</section>
+
+<div class="agp-cta">
+<div><h2>Want something on this list?</h2><p>Open an issue or upvote an existing one: that's how priorities move.</p></div>
+<div class="agp-actions"><a class="agp-btn" href="https://github.com/agbossjs/agboss/issues" target="_blank" rel="noopener">Open issues →</a></div>
+</div>
+
+</div>
