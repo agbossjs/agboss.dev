@@ -42,4 +42,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-Code in this repository is MIT licensed (see [LICENSE](./LICENSE)).
+Code in this repository is licensed under the Apache License 2.0 (see [LICENSE](./LICENSE)).
