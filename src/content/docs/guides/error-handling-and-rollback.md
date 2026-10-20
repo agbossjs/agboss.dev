@@ -244,3 +244,67 @@ export class NotifyFinanceTeamAction implements ActionHandler<NotifyFinanceTeamA
 
 - **Most-specific class matching:** A step may declare multiple `.onError(...)` handlers; the framework matches the thrown error (and its `.cause` chain) against the most specific subclass in the prototype hierarchy. Duplicate handlers for the same error class on one step fail assembly (`[flow.duplicate-error-handler]`).
 - **Durable across checkpoints:** The failure record (`lastError` with error code, message, and failed node name) is persisted in workflow state so a side path that pauses for human intervention resumes cleanly.
+
+## How do declarative transactional sagas (`compensateWith` & `committedBy`) and automatic LIFO unwinding work?
+
+Manual `.onError(...)` chains only catch step failures along normal graph edges — they do not run when an execution or parallel branch is externally aborted by `app.cancel(threadId)`, sibling `FailurePolicy.FailFast`, quorum `BranchVerdict.Surplus`, or a limit error (`BudgetExceededError`, `StepsLimitExceededError`, `DepthLimitExceededError`).
+
+AGBoss solves both static rollback completeness and runtime external aborts with declarative compensation contracts on `@Action`:
+
+1. **Declarative `@Action` saga options:**
+   - `compensateWith: WithdrawOfferAction` declares the deterministic `@Action` that reverses this action's external side effect. Its `input` must be satisfiable from the Path Scope immediately after the compensated action completes (verified at assembly; otherwise fails with `[action.invalid-compensator-input]`).
+   - `committedBy: ConfirmOfferAction` (optional) marks the commit boundary: once `ConfirmOfferAction` completes, the earlier action is finalized and will no longer be rolled back on subsequent errors or cancellations.
+2. **Static saga verification in `agboss check` (`[flow.uncompensated-action]`):**
+   - Every error path (`.onError` / `.onJoinError`) after an uncommitted compensatable `@Action` that reaches a `@WorkflowFinish` before passing through `committedBy` must execute `compensateWith` on that path. If any error branch bypasses the compensator, `agboss check` fails assembly with `[flow.uncompensated-action]`.
+   - `agboss describe` and `agboss describe --json` include `compensateWith` and `committedBy` metadata on action nodes.
+3. **Automatic runtime LIFO unwinding on external abort:**
+   - Whenever an `@Action` with `compensateWith` completes, the runtime checkpoints an uncommitted compensation entry `(stepId, action, outputDto, compensator)`.
+   - If the execution or branch is aborted before `committedBy` (via `app.cancel(threadId)`, `FailurePolicy.FailFast`, quorum `Surplus`, or `BudgetExceededError`), the runtime automatically executes all uncommitted compensators in **reverse completion order (LIFO)** using a live cleanup signal bounded by `@Application({ compensationTimeout: seconds(15) })`.
+   - If a worker pod crashes mid-rollback, the recovering instance resumes the remaining uncompensated entries idempotently using deterministic `step.idempotencyKey` values.
+
+```ts title="src/actions/register-offer.action.ts" no-check: saga compensation example
+import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from "agboss";
+import { WithdrawOfferAction } from "./withdraw-offer.action.js";
+import { ConfirmOfferAction } from "./confirm-offer.action.js";
+import { OfferDraftDto, RegisteredOfferDto } from "../dto/offer.dto.js";
+
+@Action({
+  name: "register-offer-action",
+  description: "Creates a provisional offer in the external ATS; rolled back by WithdrawOfferAction",
+  input: { draft: OfferDraftDto },
+  output: RegisteredOfferDto,
+  compensateWith: WithdrawOfferAction,
+  committedBy: ConfirmOfferAction,
+  deps: [ExecutionContext],
+})
+export class RegisterOfferAction implements ActionHandler<RegisterOfferAction> {
+  constructor(private readonly executionContext: ExecutionContext) {}
+
+  async execute(input: InputOf<RegisterOfferAction>): Promise<OutputOf<RegisterOfferAction>> {
+    return {
+      offerId: `ats_${this.executionContext.step.idempotencyKey}`,
+      role: input.draft.value.role,
+    };
+  }
+}
+```
+
+```ts title="src/actions/withdraw-offer.action.ts" no-check: saga compensation example
+import { Action, ExecutionContext, type ActionHandler, type InputOf } from "agboss";
+import { RegisteredOfferDto } from "../dto/offer.dto.js";
+
+@Action({
+  name: "withdraw-offer-action",
+  description: "Revokes the provisional ATS offer under a live compensationTimeout cleanup signal",
+  input: { offer: RegisteredOfferDto },
+  deps: [ExecutionContext],
+})
+export class WithdrawOfferAction implements ActionHandler<WithdrawOfferAction> {
+  constructor(private readonly executionContext: ExecutionContext) {}
+
+  async execute(input: InputOf<WithdrawOfferAction>): Promise<void> {
+    void input.offer.value.offerId;
+    void this.executionContext.signal;
+  }
+}
+```

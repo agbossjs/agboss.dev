@@ -15,6 +15,8 @@ Every `@Action` class name ends with `Action` and its `name` option ends with `-
 | `description` | `string` | Yes | Human-readable summary of what the action does for Studio graphs and logs. |
 | `input` | `InputFields` | No | Map of DTOs read from the workflow's Path Scope (`{ draft: OfferDraftDto, approval: optional(DraftApprovedDto) }`). |
 | `output` | `OutputShape` | No | DTO class, `listOf(Dto)`, or `oneOf(A, B)` returned by `execute()`. Omit `output` for side-effect-only actions returning `Promise<void>`. |
+| `compensateWith` | `Type<ActionHandler>` | No | Deterministic `@Action` class that reverses this action's external side effect on error paths (verified by `agboss check` via `[flow.uncompensated-action]`) and automatically in LIFO order on `app.cancel`, `FailFast`, quorum `Surplus`, or `@Budget` abort. |
+| `committedBy` | `Type<ActionHandler>` | No | Optional downstream `@Action` class that finalizes the side effect so subsequent errors or cancellations no longer trigger `compensateWith`. |
 | `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `SpendRecorder`, `Clock`, `@Injectable` services) verified against constructor parameters at compile time. |
 
 ## Complete `@Action` examples (value-producing and side-effect-only)

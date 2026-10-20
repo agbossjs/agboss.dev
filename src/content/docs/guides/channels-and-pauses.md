@@ -201,3 +201,34 @@ test("pauses on RefundCardTool and resumes with Slack approval", async ({ app, m
 
 - **Two-phase atomic resolution:** Phase 1 atomically flips the pause record from `Pending` to `Resolved` in `PausedExecutionRepository` (a second click or duplicate webhook receives `NotPausedError`). Phase 2 acquires the execution tree's 30-second lease and continues execution with all resolved decisions.
 - **Capability security (`PauseAnswerer`):** A `PauseAnswerer.Channel` pause omits `pauseId` from `result.pending` so only the external channel (`ask.pauseId`) holds the token to answer it, requiring `{ answeredBy: "manager-17" }` on resume. A `PauseAnswerer.ThreadOwner` pause lists `pauseId` in `result.pending` and must be resumed by the thread's `ownerId`.
+
+## How `ChannelHandler.withdraw` cleans up stale pauses in external UIs
+
+When a parallel branch with an active pause is cancelled — because a sibling branch failed under `FailurePolicy.FailFast`, a quorum reached its threshold and marked the remaining branch `BranchVerdict.Surplus`, or an operator called `app.cancel(threadId)` — AGBoss transitions the pause record (`PauseResolution.Withdrawn` or `PauseResolution.Cancelled`) and calls the optional `withdraw(info: ChannelWithdrawInfo<TAsk>)` method on your `@Channel` implementation so you can remove or disable the interactive buttons in Slack, Telegram, or an operator console:
+
+```ts title="src/channels/slack-refund-approval.channel.ts" no-check: ChannelHandler.withdraw
+import { Channel, PauseResolution, type ChannelAsk, type ChannelOutcome, type ChannelWithdrawInfo } from "agboss";
+import { RefundApprovalChannel } from "./refund-approval.channel.js";
+
+@Channel({
+  name: "slack-refund-approval-channel",
+  description: "Posts and withdraws interactive approval cards in Slack",
+})
+export class SlackRefundApprovalChannel extends RefundApprovalChannel {
+  async send(
+    ask: ChannelAsk<RefundApprovalChannel>,
+  ): Promise<ChannelOutcome<RefundApprovalChannel>> {
+    return ChannelOutcome.awaitReply();
+  }
+
+  async withdraw(info: ChannelWithdrawInfo<ChannelAsk<RefundApprovalChannel>>): Promise<void> {
+    await this.slackService.updateApprovalCard({
+      pauseId: info.pauseId,
+      statusText:
+        info.resolution === PauseResolution.Withdrawn
+          ? "Withdrawn (quorum reached or sibling branch failed)"
+          : "Cancelled by operator",
+    });
+  }
+}
+```

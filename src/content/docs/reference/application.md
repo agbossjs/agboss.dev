@@ -18,12 +18,15 @@ Every `@Application` class name ends with `Application` and its `name` option en
 | `providers` | `readonly Provider[]` | No | Infrastructure repository implementations (`Sqlite*Repository`), `@ModelProvider` classes, `@Channel` implementations, and shared `@Injectable` services. |
 | `budgets` | `readonly Class[]` | No | `@Budget` classes enforcing spend caps across `Application`, `Tenant`, and `Execution` scopes. |
 | `observers` | `readonly ObserverClass[]` | No | `@Injectable` classes implementing `OnExecutionEnd`, `OnToolCallEnd`, `OnSpend`, `OnValuesOutdated`, and other observer hooks. |
+| `healthChecks` | `readonly Class[]` | No | `@HealthCheck` classes executed by `app.checkReadiness()` and `app.checkLiveness()` alongside built-in repository and concurrency checks. |
 | `piiPolicies` | `readonly Class[]` | No | Application-wide `@PiiPolicy` classes applied to every agent, router, log entry, and trace. |
 | `pseudonymKey` | `string` | No | Name of a `Secret` field on the `environment` class used for HMAC token pseudonymization across all pods. |
 | `tenantContext` | `TenantContextClass` | No | Custom subclass of `TenantContext` whose decorated DTO fields are required on `app.execute(..., { tenant })`. |
 | `executionContext` | `ExecutionContextClass` | No | Custom subclass of `ExecutionContext` carrying per-execution identity fields passed via `app.execute(..., { execution })`. |
 | `defaults` | `WorkflowDefaults` | No | Default `models`, `router`, `guardrail`, `tools`, `history`, and `flow` settings inherited by all workflows. |
 | `pauseRecordRetention` | `Milliseconds` | No | How long resolved or cancelled pause records remain stored (`hours(24)` by default). |
+| `maxInstanceConcurrency` | `number` | No | Local concurrency ceiling for active steps on a single pod (`32` by default; `<= 0` or non-integer fails assembly with `[application.invalid-instance-concurrency]`). Queues surplus work across 3 deadlock-safe priority levels (1: finishing `.join()`, `.joinQuorum()`, `.onError()`, `.onJoinError()`, `@WorkflowFinish`; 2: deeper in-flight steps with wait-time aging; 3: new `execute`/`resume` and parallel branch items) and flips `app.checkReadiness()` to `HealthStatus.Degraded`. |
+| `compensationTimeout` | `Milliseconds` | No | Maximum time budget for automatic LIFO saga unwinding (`compensateWith`) on cancellation, `FailFast`, quorum `Surplus`, or `@Budget` breach (`seconds(15)` by default). |
 | `shutdownTimeout` | `Milliseconds` | No | Grace period for `app.close()` and `SIGTERM` / `SIGINT` drain before releasing active execution leases (`seconds(25)` by default). |
 
 ## Complete `@Application` example with all capabilities
@@ -106,6 +109,8 @@ export class MetricsObserver implements OnExecutionEnd {
     },
   },
   pauseRecordRetention: hours(48),
+  maxInstanceConcurrency: 32,
+  compensationTimeout: seconds(15),
   shutdownTimeout: seconds(25),
 })
 export class SupportApplication {}
@@ -148,7 +153,7 @@ export class ExecutionRunBudget implements BudgetHandler {
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
 | `createApp(AppClass, options?)` | `"agboss"` | Boots the container, runs `onInit()` and `onStart()` on all components, starts recovery sweeps, and returns the `App` handle. |
-| `App` (`execute`, `resume`, `cancel`, `close`, `tool`) | `"agboss"` | Runtime handle used to start workflows, resume pauses, cancel runs, invoke isolated tools, and drain gracefully on shutdown. |
+| `App` (`execute`, `resume`, `cancel`, `checkReadiness`, `checkLiveness`, `close`, `tool`) | `"agboss"` | Runtime handle used to start workflows, resume pauses, cancel runs (`app.cancel(threadId)`), report pod health (`HealthStatus.Healthy` / `HealthStatus.Degraded` / `HealthStatus.Unhealthy`), invoke isolated tools, and drain gracefully on shutdown. |
 | `EmptyEnvironment` | `"agboss"` | Built-in empty contract class for applications that do not read environment variables. |
 | `env()`, `env.optional()`, `secret()` | `"agboss"` | Readers used in `environments/*.environment.ts` files to bind and validate `process.env` variables at startup. |
 | `ApplicationContext`, `Clock`, `Logger` | `"agboss"` | Built-in container singletons injectable into any service, action, tool, or observer via `deps`. |

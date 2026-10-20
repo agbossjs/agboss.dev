@@ -23,15 +23,15 @@ export interface NavItem {
 export const NAV: NavItem[] = [
 	{
 		label: 'Why AGBoss',
-		blurb: 'A production-grade TypeScript framework for LangGraph agents: compile-time Path Scope, DI, FinOps, and durable execution.',
+		blurb: 'Strictly typed TypeScript framework for mission-critical multi-agent workflows and autonomous digital & Physical AI missions on LangGraph.',
 		groups: [
-			{ links: [{ label: 'Overview', href: '/why/' }, { label: 'About AGBoss', href: '/about/' }] },
+			{ links: [{ label: 'Overview', href: '/why/' }, { label: 'Digital & Physical Missions', href: '/concepts/mission-orchestration/' }, { label: 'About AGBoss', href: '/about/' }] },
 			{
 				title: 'Architecture & Patterns',
 				links: [
 					{ label: 'Routing, parallel & quorums', href: '/concepts/workflow/' },
+					{ label: 'Transactional sagas & LIFO rollback', href: '/guides/error-handling-and-rollback/' },
 					{ label: 'Tools, MCP & A2A', href: '/guides/mcp-rag-and-a2a/' },
-					{ label: 'Knowledge bases (RAG)', href: '/guides/mcp-rag-and-a2a/#knowledge-bases-with-rag' },
 					{ label: 'Channels & human pauses', href: '/guides/channels-and-pauses/' },
 				],
 			},
@@ -80,6 +80,7 @@ export const NAV: NavItem[] = [
 				title: 'Core Concepts',
 				links: [
 					{ label: '@Application & lifecycle', href: '/concepts/application/' },
+					{ label: 'Digital & Physical Missions', href: '/concepts/mission-orchestration/' },
 					{ label: 'Decorators & naming', href: '/concepts/decorators/' },
 					{ label: 'Workflow DSL', href: '/concepts/workflow/' },
 					{ label: 'Path Scope & provenance', href: '/concepts/path-scope/' },

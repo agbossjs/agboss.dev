@@ -22,7 +22,7 @@ The `@ChannelRole` and `@Channel` decorators (`channels/*.channel.ts`) power hum
 ## Complete `@ChannelRole` and `@Channel` example with two-phase `app.resume()`
 
 ```ts title="src/channels/slack-refund-approval.channel.ts" no-check: reference example
-import { Channel, ChannelOf, ChannelOutcome, ChannelRole, ExecutionContext, PauseAnswerer, type ChannelAsk } from "agboss";
+import { Channel, ChannelOf, ChannelOutcome, ChannelRole, ExecutionContext, PauseAnswerer, PauseResolution, type ChannelAsk, type ChannelWithdrawInfo } from "agboss";
 import { RefundInputDto } from "../tools/refund-card-payment.tool.js";
 import { SlackService } from "../services/slack.service.js";
 
@@ -64,6 +64,14 @@ export class SlackRefundApprovalChannel extends RefundApprovalChannel {
       amountCents: ask.value.arguments.amountCents,
     });
     return ChannelOutcome.awaitReply();
+  }
+
+  async withdraw(info: ChannelWithdrawInfo<ChannelAsk<RefundApprovalChannel>>): Promise<void> {
+    // Called automatically when a paused branch is cancelled by FailFast, quorum Surplus, or app.cancel(threadId):
+    await this.slackService.disableApprovalButtons({
+      pauseId: info.pauseId,
+      reason: info.resolution === PauseResolution.Withdrawn ? "Quorum reached / branch withdrawn" : "Cancelled",
+    });
   }
 }
 ```
@@ -114,6 +122,7 @@ test("pauses on RefundCardPaymentTool and resumes with human approval", async ({
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
 | `ChannelOf<Role>` & `ChannelAsk<Role>` | `"agboss"` | Base class extended by `@ChannelRole` and typed payload passed to `send(ask)` (`ask.pauseId`, `ask.value.arguments`). |
+| `ChannelWithdrawInfo<Role>` & `PauseResolution` | `"agboss"` | Payload passed to optional `withdraw(info)` when a paused branch is cancelled due to `FailFast` / quorum `Surplus` (`PauseResolution.Withdrawn`) or `app.cancel` (`PauseResolution.Cancelled`). |
 | `ChannelOutcome` (`awaitReply()`, `decided(...)`) | `"agboss"` | Return value of `send(ask)`: either suspends the branch out-of-process (`awaitReply()`) or resolves inline (`decided({ approved })`). |
 | `PauseAnswerer` (`Channel`, `ThreadOwner`) | `"agboss"` | Enforces who is allowed to resume the pause (`answeredBy` vs `ownerId`). |
 | `app.resume({ pauseId, decision }, options)` | `"agboss"` | Two-phase atomic resume: transitions `Pending → Resolved` via CAS in `PausedExecutionRepository` before acquiring the execution-tree lease. |

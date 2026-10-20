@@ -58,7 +58,7 @@ export default defineConfig({
 		starlight({
 			title: 'AGBoss',
 			description:
-				'Production-grade TypeScript application framework for LangGraph agents — @Application container, compile-time Path Scope DSL, multi-tenant FinOps budgets, PII policies, durable SQLite/CAS execution, and deterministic testing.',
+				'Strictly typed TypeScript framework for mission-critical multi-agent systems and autonomous digital & Physical AI missions on LangGraph — transactional sagas (compensateWith / committedBy), compile-time Path Scope DSL, FinOps budgets, two-phase pauses with withdraw, multi-instance work-stealing leases, and deterministic testing.',
 			logo: {
 				light: './src/assets/agboss-mark-light.svg',
 				dark: './src/assets/agboss-mark-dark.svg',
@@ -89,6 +89,7 @@ export default defineConfig({
 					label: 'Core Concepts',
 					items: [
 						{ label: 'Application & Lifecycle', slug: 'concepts/application' },
+						{ label: 'Digital & Physical Missions', slug: 'concepts/mission-orchestration' },
 						{ label: 'Decorators & Naming', slug: 'concepts/decorators' },
 						{ label: 'Workflow DSL', slug: 'concepts/workflow' },
 						{ label: 'Path Scope & Provenance', slug: 'concepts/path-scope' },
@@ -184,9 +185,9 @@ export default defineConfig({
 				starlightLlmsTxt({
 					projectName: 'AGBoss',
 					description:
-						'Production-grade TypeScript application framework for LangGraph agents — @Application assembly root, compile-time Path Scope Flow DSL, constructor dependency injection by class inheritance, @ModelProvider rate limits and tenant-fair queues, @Budget FinOps caps, @PiiPolicy boundary token masking, durable multi-instance SQLite repositories with 30s leases, and deterministic testing via testWith(App) and 8 isolated unit runners.',
+						'Strictly typed TypeScript framework for mission-critical multi-agent workflows, enterprise backend automation, and high-level Physical AI / Robotics mission planning (System-2 orchestrator) on LangGraph — @Application assembly root, compile-time Path Scope Flow DSL, transactional sagas with compensateWith / committedBy and automatic LIFO unwinding, constructor dependency injection by class inheritance, @ModelProvider rate limits and tenant-fair queues, @Budget FinOps caps with instant sibling abort, @PiiPolicy boundary token masking with cross-pod piiTokens persistence, @ChannelRole two-phase pauses with ChannelHandler.withdraw, durable multi-instance SQLite work-stealing leases with maxInstanceConcurrency backpressure, agboss describe --json revision snapshots, and deterministic testing via testWith(App) and 8 isolated unit runners.',
 					details:
-						'AGBoss layers strict software engineering architecture on top of LangGraph in TypeScript without vendor lock-in. Workflows are written with one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by class decorators, and durations/money use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`).',
+						'AGBoss layers strict software engineering architecture on top of LangGraph in TypeScript for both long-running digital missions (FinTech, SecOps, enterprise operations) and System-2 Physical AI / robotics mission orchestration above real-time hardware control loops. Workflows are written with one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by class decorators, and durations/money use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`).',
 					customSets: [
 						{
 							label: 'Core Concepts & Flow DSL',

@@ -101,10 +101,10 @@
 		grid-template-columns: auto auto;
 		justify-content: center;
 		align-items: center;
-		column-gap: 1.25rem;
+		column-gap: 1.5rem;
 		row-gap: 1.5rem;
 		width: 100%;
-		max-width: 56rem;
+		max-width: 64rem;
 		text-align: left;
 	}
 
@@ -121,7 +121,7 @@
 	.hero .copy > .tagline {
 		grid-column: 1;
 		grid-row: 2;
-		max-width: 58ch;
+		max-width: none;
 		margin: 0;
 	}
 
@@ -223,7 +223,7 @@ h1[data-page-title] {
 
 .agboss-lede p {
 	margin: 0 auto;
-	max-width: 46ch;
+	max-width: none;
 	color: var(--sl-color-gray-2);
 }
 
@@ -1088,4 +1088,71 @@ header a[rel='me']:hover {
 
 .agx-list {
 	min-width: 0;
+}
+
+/* ---------- System-2 Digital & Physical Missions conceptual section ---------- */
+
+.agboss-missions {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1.25rem;
+	margin: 1.25rem 0 1.25rem;
+}
+
+@media (min-width: 52rem) {
+	.agboss-missions {
+		grid-template-columns: 1fr 1fr;
+		gap: 1.5rem;
+	}
+}
+
+.agboss-mission-card {
+	margin: 0 !important;
+	padding: 1.35rem 1.5rem;
+	border-radius: 14px;
+	border: 1px solid var(--sl-color-hairline);
+	background: var(--sl-color-bg-nav);
+	transition: border-color 0.2s ease;
+}
+
+.agboss-mission-card:hover {
+	border-color: color-mix(in srgb, var(--sl-color-accent) 50%, var(--sl-color-hairline));
+}
+
+.agboss-mission-kicker {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-family: var(--sl-font-mono);
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--sl-color-accent-high);
+}
+
+.agboss-mission-card h3 {
+	margin: 0 0 0.55rem !important;
+	font-size: 1.15rem;
+	color: var(--sl-color-white);
+}
+
+.agboss-mission-card p {
+	margin: 0 !important;
+	font-size: 0.92rem;
+	line-height: 1.55;
+	color: var(--sl-color-gray-2);
+}
+
+.agboss-missions-link {
+	margin: 0 0 3.5rem !important;
+	text-align: right;
+	font-weight: 600;
+}
+
+.agboss-missions-link a {
+	color: var(--sl-color-accent-high);
+	text-decoration: none;
+}
+
+.agboss-missions-link a:hover {
+	text-decoration: underline;
 }

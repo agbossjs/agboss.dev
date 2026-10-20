@@ -1500,10 +1500,10 @@
 			},
 			"approval": {
 					"file": "src/channels/refund-approval.channel.ts",
-					"problem": "When a manager double-clicks \"Approve\" in Slack or webhook retries arrive concurrently, naive resume handlers execute the high-stakes tool (e.g., card refund or wire transfer) twice — while in-memory pauses die on pod restart and fail when parallel branches pause simultaneously.",
-					"solution": "Pauses persist out-of-process as a concurrent list (<code>result.pending</code>) and release the worker lease immediately; two-phase <code>app.resume({ pauseId, decision })</code> atomically flips <code>Pending → Resolved</code> in SQLite before acquiring the lease so duplicate clicks fail-fast with <code>NotPausedError</code>.",
+					"problem": "Duplicate Slack \"Approve\" clicks execute refunds twice; and when a paused branch inside a parallel quorum is cancelled as <code>Surplus</code>,<code>FailFast</code>, or via <code>app.cancel</code>, stale buttons stay active in Slack so operators click dead actions hours later.",
+					"solution": "Two-phase <code>app.resume({ pauseId, decision })</code> atomically flips <code>Pending → Resolved</code> in SQLite before acquiring the lease, while cancelled/surplus pauses transition to <code>Withdrawn</code>/<code>Cancelled</code> and invoke <code>ChannelHandler.withdraw?(info)</code> to remove stale UI buttons immediately.",
 					"code": [
-							"import { Channel, ChannelOf, ChannelOutcome, ChannelRole, ExecutionContext, PauseAnswerer, type ChannelAsk } from \"agboss\";",
+							"import { Channel, ChannelOf, ChannelOutcome, ChannelRole, ExecutionContext, PauseAnswerer, type ChannelAsk, type ChannelWithdrawInfo } from \"agboss\";",
 							"",
 							"@ChannelRole({",
 							"  name: \"refund-approval-channel\",",
@@ -1515,7 +1515,7 @@
 							"",
 							"@Channel({",
 							"  name: \"slack-refund-approval-channel\",",
-							"  description: \"Asks in Slack\",",
+							"  description: \"Asks in Slack and withdraws stale buttons on cancel or quorum surplus\",",
 							"  deps: [ExecutionContext, SlackService],",
 							"})",
 							"export class SlackRefundApprovalChannel extends RefundApprovalChannel {",
@@ -1523,14 +1523,11 @@
 							"    await this.slackService.post(\"#finance\", `Refund ${ask.value.arguments.amountCents}c?`, ask.pauseId);",
 							"    return ChannelOutcome.awaitReply();",
 							"  }",
-							"}",
 							"",
-							"export async function onSlackWebhook(pauseId: string, userId: string) {",
-							"  const result = await app.resume(",
-							"    { pauseId, decision: { approved: true } },",
-							"    { tenantId: \"acme\", answeredBy: userId },",
-							"  );",
-							"  return result.record.status;",
+							"  async withdraw(info: ChannelWithdrawInfo<ChannelAsk<RefundApprovalChannel>>): Promise<void> {",
+							"    // Called automatically on FailFast, quorum Surplus (Withdrawn), or app.cancel (Cancelled)",
+							"    await this.slackService.disableButtons(info.pauseId, `Closed: ${info.resolution}`);",
+							"  }",
 							"}"
 					],
 					"files": [
@@ -1575,8 +1572,8 @@
 			},
 			"cost": {
 					"file": "src/config/budget.config.ts",
-					"problem": "Post-hoc cost tracking only checks the ledger <em>after</em> LLM calls return — so when a tenant has $0.05 left and triggers a 10-agent parallel wave, all 10 calls launch concurrently and burn $0.80 before the budget trips, or one runaway tenant drains the company API account.",
-					"solution": "Mandatory <code>@Budget</code> classes enforce caps across <code>Application</code>, <code>Tenant</code>, and <code>Execution</code> scopes — <strong>reserving estimated spend in <code>CostLedgerRepository</code> before each model or paid tool call starts</strong> and reconciling actual cost on completion.",
+					"problem": "When a workflow has $0.05 left out of a $0.50 cap and enters a 10-branch parallel wave, all 10 branches pass a naive pre-check simultaneously — and even after the first branch crosses $0.50, the other 9 in-flight branches keep streaming tokens and calling tools.",
+					"solution": "<code>@Budget</code> enforces caps across <code>Application</code>, <code>Tenant</code>, and <code>Execution</code> scopes with pre-call reservation in <code>CostLedgerRepository</code> — and the instant any parallel branch crosses a cap, the runtime aborts all in-flight sibling branches via <code>ExecutionContext.signal</code> with <code>BudgetExceededError</code>.",
 					"code": [
 							"import { Budget, BudgetPeriod, BudgetScope, ExecutionContext, type BudgetHandler } from \"agboss\";",
 							"import { usd, type Usd } from \"agboss/units\";",
@@ -1715,8 +1712,8 @@
 			},
 			"recovery": {
 					"file": "src/cluster/multi-instance-handoff.ts",
-					"problem": "When a worker pod OOMs mid-run or a network partition creates a zombie worker while another pod takes over, both pods execute the same steps and corrupt state (split-brain) — or <code>SIGTERM</code> during a rolling deploy leaves runs stuck in <code>running</code> forever.",
-					"solution": "Each execution tree holds a 30s lease renewed every 10s, verifying ownership before every call (<code>ExecutionLeaseLostError</code>) and completing via CAS (<code>completeIfStatus</code>); on <code>SIGTERM</code>, <code>app.close()</code> drains for 25s then releases leases for immediate peer recovery.",
+					"problem": "If a pod loses its 30s lease mid-agent-step, a naive runtime keeps invoking remaining <code>@Tool</code> calls while a peer pod already restarted the step (running side effects twice) — and fallback PII keys generated in memory drift across pods on resume.",
+					"solution": "Each tree holds a 30s lease renewed every 10s: lease loss aborts <code>ExecutionContext.signal</code> immediately mid-tool-loop with <code>ExecutionLeaseLostError</code>, each tool call gets a deterministic per-iteration <code>step.idempotencyKey</code>, and fallback <code>piiTokens</code> keys persist per <code>rootExecutionId</code>.",
 					"code": [
 							"import { createApp } from \"agboss\";",
 							"import { seconds } from \"agboss/units\";",
@@ -2099,6 +2096,232 @@
 											"- DTOs (`*.dto.ts`): plain objects at runtime (never `new MyDto()`), field decorators from `agboss/dto`.",
 											"- Units: always use `seconds()`, `minutes()`, `hours()`, and `usd()` from `agboss/units`.",
 											"- Detailed skill guides: see `.claude/skills/agboss/SKILL.md`."
+									]
+							}
+					]
+			},
+			"sagas": {
+					"file": "src/actions/register-offer.action.ts",
+					"problem": "When a workflow creates external state (booking an escrow hold, registering an ATS offer, or arming an actuator) and a later error branch exits to <code>@WorkflowFinish</code> without running the rollback step, external systems are left corrupted.",
+					"solution": "Side-effecting <code>@Action</code> nodes declare <code>compensateWith</code> and optional <code>committedBy</code>; <code>agboss check</code> statically verifies every error path before commit and fails assembly with <code>[flow.uncompensated-action]</code> or <code>[action.invalid-compensator-input]</code> if any path bypasses rollback.",
+					"code": [
+							"import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from \"agboss\";",
+							"import { WithdrawOfferAction } from \"./withdraw-offer.action.js\";",
+							"import { ConfirmOfferAction } from \"./confirm-offer.action.js\";",
+							"import { OfferDraftDto, RegisteredOfferDto } from \"../dto/offer.dto.js\";",
+							"",
+							"@Action({",
+							"  name: \"register-offer-action\",",
+							"  description: \"Creates a provisional offer record in the external ATS\",",
+							"  input: { draft: OfferDraftDto },",
+							"  output: RegisteredOfferDto,",
+							"  compensateWith: WithdrawOfferAction,",
+							"  committedBy: ConfirmOfferAction,",
+							"  deps: [ExecutionContext, AtsClientService],",
+							"})",
+							"export class RegisterOfferAction implements ActionHandler<RegisterOfferAction> {",
+							"  constructor(",
+							"    private readonly executionContext: ExecutionContext,",
+							"    private readonly atsClientService: AtsClientService,",
+							"  ) {}",
+							"",
+							"  async execute(input: InputOf<RegisterOfferAction>): Promise<OutputOf<RegisterOfferAction>> {",
+							"    return this.atsClientService.createOffer(input.draft.value, {",
+							"      idempotencyKey: this.executionContext.step.idempotencyKey,",
+							"      signal: this.executionContext.signal,",
+							"    });",
+							"  }",
+							"}"
+					],
+					"files": [
+							{
+									"file": "src/actions/withdraw-offer.action.ts",
+									"code": [
+											"import { Action, ExecutionContext, type ActionHandler, type InputOf } from \"agboss\";",
+											"import { RegisteredOfferDto } from \"../dto/offer.dto.js\";",
+											"",
+											"@Action({",
+											"  name: \"withdraw-offer-action\",",
+											"  description: \"Compensates RegisterOfferAction by revoking the provisional ATS record\",",
+											"  input: { offer: RegisteredOfferDto },",
+											"  deps: [ExecutionContext, AtsClientService],",
+											"})",
+											"export class WithdrawOfferAction implements ActionHandler<WithdrawOfferAction> {",
+											"  constructor(",
+											"    private readonly executionContext: ExecutionContext,",
+											"    private readonly atsClientService: AtsClientService,",
+											"  ) {}",
+											"",
+											"  async execute(input: InputOf<WithdrawOfferAction>): Promise<void> {",
+											"    await this.atsClientService.revokeOffer(input.offer.value.offerId, {",
+											"      idempotencyKey: this.executionContext.step.idempotencyKey,",
+											"      signal: this.executionContext.signal,",
+											"    });",
+											"  }",
+											"}"
+									]
+							},
+							{
+									"file": "src/workflows/send-offer.workflow.ts",
+									"code": [
+											"import { StepFailedError, Workflow, start, toAction } from \"agboss\";",
+											"",
+											"@Workflow({",
+											"  name: \"send-offer-workflow\",",
+											"  version: \"1.0.0\",",
+											"  flow: [",
+											"    start(SendOfferWorkflowStart)",
+											"      .returns(OfferDraftDto)",
+											"      .toAction(RegisterOfferAction)",
+											"      .returns(RegisteredOfferDto)",
+											"      .toAction(ConfirmOfferAction)",
+											"      .onError(",
+											"        StepFailedError,",
+											"        toAction(WithdrawOfferAction) // Removing this triggers [flow.uncompensated-action]",
+											"          .toFinish(OfferRolledBackFinish),",
+											"      )",
+											"      .toFinish(SendOfferWorkflowFinish),",
+											"  ],",
+											"})",
+											"export class SendOfferWorkflow {}"
+									]
+							}
+					]
+			},
+			"lifo": {
+					"file": "src/missions/autonomous-transfer.application.ts",
+					"problem": "<code>.onError()</code> only catches step failures inside the normal graph flow — it never catches external <code>app.cancel(threadId)</code>, sibling <code>FailurePolicy.FailFast</code> aborts, quorum <code>Surplus</code> cancellation, or <code>BudgetExceededError</code>, leaving uncommitted side effects dangling.",
+					"solution": "Whenever an execution or parallel branch is externally aborted before reaching <code>committedBy</code>, the runtime automatically unwinds all uncommitted <code>compensateWith</code> actions in reverse completion order (LIFO) under a dedicated non-cancelled <code>compensationTimeout</code> signal.",
+					"code": [
+							"import { Application, createApp } from \"agboss\";",
+							"import { seconds } from \"agboss/units\";",
+							"import { AutonomousEscrowWorkflow } from \"./autonomous-escrow.workflow.js\";",
+							"",
+							"@Application({",
+							"  name: \"autonomous-escrow-application\",",
+							"  version: \"0.0.2\",",
+							"  workflows: [AutonomousEscrowWorkflow],",
+							"  // Dedicated non-cancelled cleanup window for LIFO saga unwinding:",
+							"  compensationTimeout: seconds(15),",
+							"})",
+							"export class AutonomousEscrowApplication {}",
+							"",
+							"const app = await createApp(AutonomousEscrowApplication);",
+							"",
+							"// If ReserveFundsAction -> LockInventoryAction completed, and the run is",
+							"// aborted by app.cancel(threadId), FailFast, quorum Surplus, or @Budget:",
+							"// -> runtime automatically runs UnlockInventoryAction, then ReleaseFundsAction (LIFO)",
+							"await app.cancel(threadId);"
+					],
+					"files": [
+							{
+									"file": "test/lifo-saga-unwinding.test.ts",
+									"code": [
+											"import { expect } from \"vitest\";",
+											"import { testWith } from \"agboss/testing\";",
+											"import { AutonomousEscrowApplication } from \"../src/missions/autonomous-transfer.application.js\";",
+											"",
+											"const test = testWith(AutonomousEscrowApplication, { instances: 2 });",
+											"",
+											"test(\"unwinds uncommitted actions in LIFO order on quorum Surplus or cancel\", async ({ app, mockAction }) => {",
+											"  await app.cancel(\"thread-escrow-42\");",
+											"  // Compensation entries are checkpointed: if a pod crashes mid-rollback,",
+											"  // the peer pod resumes remaining compensators idempotently.",
+											"  expect(mockAction(ReleaseFundsAction)).toHaveBeenCalled();",
+											"});"
+									]
+							}
+					]
+			},
+			"scaling": {
+					"file": "src/cluster/distributed-scaling.application.ts",
+					"problem": "A burst of parallel child workflows can OOM a single Node.js pod while sibling pods sit idle — and naive semaphores deadlock when parent <code>.join()</code> steps wait behind their own unstarted children.",
+					"solution": "<code>maxInstanceConcurrency</code> enforces a deadlock-safe priority queue (finishing <code>.join()</code>/<code>.joinQuorum()</code> parents first), flips <code>checkReadiness()</code> to <code>Degraded</code> at saturation so load balancers route elsewhere, and lets idle pods work-steal queued <code>.toParallelWorkflows</code> branches via <code>ExecutionLeaseRepository</code>.",
+					"code": [
+							"import { Application, createApp } from \"agboss\";",
+							"import { seconds } from \"agboss/units\";",
+							"import { durableStores } from \"../environments/store.environment.js\";",
+							"import { DeepResearchWorkflow, VerifyClaimWorkflow } from \"../workflows/research.workflow.js\";",
+							"",
+							"@Application({",
+							"  name: \"cluster-research-application\",",
+							"  version: \"0.0.2\",",
+							"  workflows: [DeepResearchWorkflow, VerifyClaimWorkflow],",
+							"  providers: [...durableStores],",
+							"  // Pod-wide ceiling: Priority 1 = finishing .join()/.joinQuorum()/@WorkflowFinish,",
+							"  // Priority 2 = deeper in-flight steps, Priority 3 = new execute/parallel branches",
+							"  maxInstanceConcurrency: 32,",
+							"  shutdownTimeout: seconds(25),",
+							"})",
+							"export class ClusterResearchApplication {}",
+							"",
+							"const app = await createApp(ClusterResearchApplication);",
+							"// Returns { status: HealthStatus.Degraded, details: { activeSlots: 32, maxSlots: 32, queuedCount: 6 } }",
+							"// when full so Kubernetes /health/ready shifts new traffic to idle pods:",
+							"const readiness = await app.checkReadiness();"
+					],
+					"files": [
+							{
+									"file": "src/workflows/distributed-children.workflow.ts",
+									"code": [
+											"import { FailurePolicy, Workflow, start } from \"agboss\";",
+											"import { listOf } from \"agboss/dto\";",
+											"import { VerifyClaimWorkflow } from \"./verify-claim.workflow.js\";",
+											"",
+											"@Workflow({",
+											"  name: \"deep-research-workflow\",",
+											"  version: \"1.0.0\",",
+											"  maxConcurrentExecutions: 16,",
+											"  flow: [",
+											"    start(ResearchStart)",
+											"      .returns(listOf(ClaimDto))",
+											"      // Queued in shared storage & work-stolen by idle cluster instances;",
+											"      // parent checkpoints & yields its lease until the last child finishes:",
+											"      .toParallelWorkflows(VerifyClaimWorkflow, {",
+											"        maxItems: 20,",
+											"        maxConcurrency: 8,",
+											"        failurePolicy: FailurePolicy.FailFast,",
+											"      })",
+											"      .join()",
+											"      .returns(listOf(VerificationReportDto))",
+											"      .toFinish(ResearchFinish),",
+											"  ],",
+											"})",
+											"export class DeepResearchWorkflow {}"
+									]
+							}
+					]
+			},
+			"describe": {
+					"file": "scripts/inspect-revision-anatomy.sh",
+					"problem": "In production, traces in Langfuse/OpenTelemetry drift from code changes: engineers cannot tell which prompt or DTO schema version produced a trace, which tools/branches are dead code, or whether a paused child workflow can safely resume after a rolling deploy.",
+					"solution": "<code>agboss describe --json</code> exports the complete declarative revision snapshot — graph topology, <code>configHash</code>, per-agent <code>promptHash</code>, per-DTO <code>schemaHash</code>, <code>compensateWith</code>/<code>committedBy</code> saga links, and <code>maxInstanceConcurrency</code> — enabling coverage analysis and versioned <code>[ChildWorkflowV1, ChildWorkflowV2]</code> pause resume.",
+					"code": [
+							"# Export full declarative revision anatomy as machine-readable JSON:",
+							"npx agboss describe --json > revision-snapshot.json",
+							"",
+							"# Snapshot schema ({ application, workflows[], schemas }):",
+							"# - application: { name, version, maxInstanceConcurrency: 32, compensationTimeoutMs: 15000, budgets[], piiPolicies[] }",
+							"# - workflows[]: { name, version, configHash: \"sha256:9f2c...\", starts[], finishes[], edges[], onError[],",
+							"#                  nodes[]: { name, kind, promptHash, schemaHash, compensateWith, committedBy } }",
+							"# - schemas:     { OfferDraftDto: { schemaHash: \"sha256:41a0...\", fields: [...] } }",
+							"# Joins directly with ExecutionRecord / StepRecord (WorkflowRecord.configHash, ComponentRecord.promptHash)"
+					],
+					"files": [
+							{
+									"file": "src/workflows/versioned-child-resume.application.ts",
+									"code": [
+											"import { Application } from \"agboss\";",
+											"import { ParentWorkflow, ChildWorkflowV1, ChildWorkflowV2 } from \"./workflows.js\";",
+											"",
+											"@Application({",
+											"  name: \"rolling-deploy-application\",",
+											"  version: \"0.0.2\",",
+											"  // Register both V1 and V2 during rolling upgrade: in-flight pauses inside",
+											"  // ChildWorkflowV1 resolve by matching configHash and return their DTO to ParentWorkflow",
+											"  workflows: [ParentWorkflow, ChildWorkflowV1, ChildWorkflowV2],",
+											"})",
+											"export class RollingDeployApplication {}"
 									]
 							}
 					]

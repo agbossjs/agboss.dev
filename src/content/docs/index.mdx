@@ -1,12 +1,12 @@
 ---
 title: AGBoss
-description: Production-grade TypeScript application framework for LangGraph agents — compile-time Path Scope, constructor dependency injection, multi-tenant FinOps budgets, PII policies, durable SQLite/CAS leases, and deterministic testing.
+description: Strictly typed TypeScript application framework for mission-critical multi-agent systems and System-2 autonomous missions on LangGraph — static Path Scope & saga verification, automatic LIFO compensation, multi-instance work-stealing, FinOps budgets, PII token masking, and deterministic testing.
 template: splash
 banner:
-  content: '<strong>New:</strong> Every project ships with built-in <a href="#agx" onclick="document.querySelector(\x27[data-key=skills]\x27)?.click()">AI Coding-Agent Skills (<code>.claude/skills/agboss/</code> + <code>AGENTS.md</code>) →</a>'
+  content: '<strong>New in v0.0.2:</strong> <a href="#agx" onclick="document.querySelector(\x27[data-key=skills]\x27)?.click()">Built-in AI Coding Skills</a> · <a href="#agx" onclick="document.querySelector(\x27[data-key=sagas]\x27)?.click()">Transactional LIFO Sagas</a> · <a href="/concepts/mission-orchestration/">Autonomous Missions →</a>'
 hero:
-  title: '<span class="hero-lead">AGBoss makes TypeScript agents</span><br/><span class="hero-rotator" id="hero-rotator"><span class="hero-trait is-active">Type-checked</span><span class="hero-trait">Multi-tenant</span><span class="hero-trait">Cost-capped</span><span class="hero-trait">Crash-resilient</span><span class="hero-trait">Deterministic</span></span>'
-  tagline: 'The application framework for <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a> agents in TypeScript.<br/>Compile-time Path Scope, dependency injection, testing, tracing, and cost limits.'
+  title: '<span class="hero-lead">AGBoss makes TypeScript agents</span><br/><span class="hero-rotator" id="hero-rotator"><span class="hero-trait is-active">Type-checked</span><span class="hero-trait">Transactional</span><span class="hero-trait">Multi-tenant</span><span class="hero-trait">Cost-capped</span><span class="hero-trait">Crash-resilient</span><span class="hero-trait">Deterministic</span></span>'
+  tagline: 'The TypeScript framework for <strong>mission-critical agents</strong> on <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a>.<br/>Transactional sagas, FinOps caps, human pauses, and static graph proof.'
   actions:
     - text: Get started
       link: /getting-started/introduction/
@@ -14,10 +14,10 @@ hero:
       variant: primary
 ---
 
-<div class="agboss-lede is-wide">
-	<p class="agboss-slogan">No vendor lock-in. Bring your own backend.</p>
-	<p>Run inside your Node.js app. Choose your models and infrastructure.</p>
-	<p class="agboss-sr-only">AGBoss is an open-source TypeScript application framework layered on top of LangGraph that brings strict software engineering discipline to multi-agent systems. Components declare typed inputs, constructor dependencies, and lifecycle hooks inside an <code>@Application</code> container, while the compiler verifies every graph path, review loop, and FinOps budget before any model runs.</p>
+<div class="agboss-lede">
+	<p class="agboss-slogan">Zero vendor lock-in. Built for mission-critical systems.</p>
+	<p>100% open source under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>. Your agents, your infrastructure, your rules.</p>
+	<p class="agboss-sr-only">AGBoss is an open-source TypeScript application framework layered on top of LangGraph for deterministic orchestration of multi-agent systems and autonomous missions. Components declare typed DTOs, constructor dependencies, and transactional compensation contracts inside an <code>@Application</code> container, while <code>agboss check</code> statically verifies every graph path, review loop, and saga rollback before any model runs.</p>
 </div>
 
 <div class="agboss-install">
@@ -33,7 +33,7 @@ hero:
 		<div class="agx-item is-active">
 			<button class="agx-tab" type="button" data-key="application">
 				<span class="agx-title">Components</span>
-				<span class="agx-desc">A decorator says what a class is. @Application wires them into a graph.</span>
+				<span class="agx-desc">A decorator says what a class is. @Application wires them into a verified graph.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="application">@Application</button>
@@ -53,9 +53,19 @@ hero:
 			</button>
 		</div>
 		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="sagas">
+				<span class="agx-title">Transactional Sagas <span class="agx-badge">NEW</span></span>
+				<span class="agx-desc">Declarative compensateWith &amp; committedBy with automatic LIFO rollback on abort.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="sagas">compensateWith &amp; committedBy</button>
+				<button class="agx-sub" type="button" data-key="lifo">Automatic LIFO Unwinding</button>
+			</div>
+		</div>
+		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="loops">
 				<span class="agx-title">Loops &amp; Quorums</span>
-				<span class="agx-desc">Compile-time Path Scope, &#123; about &#125; review loops, and parallel quorums.</span>
+				<span class="agx-desc">Compile-time Path Scope, &#123; about &#125; review loops, and multimodal quorums.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="loops">Review loop</button>
@@ -89,7 +99,7 @@ hero:
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="guards">
 				<span class="agx-title">Guards &amp; PII</span>
-				<span class="agx-desc">Reversible HMAC token masking and pre/post safety guardrails.</span>
+				<span class="agx-desc">Reversible HMAC token masking across pods and pre/post safety guardrails.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="guards">@PiiPolicy</button>
@@ -99,23 +109,24 @@ hero:
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="approval">
 				<span class="agx-title">Human Approval</span>
-				<span class="agx-desc">Two-phase channel pauses with atomic Pending → Resolved CAS.</span>
+				<span class="agx-desc">Two-phase pause CAS plus ChannelHandler.withdraw for stale UI buttons.</span>
 			</button>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="cost">
 				<span class="agx-title">Cost Control</span>
-				<span class="agx-desc">Pre-call spend reservation across app, tenant, and run scopes.</span>
+				<span class="agx-desc">Pre-call spend reservation and instant sibling branch abort on @Budget breach.</span>
 			</button>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="durability">
-				<span class="agx-title">Durability &amp; Leases</span>
-				<span class="agx-desc">SQLite WAL stores, 30s leases, and multi-pod crash recovery.</span>
+				<span class="agx-title">Durability &amp; Scaling</span>
+				<span class="agx-desc">SQLite leases, tool-loop lease abort, maxInstanceConcurrency, and work-stealing.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="durability">SQLite Stores</button>
-				<button class="agx-sub" type="button" data-key="recovery">30s Lease &amp; Recovery</button>
+				<button class="agx-sub" type="button" data-key="recovery">30s Lease &amp; Tool Abort</button>
+				<button class="agx-sub" type="button" data-key="scaling">Work-Stealing &amp; Backpressure</button>
 			</div>
 		</div>
 		<div class="agx-item">
@@ -130,9 +141,13 @@ hero:
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="tracing">
-				<span class="agx-title">Tracing</span>
-				<span class="agx-desc">Runs go to your self-hosted Langfuse with startup complexity checks.</span>
+				<span class="agx-title">Tracing &amp; Audit</span>
+				<span class="agx-desc">Self-hosted Langfuse traces and agboss describe --json revision snapshots.</span>
 			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="tracing">Langfuse &amp; Audit</button>
+				<button class="agx-sub" type="button" data-key="describe">describe --json Snapshot</button>
+			</div>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="ab">
@@ -164,6 +179,23 @@ hero:
 	</div>
 </div>
 
+## Orchestrating Long-Running Digital & Physical Missions (System-2 Planner)
+
+<div class="agboss-missions">
+	<div class="agboss-mission-card">
+		<span class="agboss-mission-kicker">DOMAIN 01 · ENTERPRISE BACKEND, FINTECH &amp; SECOPS</span>
+		<h3>Long-Running Digital Autonomous Missions</h3>
+		<p>Orchestrate multi-step workflows that run for minutes or days, fan out into distributed child workflows stolen by idle Kubernetes pods via <code>ExecutionLeaseRepository</code>, wait for human sign-off in Slack with automatic <code>ChannelHandler.withdraw</code> of stale buttons, and unwind external side effects in LIFO order via <code>compensateWith</code> and <code>committedBy</code> when cancelled or aborted.</p>
+	</div>
+	<div class="agboss-mission-card">
+		<span class="agboss-mission-kicker">DOMAIN 02 · PHYSICAL AI, ROBOTICS &amp; SMART DEVICES</span>
+		<h3>High-Level System-2 Mission Planner</h3>
+		<p>In a dual-loop architecture, low-level hardware controllers and safety reflexes run at 100–1000 Hz while AGBoss acts as the System-2 &ldquo;cerebral cortex&rdquo;: gathering multimodal model quorums via <code>.joinQuorum()</code> and <code>@Arbiter</code>, pausing missions safely via <code>@ChannelRole</code> with telemetry for human operators, validating coordinates via DTOs and <code>agboss check</code>, and triggering LIFO compensating actions to return actuators to a safe hold state on abort.</p>
+	</div>
+</div>
+
+<p class="agboss-missions-link"><a href="/concepts/mission-orchestration/">Read the System-2 Digital &amp; Physical Mission Architecture Guide →</a></p>
+
 <div class="agboss-sr-only">
 
 ## Why engineering teams build production agents on AGBoss
@@ -171,9 +203,9 @@ hero:
 <p>Unlike lightweight prompt wrappers or hosted agent platforms that lock your state and traces behind a proprietary API, AGBoss compiles directly into your Node.js service with verifiable runtime guarantees.</p>
 
 <ul>
-	<li><strong>100% compile-time graph and DI verification:</strong> Every path slot, constructor dependency, and DTO schema is verified by the <a href="https://www.typescriptlang.org/" target="_blank" rel="noopener">TypeScript</a> compiler and <code>agboss check</code> before deployment, eliminating runtime wiring faults.</li>
+	<li><strong>100% compile-time graph, Path Scope, and saga verification:</strong> Every path slot, constructor dependency, DTO schema, and <code>compensateWith</code> rollback path (<code>[flow.uncompensated-action]</code>) is verified by the <a href="https://www.typescriptlang.org/" target="_blank" rel="noopener">TypeScript</a> compiler and <code>agboss check</code> before deployment.</li>
 	<li><strong>200+ decision and chat model endpoints:</strong> Built on <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a> and OpenRouter with calibrated decision routing, tenant-weighted rate limiting at 120 calls per minute, and shared 429 cooldowns.</li>
-	<li><strong>100% self-hosted trace and PII isolation:</strong> Sensitive fields are pseudonymized before leaving your boundary, and full execution trees export to self-hosted <a href="https://langfuse.com/" target="_blank" rel="noopener">Langfuse</a> and OpenTelemetry collectors.</li>
+	<li><strong>100% self-hosted trace and PII isolation:</strong> Sensitive fields are pseudonymized before leaving your boundary, and full execution trees export to self-hosted <a href="https://langfuse.com/" target="_blank" rel="noopener">Langfuse</a> and OpenTelemetry collectors alongside <code>agboss describe --json</code> revision snapshots.</li>
 </ul>
 
 </div>
