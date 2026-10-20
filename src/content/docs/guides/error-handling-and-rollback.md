@@ -1,0 +1,246 @@
+---
+title: Error Handling & Rollback (.onError)
+description: Handle step failures, review-loop visit limits, quorum deadlines, and multi-step rollbacks explicitly in AGBoss workflows using .onError() and .onJoinError().
+---
+
+Production workflows interact with unreliable external systems, rate-limited APIs, and bounded review loops that can fail mid-flight. AGBoss makes failure recovery explicit in `@Workflow({ flow })` via `.onError(ErrorClass, sidePath)` on individual steps and `.onJoinError(ErrorClass, sidePath)` on parallel joins, keeping compensation logic type-checked and unit-tested alongside the happy path.
+
+## How `.onError()` chains compensation steps in a workflow path
+
+Instead of hidden automatic rollbacks that guess how to undo a side effect, you attach `.onError(ErrorClass, sidePath)` directly after the `@Action`, `@Agent`, or `@Router` that can throw. The compensation side path has full Path Scope access to DTOs produced by earlier steps (such as a `StockReservationDto` needed to release reserved inventory):
+
+<!--
+```ts file=order.components.ts
+import { Action, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "agboss";
+import { Text } from "agboss/dto";
+
+export class OrderRequestDto {
+  @Text({ prompt: "order id" })
+  orderId!: string;
+}
+export class StockReservationDto {
+  @Text({ prompt: "reservation id" })
+  reservationId!: string;
+}
+export class OrderShippedDto {
+  @Text({ prompt: "tracking number" })
+  trackingNumber!: string;
+}
+export class CarrierError extends Error {}
+export class PaymentProviderError extends Error {}
+
+@WorkflowStart({ name: "order-workflow-start", description: "Order request", input: OrderRequestDto })
+export class OrderWorkflowStart {}
+
+@WorkflowFinish({ name: "order-workflow-finish", description: "Order shipped", output: OrderShippedDto })
+export class OrderWorkflowFinish {}
+
+@WorkflowFinish({ name: "order-failed-workflow-finish", description: "Order failed", output: OrderRequestDto })
+export class OrderFailedWorkflowFinish {}
+
+@Action({
+  name: "reserve-stock-action",
+  description: "Reserves stock",
+  input: { order: OrderRequestDto },
+  output: StockReservationDto,
+})
+export class ReserveStockAction implements ActionHandler<ReserveStockAction> {
+  execute(input: InputOf<ReserveStockAction>): Promise<OutputOf<ReserveStockAction>> {
+    return Promise.resolve({ reservationId: `res-${input.order.value.orderId}` });
+  }
+}
+
+@Action({
+  name: "ship-order-action",
+  description: "Books carrier shipment",
+  input: { reservation: StockReservationDto },
+  output: OrderShippedDto,
+})
+export class ShipOrderAction implements ActionHandler<ShipOrderAction> {
+  execute(input: InputOf<ShipOrderAction>): Promise<OutputOf<ShipOrderAction>> {
+    return Promise.resolve({ trackingNumber: `trk-${input.reservation.value.reservationId}` });
+  }
+}
+
+@Action({
+  name: "refund-card-action",
+  description: "Refunds card charge",
+  input: { order: OrderRequestDto },
+})
+export class RefundCardAction implements ActionHandler<RefundCardAction> {
+  execute(_input: InputOf<RefundCardAction>): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+@Action({
+  name: "release-stock-action",
+  description: "Releases reserved stock",
+  input: { reservation: StockReservationDto },
+})
+export class ReleaseStockAction implements ActionHandler<ReleaseStockAction> {
+  execute(_input: InputOf<ReleaseStockAction>): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+@Action({
+  name: "notify-finance-team-action",
+  description: "Alerts finance when refund fails",
+  input: { order: OrderRequestDto },
+})
+export class NotifyFinanceTeamAction implements ActionHandler<NotifyFinanceTeamAction> {
+  execute(_input: InputOf<NotifyFinanceTeamAction>): Promise<void> {
+    return Promise.resolve();
+  }
+}
+```
+-->
+
+<!-- snippet-context
+import {
+  CarrierError,
+  NotifyFinanceTeamAction,
+  OrderFailedWorkflowFinish,
+  OrderRequestDto,
+  OrderShippedDto,
+  OrderWorkflowFinish,
+  OrderWorkflowStart,
+  PaymentProviderError,
+  RefundCardAction,
+  ReleaseStockAction,
+  ReserveStockAction,
+  ShipOrderAction,
+  StockReservationDto,
+} from "./order.components.js";
+-->
+```ts title="src/order.workflow.ts" file=order.workflow.ts
+import { Workflow, start, toAction } from "agboss";
+
+@Workflow({
+  name: "order-workflow",
+  version: "1.0.0",
+  flow: [
+    start(OrderWorkflowStart)
+      .returns(OrderRequestDto)
+      .toAction(ReserveStockAction)
+      .returns(StockReservationDto)
+      .toAction(ShipOrderAction)
+      .onError(
+        CarrierError,
+        toAction(RefundCardAction)
+          .onError(
+            PaymentProviderError,
+            toAction(NotifyFinanceTeamAction)
+              .toFinish(OrderFailedWorkflowFinish),
+          )
+          .toAction(ReleaseStockAction)
+          .toFinish(OrderFailedWorkflowFinish),
+      )
+      .returns(OrderShippedDto)
+      .toFinish(OrderWorkflowFinish),
+  ],
+})
+export class OrderWorkflow {}
+```
+
+```ts title="src/order.components.ts" no-check: context tab
+import { Action, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "agboss";
+import { Text } from "agboss/dto";
+
+export class OrderRequestDto {
+  @Text({ prompt: "order id" })
+  orderId!: string;
+}
+export class StockReservationDto {
+  @Text({ prompt: "reservation id" })
+  reservationId!: string;
+}
+export class OrderShippedDto {
+  @Text({ prompt: "tracking number" })
+  trackingNumber!: string;
+}
+export class CarrierError extends Error {}
+export class PaymentProviderError extends Error {}
+
+@WorkflowStart({ name: "order-workflow-start", description: "Order request", input: OrderRequestDto })
+export class OrderWorkflowStart {}
+
+@WorkflowFinish({ name: "order-workflow-finish", description: "Order shipped", output: OrderShippedDto })
+export class OrderWorkflowFinish {}
+
+@WorkflowFinish({ name: "order-failed-workflow-finish", description: "Order failed", output: OrderRequestDto })
+export class OrderFailedWorkflowFinish {}
+
+@Action({
+  name: "reserve-stock-action",
+  description: "Reserves stock",
+  input: { order: OrderRequestDto },
+  output: StockReservationDto,
+})
+export class ReserveStockAction implements ActionHandler<ReserveStockAction> {
+  execute(input: InputOf<ReserveStockAction>): Promise<OutputOf<ReserveStockAction>> {
+    return Promise.resolve({ reservationId: `res-${input.order.value.orderId}` });
+  }
+}
+
+@Action({
+  name: "ship-order-action",
+  description: "Books carrier shipment",
+  input: { reservation: StockReservationDto },
+  output: OrderShippedDto,
+})
+export class ShipOrderAction implements ActionHandler<ShipOrderAction> {
+  execute(input: InputOf<ShipOrderAction>): Promise<OutputOf<ShipOrderAction>> {
+    return Promise.resolve({ trackingNumber: `trk-${input.reservation.value.reservationId}` });
+  }
+}
+
+@Action({
+  name: "refund-card-action",
+  description: "Refunds card charge",
+  input: { order: OrderRequestDto },
+})
+export class RefundCardAction implements ActionHandler<RefundCardAction> {
+  execute(_input: InputOf<RefundCardAction>): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+@Action({
+  name: "release-stock-action",
+  description: "Releases reserved stock",
+  input: { reservation: StockReservationDto },
+})
+export class ReleaseStockAction implements ActionHandler<ReleaseStockAction> {
+  execute(_input: InputOf<ReleaseStockAction>): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+@Action({
+  name: "notify-finance-team-action",
+  description: "Alerts finance when refund fails",
+  input: { order: OrderRequestDto },
+})
+export class NotifyFinanceTeamAction implements ActionHandler<NotifyFinanceTeamAction> {
+  execute(_input: InputOf<NotifyFinanceTeamAction>): Promise<void> {
+    return Promise.resolve();
+  }
+}
+```
+
+## What error classes can `.onError()` and `.onJoinError()` catch?
+
+| Error Class | Where It Attaches | When It Fires |
+| :--- | :--- | :--- |
+| Custom `Error` subclass (e.g. `CarrierError`) | `.onError(CarrierError, ...)` after `@Action` / `@Router` | When the step throws `CarrierError` (or an `ActionFailedError` wrapping it in `cause`) |
+| `VisitsLimitExceededError` | `.onError(VisitsLimitExceededError, ...)` | When an `@Agent` or `@Router` in a review loop exceeds its `maxVisits` ceiling |
+| `LimitExceededError` | `.onError(LimitExceededError, ...)` | When any step or workflow limit is exceeded |
+| `StepFailedError` | `.onJoinError(StepFailedError, ...)` after `.join()` | When one or more parallel branches fail during `.toParallelAgents()` or `.toParallelWorkflows()` |
+| `QuorumNotReachedError` | `.onJoinError(QuorumNotReachedError, ...)` after `.joinQuorum()` | When too many branches fail or the quorum `deadline` expires before `min` accepted answers arrive |
+
+## How error matching and checkpoint recovery work
+
+- **Most-specific class matching:** A step may declare multiple `.onError(...)` handlers; the framework matches the thrown error (and its `.cause` chain) against the most specific subclass in the prototype hierarchy. Duplicate handlers for the same error class on one step fail assembly (`[flow.duplicate-error-handler]`).
+- **Durable across checkpoints:** The failure record (`lastError` with error code, message, and failed node name) is persisted in workflow state so a side path that pauses for human intervention resumes cleanly.

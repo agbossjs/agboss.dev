@@ -1,0 +1,73 @@
+---
+title: Environments, Secrets & Units
+description: Configure 12-factor typed environments with AppEnvironment, secret(), env(), env.optional(), and explicit unit types (usd, seconds, minutes, hours).
+---
+
+AGBoss enforces strict 12-factor dev/prod parity: workflows and components never read `process.env` directly. Instead, each `@Application` declares a single environment contract class (`environments/app.environment.ts`), and each deployment target (`prod.environment.ts`, `dev.environment.ts`, `test.environment.ts`) provides an object matching that contract.
+
+## How to declare `AppEnvironment`, `secret()`, and `env()`
+
+At `createApp(Application, { environment })` startup, AGBoss validates every required environment variable and secret before initializing services or running workflows, throwing `EnvironmentError` immediately if any variable is missing or invalid:
+
+| Helper | Import | Behavior |
+| :--- | :--- | :--- |
+| `secret("ENV_VAR")` | `"agboss"` | Reads a required secret into a `Secret` instance that prints as `"***"` in `String()`, `JSON.stringify()`, `util.inspect`, and logs; call `.reveal()` only when passing to a wire client. |
+| `env("ENV_VAR", { default? })` | `"agboss"` | Reads a required string variable (or falls back to `default` when unset). |
+| `env.optional("ENV_VAR")` | `"agboss"` | Returns `string \| undefined` without failing startup when the variable is unset. |
+| `EmptyEnvironment` | `"agboss"` | Built-in empty contract class for applications that do not require environment variables. |
+
+```ts title="src/environments/app.environment.ts" no-check: reference example
+import type { Secret } from "agboss";
+import type { Milliseconds, Usd } from "agboss/units";
+
+export class AppEnvironment {
+  openRouterApiKey!: Secret;
+  piiPseudonymKey!: Secret;
+  sqlitePath!: string;
+  webhookBaseUrl?: string;
+  requestTimeout!: Milliseconds;
+  dailyTenantCap!: Usd;
+}
+```
+
+```ts title="src/environments/prod.environment.ts" no-check: reference example
+import { env, secret } from "agboss";
+import { seconds, usd } from "agboss/units";
+import type { AppEnvironment } from "./app.environment.js";
+
+export const environment: AppEnvironment = {
+  openRouterApiKey: secret("OPENROUTER_API_KEY"),
+  piiPseudonymKey: secret("PII_PSEUDONYM_KEY"),
+  sqlitePath: env("AGBOSS_SQLITE_PATH", {
+    default: "/var/lib/agboss/state.sqlite",
+  }),
+  webhookBaseUrl: env.optional("WEBHOOK_BASE_URL"),
+  requestTimeout: seconds(30),
+  dailyTenantCap: usd(50),
+};
+```
+
+```ts title="src/environments/test.environment.ts" no-check: reference example
+import { secret } from "agboss";
+import { seconds, usd } from "agboss/units";
+import type { AppEnvironment } from "./app.environment.js";
+
+export const environment: AppEnvironment = {
+  openRouterApiKey: secret.of("test-openrouter-key"),
+  piiPseudonymKey: secret.of("test-hmac-key-32-bytes-minimum!!"),
+  sqlitePath: ":memory:",
+  requestTimeout: seconds(5),
+  dailyTenantCap: usd(1),
+};
+```
+
+## Why AGBoss requires explicit unit factories (`agboss/units`)
+
+Raw numbers in configuration are a major source of production bugs (confusing `30` seconds with `30` milliseconds, or passing negative/NaN floats as dollar budgets). Every timeout, TTL, retention window, and dollar amount in AGBoss uses branded unit factories from `agboss/units`:
+
+| Factory | Return Type | Validation & Usage |
+| :--- | :--- | :--- |
+| `usd(amount)` | `Usd` | Verifies finite `amount >= 0`; used in `@Budget.maxSpend()`, `SpendRecorder.record()`, and `replyWith(..., { cost })`. |
+| `seconds(n)` | `Milliseconds` | Converts non-negative seconds to branded `Milliseconds` (`timeout`, `shutdownTimeout`, quorum `deadline`). |
+| `minutes(n)` | `Milliseconds` | Converts non-negative minutes to branded `Milliseconds` (model provider `timeout`, circuit breaker cooldowns). |
+| `hours(n)` | `Milliseconds` | Converts non-negative hours to branded `Milliseconds` (`pauseRecordRetention: hours(24)`, long quorum deadlines). |

@@ -1,12 +1,12 @@
 ---
 title: Why AGBoss?
-description: Why build LangGraph agents with AGBoss — declarative, testable, observable, cost-aware, and lock-in free.
+description: Why engineering teams build production LangGraph agents with AGBoss — compile-time Path Scope, constructor DI, multi-tenant FinOps, durable SQLite/CAS leases, and deterministic offline testing.
 template: splash
 ---
 
 <div class="agp not-content">
 
-<p class="agp-lead">AGBoss makes building LangGraph agents in TypeScript faster, easier to read and safer to change. You declare what each component is; the framework wires them into a graph and gives every run tests, traces and a price tag.</p>
+<p class="agp-lead">AGBoss is the production application framework for LangGraph agents in TypeScript, bringing the architectural rigor of Angular, NestJS, and Spring to multi-agent engineering. You declare typed components inside an <code>@Application</code> container; the compiler verifies every graph path, review loop, and dependency before a single model call runs.</p>
 
 <div class="agp-actions">
 <a class="agp-btn" href="/getting-started/quick-start/">Try the quickstart →</a>
@@ -18,66 +18,66 @@ template: splash
 <div class="agp-feature">
 <div class="agp-feature-icon">@</div>
 <div>
-<h3>AGBoss is declarative</h3>
-<p>Agents, tools, routers and workflows are classes with a decorator. Dependencies arrive through the constructor, the workflow wires them into a graph.</p>
-<p>The code reads like the diagram you would have drawn, so it's quick to write and quick to review.</p>
+<h3>Compile-time Path Scope & DI</h3>
+<p>Agents, tools, routers, actions, arbiters, and workflows are classes wired into an <code>@Application</code> root. Dependencies arrive through constructors and contracts are replaced by subclass inheritance.</p>
+<p>The chain-per-line Flow DSL tracks what each step produces (<code>.returns(Dto, &#123; about &#125;)</code>, <code>historyOf(Dto)</code>) and rejects missing or stale inputs at compile time via <code>.agboss/types.d.ts</code>.</p>
 </div>
 </div>
 
 <div class="agp-feature">
 <div class="agp-feature-icon">✓</div>
 <div>
-<h3>AGBoss is testable</h3>
-<p>Every component can be unit-tested with the model and tools stubbed out. Configurations can be compared side by side, so a prompt change is an A/B test, not a guess.</p>
-</div>
-</div>
-
-<div class="agp-feature">
-<div class="agp-feature-icon">⌁</div>
-<div>
-<h3>AGBoss is observable</h3>
-<p>Each run is traced end to end, and the trace link sits right under the answer. You see which agent ran, what it called and why it routed where it did.</p>
+<h3>Deterministic testing & 8 unit runners</h3>
+<p>Drive whole multi-instance workflows offline with <code>testWith(App)</code>, scripted models, <code>VirtualClock</code>, and <code>TestConcurrency.inOrder()</code> race control, or test any component in isolation with <code>testTool</code>, <code>testAction</code>, <code>testRouter</code>, <code>testArbiter</code>, <code>testRag</code>, <code>testJudge</code>, <code>testPii</code>, and <code>testGuardrail</code>.</p>
 </div>
 </div>
 
 <div class="agp-feature">
 <div class="agp-feature-icon">$</div>
 <div>
-<h3>AGBoss is cost-aware</h3>
-<p>Token spend is part of the result of every turn. Budgets are reserved before a run starts, so one runaway conversation can't drain the account.</p>
+<h3>Multi-tenant FinOps & fair queues</h3>
+<p><code>@Budget</code> components cap spend per execution, per tenant, or across the application per day, week, or month (UTC). <code>@ModelProvider</code> enforces tenant-weighted queues, shared 429 cooldowns, and circuit breakers.</p>
+</div>
+</div>
+
+<div class="agp-feature">
+<div class="agp-feature-icon">⛨</div>
+<div>
+<h3>Boundary PII & durable execution</h3>
+<p><code>@PiiPolicy</code> masks sensitive data into reversible tokens (or HMAC pseudonyms) before any prompt leaves your perimeter. Seven repository contracts with built-in <code>Sqlite*</code> WAL stores provide 30-second execution leases, CAS recovery, and two-phase <code>app.resume()</code>.</p>
 </div>
 </div>
 
 <div class="agp-feature">
 <div class="agp-feature-icon">↔</div>
 <div>
-<h3>AGBoss is lock-in free</h3>
-<p>It embeds into the Node.js backend you already have. Bring your own HTTP server, database and model provider; nothing has to move to a new platform.</p>
+<h3>Zero lock-in, inside your backend</h3>
+<p>AGBoss runs inside the Node.js 22+ backend you already operate. Keep your own HTTP server, SQLite/Postgres database, OpenRouter or custom model providers, and self-hosted Langfuse tracing.</p>
 </div>
 </div>
 
 <div class="agp-feature">
 <div class="agp-feature-icon">◇</div>
 <div>
-<h3>AGBoss is LangGraph</h3>
-<p>Under the decorators it's a regular LangGraph graph. Everything LangGraph can run, AGBoss can run; it just takes the wiring off your hands.</p>
+<h3>Native LangGraph & AI-ready</h3>
+<p>Every workflow compiles down to a standard LangGraph state graph compatible with LangGraph Studio, and ships with built-in <code>AGENTS.md</code> and <code>.claude/skills/agboss/</code> references kept in sync by <code>agboss check</code>.</p>
 </div>
 </div>
 
 </div>
 
 <section class="agp-section">
-<h2 class="agp-h2">What you can build</h2>
+<h2 class="agp-h2">What you can build with AGBoss</h2>
 <div class="agp-grid">
-<div class="agp-card"><span class="agp-kicker">@Router</span><h3>Routing & multi-agent</h3><p>Send each request to the agent that should handle it.</p><span class="agp-more">Guide coming</span></div>
-<div class="agp-card"><span class="agp-kicker">@Tool · MCP</span><h3>Tool-using agents</h3><p>Typed tools and MCP servers, called from configuration.</p><span class="agp-more">Guide coming</span></div>
-<div class="agp-card"><span class="agp-kicker">RAG</span><h3>Knowledge bases</h3><p>Ground answers in your own documents, with a store you choose.</p><span class="agp-more">Guide coming</span></div>
-<div class="agp-card"><span class="agp-kicker">interrupt</span><h3>Human approval</h3><p>Pause before a risky step and resume once a person says yes.</p><span class="agp-more">Guide coming</span></div>
+<a class="agp-card" href="/concepts/workflow/"><span class="agp-kicker">@Router · @Arbiter</span><h3>Routing, parallel waves & quorums</h3><p>Combine calibrated decision routers (Jev), parallel agent waves, and priority quorum joins with deadline cancellation.</p><span class="agp-more">Read Workflow & Path Scope →</span></a>
+<a class="agp-card" href="/guides/mcp-rag-and-a2a/"><span class="agp-kicker">@Tool · MCP · A2A</span><h3>Typed tools, MCP & A2A</h3><p>Verify MCP server contracts at startup, generate tools from OpenAPI, or expose workflows as MCP and A2A endpoints.</p><span class="agp-more">Read MCP, RAG & A2A →</span></a>
+<a class="agp-card" href="/guides/mcp-rag-and-a2a/#knowledge-bases-with-rag"><span class="agp-kicker">@Rag</span><h3>Knowledge bases</h3><p>Ground agent answers in your own documents with zero-dependency SQLite FTS5 (BM25) or custom vector connectors.</p><span class="agp-more">Explore Knowledge Bases →</span></a>
+<a class="agp-card" href="/guides/channels-and-pauses/"><span class="agp-kicker">@ChannelRole</span><h3>Channels & two-phase pauses</h3><p>Pause execution on sensitive writes with durable PendingPause records and resume safely across restarts via app.resume().</p><span class="agp-more">Read Channels & Pauses →</span></a>
 </div>
 </section>
 
 <div class="agp-cta">
-<div><h2>Ready to get started?</h2><p>Build and run your first agent in a few minutes.</p></div>
+<div><h2>Ready to get started?</h2><p>Scaffold and run your first type-checked agent application in minutes.</p></div>
 <div class="agp-actions"><a class="agp-btn" href="/getting-started/quick-start/">Try the quickstart →</a></div>
 </div>
 

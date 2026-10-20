@@ -242,6 +242,18 @@ h1[data-page-title] {
 	color: var(--sl-color-accent-high);
 }
 
+.agboss-sr-only {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
 /* ---------- Install snippet ---------- */
 
 .agboss-install {
@@ -287,6 +299,99 @@ h1[data-page-title] {
 
 .agboss-copy:hover {
 	color: var(--sl-color-accent);
+}
+
+/* ---------- Built-in AI Coding-Agent Skills top callout ---------- */
+
+.agboss-skills-banner {
+	max-width: 58rem;
+	margin: -1.25rem auto 3rem;
+	padding: 1.15rem 1.35rem;
+	border-radius: 14px;
+	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 48%, var(--sl-color-hairline));
+	background:
+		linear-gradient(
+			135deg,
+			color-mix(in srgb, var(--sl-color-accent) 12%, var(--sl-color-bg-nav)),
+			var(--sl-color-bg-nav) 65%
+		);
+	box-shadow: 0 18px 42px -24px rgba(37, 140, 235, 0.45);
+}
+
+.agboss-skills-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6rem;
+	margin-bottom: 0.5rem;
+	color: var(--sl-color-white);
+	font-size: 1rem;
+}
+
+.agboss-new-pill,
+.agx-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.14rem 0.5rem;
+	border-radius: 999px;
+	border: 1px solid color-mix(in srgb, #10b981 55%, transparent);
+	background: color-mix(in srgb, #10b981 18%, transparent);
+	color: #34d399;
+	font-family: var(--sl-font-mono);
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	line-height: 1.2;
+	vertical-align: middle;
+}
+
+:root[data-theme='light'] .agboss-new-pill,
+:root[data-theme='light'] .agx-badge {
+	color: #047857;
+	background: rgba(16, 185, 129, 0.12);
+	border-color: rgba(16, 185, 129, 0.45);
+}
+
+.agboss-skills-banner p {
+	margin: 0 0 0.8rem !important;
+	font-size: 0.92rem;
+	line-height: 1.55;
+	color: var(--sl-color-gray-2);
+}
+
+.agboss-skills-files {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	margin: 0 !important;
+}
+
+.agboss-skill-chip {
+	margin: 0 !important;
+	padding: 0.25rem 0.65rem;
+	border-radius: 999px;
+	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 38%, var(--sl-color-hairline));
+	background: color-mix(in srgb, var(--sl-color-bg) 70%, transparent);
+	color: var(--sl-color-accent-high);
+	font-family: var(--sl-font-mono);
+	font-size: 0.76rem;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.agboss-skill-chip code {
+	background: none !important;
+	border: none !important;
+	padding: 0 !important;
+	color: inherit;
+	font-size: inherit;
+}
+
+.agboss-skill-chip:hover {
+	border-color: var(--sl-color-accent);
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-white);
 }
 
 /* ---------- Feature explorer: features on the left, live code on the right ---------- */
@@ -364,6 +469,10 @@ h1[data-page-title] {
 	padding: 0 1rem 0.9rem;
 }
 
+.agx-item:not(.is-active) .agx-subs {
+	display: none;
+}
+
 .agx-item:not(.is-active) .agx-sub.is-active {
 	border-color: var(--sl-color-hairline);
 	background: none;
@@ -400,6 +509,7 @@ h1[data-page-title] {
 }
 
 @media (min-width: 60rem) {
+	.agx-nav,
 	.agx-code {
 		position: sticky;
 		top: calc(var(--sl-nav-height) + 1rem);
@@ -426,12 +536,16 @@ h1[data-page-title] {
 	align-items: center;
 	gap: 0.45rem;
 	margin: 0 !important;
-	padding: 0.7rem 1rem;
+	padding: 0 0.85rem;
+	min-height: 2.55rem;
 	border-bottom: 1px solid var(--agx-border);
 	background: var(--agx-bar);
+	overflow: hidden;
 }
 
+.agx-bar > .agx-dot,
 .agx-bar > span:not(.agx-file) {
+	flex: none;
 	width: 11px;
 	height: 11px;
 	margin: 0 !important;
@@ -448,33 +562,262 @@ h1[data-page-title] {
 	background: #22c55e;
 }
 
+.agx-file-tabs {
+	display: flex;
+	flex: 1 1 auto;
+	min-width: 0;
+	align-items: stretch;
+	gap: 0.15rem;
+	margin: 0 0 0 0.55rem !important;
+	align-self: stretch;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--agx-muted) 50%, transparent) transparent;
+}
+
+.agx-file-tabs::-webkit-scrollbar,
+.ag-code-tablist::-webkit-scrollbar {
+	height: 5px;
+}
+
+.agx-file-tabs::-webkit-scrollbar-thumb,
+.ag-code-tablist::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--agx-muted) 50%, transparent);
+	border-radius: 999px;
+}
+
+.agx-file-tab {
+	position: relative;
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.38rem;
+	margin: 0 !important;
+	padding: 0.55rem 0.72rem;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: transparent;
+	color: var(--agx-muted);
+	font-family: var(--sl-font-mono);
+	font-size: 0.77rem;
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: color 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
+}
+
+.agx-file-tab:hover {
+	color: var(--agx-text);
+	background: color-mix(in srgb, var(--agx-text) 6%, transparent);
+}
+
+.agx-file-tab.is-active {
+	color: var(--agx-cls);
+	border-bottom-color: var(--agx-cls);
+	background: color-mix(in srgb, var(--agx-bg) 65%, transparent);
+	font-weight: 600;
+}
+
 .agx-file {
 	margin: 0 0 0 0.5rem !important;
 	font-size: 0.8rem;
 	color: var(--agx-muted);
 }
 
+/* ---------- Angular-style multi-file code tabs in Documentation & Guides ---------- */
+.ag-code-tabs {
+	margin: 1.25rem 0 !important;
+	border: 1px solid var(--agx-border);
+	border-radius: 12px;
+	overflow: hidden;
+	background: var(--agx-bg);
+	box-shadow: 0 12px 32px -18px rgba(0, 0, 0, 0.45);
+}
+
+.ag-code-tablist {
+	display: flex;
+	align-items: stretch;
+	gap: 0.15rem;
+	margin: 0 !important;
+	padding: 0 0.65rem;
+	background: var(--agx-bar);
+	border-bottom: 1px solid var(--agx-border);
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--agx-muted) 50%, transparent) transparent;
+}
+
+.ag-code-tab {
+	position: relative;
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0 !important;
+	padding: 0.6rem 0.8rem;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: transparent;
+	color: var(--agx-muted);
+	font-family: var(--sl-font-mono);
+	font-size: 0.78rem;
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: color 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
+}
+
+.ag-code-tab:hover {
+	color: var(--agx-text);
+	background: color-mix(in srgb, var(--agx-text) 6%, transparent);
+}
+
+.ag-code-tab.is-active {
+	color: var(--agx-cls);
+	border-bottom-color: var(--agx-cls);
+	background: color-mix(in srgb, var(--agx-bg) 70%, transparent);
+	font-weight: 600;
+}
+
+.ag-code-tab-badge {
+	display: inline-block;
+	padding: 0.04rem 0.34rem;
+	border-radius: 4px;
+	font-size: 0.64rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	background: color-mix(in srgb, var(--agx-cls) 18%, transparent);
+	color: var(--agx-cls);
+}
+
+.ag-code-tabs > .expressive-code {
+	margin: 0 !important;
+}
+
+.ag-code-tabs > .expressive-code[hidden] {
+	display: none !important;
+}
+
+.ag-code-tabs > .expressive-code .frame {
+	border: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+}
+
+.ag-code-tabs > .expressive-code .frame > .header {
+	display: none !important;
+}
+
+.agx-diag {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 0.75rem;
+	margin: 0 0 0.85rem !important;
+	transition: opacity 0.14s ease;
+}
+
+@media (min-width: 48rem) {
+	.agx-diag {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.agx-diag.is-swapping {
+	opacity: 0.25;
+}
+
+.agx-diag-card {
+	margin: 0 !important;
+	padding: 0.85rem 1rem;
+	border-radius: 12px;
+	border: 1px solid var(--agx-border);
+	background: var(--agx-bar);
+	text-align: left;
+}
+
+.agx-diag-card.is-problem {
+	border-left: 3px solid #f87171;
+}
+
+.agx-diag-card.is-solution {
+	border-left: 3px solid #34d399;
+}
+
+.agx-diag-kicker {
+	display: inline-block;
+	margin: 0 0 0.3rem !important;
+	font-family: var(--sl-font-mono);
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.agx-diag-card.is-problem .agx-diag-kicker {
+	color: #f87171;
+}
+
+.agx-diag-card.is-solution .agx-diag-kicker {
+	color: #34d399;
+}
+
+:root[data-theme='light'] .agx-diag-card.is-problem .agx-diag-kicker {
+	color: #dc2626;
+}
+
+:root[data-theme='light'] .agx-diag-card.is-solution .agx-diag-kicker {
+	color: #059669;
+}
+
+.agx-diag-card p {
+	margin: 0 !important;
+	font-size: 0.84rem;
+	line-height: 1.5;
+	color: var(--sl-color-gray-2);
+}
+
+.agx-diag-card code {
+	font-size: 0.82em;
+	padding: 0.08rem 0.3rem;
+	border-radius: 4px;
+}
+
 .agx-body {
 	margin: 0 !important;
-	padding: 1.25rem 1.4rem;
-	overflow: hidden;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
+	padding: 1.15rem 1.35rem;
+	overflow-x: auto;
+	overflow-y: visible;
+	overscroll-behavior-x: contain;
+	white-space: pre;
+	overflow-wrap: normal;
+	word-break: normal;
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--agx-muted) 45%, transparent) transparent;
 	border: none !important;
 	background: transparent !important;
-	font-size: 0.86rem;
-	line-height: 1.7;
+	font-size: 0.84rem;
+	line-height: 1.62;
 	color: var(--agx-text);
 	text-align: left;
 }
 
 .agx-body code {
-	white-space: inherit;
+	display: inline-block;
+	min-width: 100%;
+	white-space: pre;
 	background: none;
 	padding: 0;
 	border: none;
 	font-size: inherit;
 	color: inherit;
+}
+
+.sl-markdown-content pre,
+.expressive-code pre {
+	overscroll-behavior: contain;
 }
 
 .tok-kw {
@@ -521,17 +864,6 @@ h1[data-page-title] {
 	--agx-dec: #b45309;
 	--agx-com: #8a94a6;
 	--agx-shadow: 0 24px 60px -28px rgba(37, 140, 235, 0.35);
-}
-
-.agx-about {
-	margin: 1rem 0.25rem 0 !important;
-	font-size: var(--sl-text-sm);
-	line-height: 1.6;
-	color: var(--sl-color-gray-2);
-}
-
-.agx-about code {
-	font-size: 0.85em;
 }
 
 /* ---------- Ubuntu Mono: headings only ---------- */
@@ -650,7 +982,7 @@ header a[rel='me']:hover {
 .hero::after,
 .agboss-lede::after,
 .agx::after {
-	content: ' \A  \A  \A  \A  \A  \A   @Router({\A     name: "main",\A     maxVisits: 3,\A   })\A  \A  \A  \A                   @Rag({ name: "company_notes", topK: 3 })\A  \A  \A  \A  \A  \A  \A  \A  \A                                                                                                                                                   guards: {\A                                                                                                                                                     input: {\A                                                                                                                                                       prompt_injection: { threshold: 0.7 },\A                                                                                                                                                     },\A                                                                                                                                                   },\A  \A                                                                                                                                   settings(): WorkflowSettings {\A                                                                                                                                     return WorkflowSettings.builder()\A                                                                                                                                       .limits({ perRun: { cost: usd(0.1) } })\A                                                                                                                                       .build();\A                                                                                                                                   }';
+	content: ' \A  \A  \A  \A  \A  \A   @Router({\A     name: "main-router",\A     decidedBy: DecidedBy.Model,\A     maxVisits: 1,\A   })\A  \A  \A  \A                   @Rag({ name: "company_notes", topK: 3 })\A  \A  \A  \A  \A  \A  \A  \A  \A                                                                                                                                                   @Application({\A                                                                                                                                                     name: "job-scout-application",\A                                                                                                                                                     workflows: [JobScoutWorkflow],\A                                                                                                                                                     budgets: [RunBudget, DailyBudget],\A                                                                                                                                                   })\A  \A                                                                                                                                   @Budget({ name: "run-budget", scope: BudgetScope.Execution })\A                                                                                                                                   export class RunBudget {\A                                                                                                                                     maxSpend(): Usd { return usd(0.15); }\A                                                                                                                                   }';
 	/* content set per element below: a few small, properly formatted fragments with lots of empty space */
 	position: absolute;
 	z-index: -1;
@@ -680,7 +1012,7 @@ header a[rel='me']:hover {
 
 /* slogan: same box and spot as its glow */
 .agboss-lede::after {
-	content: ' \A  \A                                                 @Agent({\A                                                   name: "scout",\A                                                   thinking: "none",\A                                                   tools: [GreenhouseJobs],\A                                                 })\A                                                                       from(ChatWorkflowStart)\A                                                                         .next(MainRouter),';
+	content: ' \A  \A                                                 @Agent({\A                                                   name: "scout-agent",\A                                                   reasoning: Reasoning.off(),\A                                                   tools: [GreenhouseJobs],\A                                                 })\A                                                                       start(ChatWorkflowStart)\A                                                                         .returns(WorkflowStartTextDto)\A                                                                         .toRouter(MainRouter)';
 	inset: -3rem -10% -2rem 35%;
 	padding-top: 0.5rem;
 	mask-image: radial-gradient(45% 60% at 60% 45%, black 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%);

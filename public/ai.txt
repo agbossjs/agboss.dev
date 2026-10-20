@@ -1,0 +1,26 @@
+# AGBoss (https://agboss.dev) — AI Retrieval & Coding Agent Manifest
+
+Name: AGBoss
+Description: Production-grade TypeScript application framework for LangGraph agents with compile-time Path Scope, constructor dependency injection, multi-tenant FinOps budgets, PII boundary policies, durable multi-instance SQLite/CAS execution, and deterministic unit and workflow testing.
+License: Apache-2.0
+Repository: https://github.com/agbossjs/agboss
+Website: https://agboss.dev
+LLMs-Index: https://agboss.dev/llms.txt
+LLMs-Full-Docs: https://agboss.dev/llms-full.txt
+LLMs-Compact-Docs: https://agboss.dev/llms-small.txt
+Sitemap: https://agboss.dev/sitemap-index.xml
+
+## Permissions
+User-Agent: *
+Allow: /
+Allow-Retrieval: yes
+Allow-Citation: yes
+Allow-Summarization: yes
+Allow-Code-Generation: yes
+
+## Core Architectural Invariants for Coding Agents
+- Entry point: `@Application` (`*.application.ts`) is the single assembly root passed to `createApp(App)` and `testWith(App)`. It declares `workflows`, `environment`, `providers`, `budgets`, `piiPolicies`, and `observers`.
+- Flow DSL (`*.workflow.ts`): Strictly one chained method call per line (`@stylistic/newline-per-chained-call`), including `WorkflowSettings.builder()...build()`. Starts with `start(StartClass)`, chains `.returns(Dto, { about })`, `.toAgent()`, `.toRouter()`, `.toAction()`, `.toWorkflow()`, `.toFinish()`, `.switch(caseOf(Dto, { about }))`, `.chooseOne(route(Target))` with `SpawnPolicy.Always` / `SpawnPolicy.OnDemand`, `.toParallelAgents()`, `.toParallelWorkflows()`, `.join()`, `.joinQuorum({ min, max, deadline })`, `.joinQuorumGroups(...)`, and `.acceptedBy(Arbiter)` / `.acceptedBy(anyOf(A, B))`.
+- Naming grammar: Every component name and class ends with its kind suffix (`-application`, `-workflow`, `-workflow-start`, `-workflow-finish`, `-agent`, `-router`, `-action`, `-arbiter`, `-budget`, `-model-provider`, `-pii-policy`, `-channel`), and path DTO classes end with `Dto`.
+- Values & DTOs: DTOs are plain objects at runtime (never instantiate with `new` in project code). Durations and money always use unit factories from `agboss/units` (`seconds()`, `minutes()`, `hours()`, `usd()`). Never use `as any` or `as unknown as`.
+- Testing (`agboss/testing`): Use `testWith(App, { environment, overrides: [override(Base, Fake)], instances: 2 })` for workflow tests and the 8 isolated unit runners (`testTool`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testPii`, `testGuardrail`) for component tests.

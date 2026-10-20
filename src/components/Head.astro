@@ -1,0 +1,158 @@
+---
+import Default from '@astrojs/starlight/components/Head.astro';
+
+const route = Astro.locals.starlightRoute;
+const entry = route?.entry;
+const title = entry?.data?.title ?? 'AGBoss';
+const description =
+	entry?.data?.description ??
+	'Production-grade TypeScript application framework for LangGraph agents with compile-time Path Scope, constructor dependency injection, FinOps budgets, and deterministic testing.';
+
+const siteOrigin = 'https://agboss.dev';
+const pathname = Astro.url.pathname;
+const canonicalUrl = new URL(pathname, siteOrigin).toString();
+const isHome = pathname === '/' || pathname === '';
+const publishedDate = '2026-10-01';
+const modifiedDate = new Date().toISOString().slice(0, 10);
+
+const segments = pathname.split('/').filter(Boolean);
+const breadcrumbItems = [
+	{
+		'@type': 'ListItem',
+		position: 1,
+		name: 'Home',
+		item: `${siteOrigin}/`,
+	},
+	...segments.map((seg, idx) => {
+		const pathUpTo = '/' + segments.slice(0, idx + 1).join('/') + '/';
+		const label =
+			idx === segments.length - 1
+				? title
+				: seg
+						.split('-')
+						.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+						.join(' ');
+		return {
+			'@type': 'ListItem',
+			position: idx + 2,
+			name: label,
+			item: new URL(pathUpTo, siteOrigin).toString(),
+		};
+	}),
+];
+
+const orgSchema = {
+	'@type': 'Organization',
+	'@id': `${siteOrigin}/#organization`,
+	name: 'AGBoss',
+	legalName: 'AGBoss',
+	alternateName: 'Agent Graph Builder, Open-Source Software',
+	url: siteOrigin,
+	logo: {
+		'@type': 'ImageObject',
+		url: `${siteOrigin}/favicon.svg`,
+	},
+	sameAs: [
+		'https://github.com/agbossjs',
+		'https://x.com/agbossjs',
+		'https://www.linkedin.com/company/agbossjs',
+	],
+};
+
+const websiteSchema = {
+	'@type': 'WebSite',
+	'@id': `${siteOrigin}/#website`,
+	name: 'AGBoss',
+	url: siteOrigin,
+	description: 'Production-grade TypeScript application framework for LangGraph agents.',
+	publisher: { '@id': `${siteOrigin}/#organization` },
+};
+
+const authorPerson = {
+	'@type': 'Person',
+	name: 'Pavel Ravvich',
+	url: 'https://github.com/pavelravvich',
+	sameAs: ['https://github.com/pavelravvich'],
+};
+
+const speakableSpec = {
+	'@type': 'SpeakableSpecification',
+	cssSelector: ['h1', '.sl-markdown-content > p:first-of-type'],
+};
+
+const pageEntity = isHome
+	? {
+			'@type': 'SoftwareApplication',
+			'@id': `${canonicalUrl}#software`,
+			name: 'AGBoss',
+			headline: title,
+			description,
+			url: canonicalUrl,
+			applicationCategory: 'DeveloperApplication',
+			softwareVersion: '0.0.2',
+			operatingSystem: 'Node.js 22+',
+			programmingLanguage: 'TypeScript',
+			license: 'https://www.apache.org/licenses/LICENSE-2.0',
+			datePublished: publishedDate,
+			dateModified: modifiedDate,
+			author: authorPerson,
+			publisher: { '@id': `${siteOrigin}/#organization` },
+			speakable: speakableSpec,
+			offers: {
+				'@type': 'Offer',
+				price: '0',
+				priceCurrency: 'USD',
+			},
+		}
+	: {
+			'@type': 'TechArticle',
+			'@id': `${canonicalUrl}#article`,
+			headline: title,
+			name: title,
+			description,
+			url: canonicalUrl,
+			datePublished: publishedDate,
+			dateModified: modifiedDate,
+			author: authorPerson,
+			publisher: { '@id': `${siteOrigin}/#organization` },
+			isPartOf: { '@id': `${siteOrigin}/#website` },
+			speakable: speakableSpec,
+		};
+
+const videoSchema = {
+	'@type': 'VideoObject',
+	'@id': `${siteOrigin}/#overview-video`,
+	name: 'AGBoss — Production TypeScript Framework for LangGraph Agents',
+	description:
+		'Architectural overview of AGBoss: @Application container, path-based @Workflow DSL, @Budget FinOps controls, and deterministic testing.',
+	thumbnailUrl: [`${siteOrigin}/favicon.svg`],
+	uploadDate: publishedDate,
+	contentUrl: 'https://www.youtube.com/@agbossjs',
+	embedUrl: 'https://www.youtube.com/@agbossjs',
+	publisher: { '@id': `${siteOrigin}/#organization` },
+};
+
+const graph: Record<string, unknown>[] = [orgSchema, websiteSchema, pageEntity, videoSchema];
+if (!isHome && breadcrumbItems.length > 1) {
+	graph.push({
+		'@type': 'BreadcrumbList',
+		'@id': `${canonicalUrl}#breadcrumb`,
+		itemListElement: breadcrumbItems,
+	});
+}
+
+const jsonLd = {
+	'@context': 'https://schema.org',
+	'@graph': graph,
+};
+---
+
+<Default />
+<link rel="llms" type="text/plain" href="/llms.txt" />
+<link rel="alternate" type="text/markdown" href="/llms-full.txt" />
+<meta property="article:published_time" content={publishedDate} />
+<meta property="article:modified_time" content={modifiedDate} />
+<meta name="author" content="Pavel Ravvich" />
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+<script src="/scripts/code-tabs.js" defer></script>
+

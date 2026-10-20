@@ -1,12 +1,12 @@
 ---
 title: AGBoss
-description: The application framework for LangGraph agents in TypeScript.
+description: Production-grade TypeScript application framework for LangGraph agents — compile-time Path Scope, constructor dependency injection, multi-tenant FinOps budgets, PII policies, durable SQLite/CAS leases, and deterministic testing.
 template: splash
 banner:
-  content: 'Enterprise support (LTS releases, Day-0 security patches) is coming — <a href="/enterprise/">see what’s planned →</a>'
+  content: '<strong>New:</strong> Every project ships with built-in <a href="#agx" onclick="document.querySelector(\x27[data-key=skills]\x27)?.click()">AI Coding-Agent Skills (<code>.claude/skills/agboss/</code> + <code>AGENTS.md</code>) →</a>'
 hero:
-  title: '<span class="hero-lead">AGBoss makes TypeScript agents</span><br/><span class="hero-rotator" id="hero-rotator"><span class="hero-trait is-active">Declarative</span><span class="hero-trait">Unit-tested</span><span class="hero-trait">Traceable</span><span class="hero-trait">Cost-capped</span></span>'
-  tagline: 'A dependency-injected DSL compatible with <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a>.<br/>Built-in testing, A/B comparisons, tracing and cost limits.'
+  title: '<span class="hero-lead">AGBoss makes TypeScript agents</span><br/><span class="hero-rotator" id="hero-rotator"><span class="hero-trait is-active">Type-checked</span><span class="hero-trait">Multi-tenant</span><span class="hero-trait">Cost-capped</span><span class="hero-trait">Crash-resilient</span><span class="hero-trait">Deterministic</span></span>'
+  tagline: 'The application framework for <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a> agents in TypeScript.<br/>Compile-time Path Scope, dependency injection, testing, tracing, and cost limits.'
   actions:
     - text: Get started
       link: /getting-started/introduction/
@@ -17,12 +17,13 @@ hero:
 <div class="agboss-lede is-wide">
 	<p class="agboss-slogan">No vendor lock-in. Bring your own backend.</p>
 	<p>Run inside your Node.js app. Choose your models and infrastructure.</p>
+	<p class="agboss-sr-only">AGBoss is an open-source TypeScript application framework layered on top of LangGraph that brings strict software engineering discipline to multi-agent systems. Components declare typed inputs, constructor dependencies, and lifecycle hooks inside an <code>@Application</code> container, while the compiler verifies every graph path, review loop, and FinOps budget before any model runs.</p>
 </div>
 
 <div class="agboss-install">
 	<span class="agboss-install-prompt">$</span>
-	<code>npm install agboss</code>
-	<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npm install agboss')" aria-label="Copy install command">⧉</button>
+	<code>npx -p agboss-cli agboss create my-agents</code>
+	<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npx -p agboss-cli agboss create my-agents')" aria-label="Copy install command">⧉</button>
 </div>
 
 ## What AGBoss can do
@@ -30,12 +31,13 @@ hero:
 <div class="agx" id="agx">
 	<div class="agx-list" aria-label="AGBoss features">
 		<div class="agx-item is-active">
-			<button class="agx-tab" type="button" data-key="workflow">
+			<button class="agx-tab" type="button" data-key="application">
 				<span class="agx-title">Components</span>
-				<span class="agx-desc">A decorator says what a class is. The workflow wires them into a graph.</span>
+				<span class="agx-desc">A decorator says what a class is. @Application wires them into a graph.</span>
 			</button>
 			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="workflow">@Workflow</button>
+				<button class="agx-sub is-active" type="button" data-key="application">@Application</button>
+				<button class="agx-sub" type="button" data-key="workflow">@Workflow</button>
 				<button class="agx-sub" type="button" data-key="agent">@Agent</button>
 				<button class="agx-sub" type="button" data-key="router">@Router</button>
 				<button class="agx-sub" type="button" data-key="tool">@Tool</button>
@@ -45,64 +47,135 @@ hero:
 			</div>
 		</div>
 		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="di">
-				<span class="agx-title">Dependency injection</span>
-				<span class="agx-desc">Components declare what they need. The workflow decides what they get.</span>
+			<button class="agx-tab" type="button" data-key="skills">
+				<span class="agx-title">AI Coding Skills <span class="agx-badge">NEW</span></span>
+				<span class="agx-desc">Built-in .claude/skills/agboss/ and AGENTS.md kept in sync by CLI.</span>
 			</button>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="loops">
+				<span class="agx-title">Loops &amp; Quorums</span>
+				<span class="agx-desc">Compile-time Path Scope, &#123; about &#125; review loops, and parallel quorums.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="loops">Review loop</button>
+				<button class="agx-sub" type="button" data-key="provenance">Provenance</button>
+				<button class="agx-sub" type="button" data-key="parallel">Parallel</button>
+				<button class="agx-sub" type="button" data-key="quorum">Quorum &amp; @Arbiter</button>
+				<button class="agx-sub" type="button" data-key="recursion">Child Workflow</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="di">
+				<span class="agx-title">Lifecycle &amp; DI</span>
+				<span class="agx-desc">OnInit..OnDestroy, 23 graph hooks, and scoped constructor injection.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="di">Component Lifecycle</button>
+				<button class="agx-sub" type="button" data-key="callbacks">23 Graph Hooks</button>
+				<button class="agx-sub" type="button" data-key="contexts">Scoped DI &amp; Health</button>
+			</div>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="dto">
-				<span class="agx-title">Typed inputs</span>
-				<span class="agx-desc">Decorated classes describe what the model fills in, and validate it.</span>
+				<span class="agx-title">Typed Inputs &amp; Env</span>
+				<span class="agx-desc">Decorated DTOs, fail-fast secret()/env(), and typed units.</span>
 			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="dto">DTOs &amp; PII Fields</button>
+				<button class="agx-sub" type="button" data-key="environments">Environments &amp; Units</button>
+			</div>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="guards">
-				<span class="agx-title">Guards</span>
-				<span class="agx-desc">Prompt-injection and PII checks on the way in and out.</span>
+				<span class="agx-title">Guards &amp; PII</span>
+				<span class="agx-desc">Reversible HMAC token masking and pre/post safety guardrails.</span>
 			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="guards">@PiiPolicy</button>
+				<button class="agx-sub" type="button" data-key="guardrail">@Guardrail</button>
+			</div>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="approval">
-				<span class="agx-title">Human approval</span>
-				<span class="agx-desc">A run pauses on a write and resumes after the user answers.</span>
-			</button>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="testing">
-				<span class="agx-title">Unit testing</span>
-				<span class="agx-desc">Script the models, run the graph, assert on the path it took.</span>
-			</button>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="ab">
-				<span class="agx-title">A/B testing</span>
-				<span class="agx-desc">Profiles change one setting; compare them on the same golden set.</span>
-			</button>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="tracing">
-				<span class="agx-title">Tracing</span>
-				<span class="agx-desc">Runs go to your self-hosted Langfuse. Hooks for everything else.</span>
+				<span class="agx-title">Human Approval</span>
+				<span class="agx-desc">Two-phase channel pauses with atomic Pending → Resolved CAS.</span>
 			</button>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="cost">
-				<span class="agx-title">Cost control</span>
-				<span class="agx-desc">Step and dollar limits per run and per day, in code.</span>
+				<span class="agx-title">Cost Control</span>
+				<span class="agx-desc">Pre-call spend reservation across app, tenant, and run scopes.</span>
+			</button>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="durability">
+				<span class="agx-title">Durability &amp; Leases</span>
+				<span class="agx-desc">SQLite WAL stores, 30s leases, and multi-pod crash recovery.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="durability">SQLite Stores</button>
+				<button class="agx-sub" type="button" data-key="recovery">30s Lease &amp; Recovery</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="testing">
+				<span class="agx-title">Unit Testing</span>
+				<span class="agx-desc">Script models, control parallel race order, and run 8 unit runners.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="testing">Workflow &amp; Races</button>
+				<button class="agx-sub" type="button" data-key="runners">8 Unit Runners</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="tracing">
+				<span class="agx-title">Tracing</span>
+				<span class="agx-desc">Runs go to your self-hosted Langfuse with startup complexity checks.</span>
+			</button>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="ab">
+				<span class="agx-title">A/B Testing</span>
+				<span class="agx-desc">Profiles change one setting; compare them on the same golden set.</span>
 			</button>
 		</div>
 	</div>
 	<div class="agx-code">
+		<div class="agx-diag" id="agx-diag">
+			<div class="agx-diag-card is-problem">
+				<span class="agx-diag-kicker">Production Problem</span>
+				<p id="agx-problem"></p>
+			</div>
+			<div class="agx-diag-card is-solution">
+				<span class="agx-diag-kicker">AGBoss Solution</span>
+				<p id="agx-solution"></p>
+			</div>
+		</div>
 		<div class="agx-win">
 			<div class="agx-bar">
-				<span></span><span></span><span></span>
-				<span class="agx-file" id="agx-file">scout.agent.ts</span>
+				<span class="agx-dot"></span><span class="agx-dot"></span><span class="agx-dot"></span>
+				<div class="agx-file-tabs" id="agx-files" role="tablist" aria-label="Snippet files">
+					<button class="agx-file-tab is-active" id="agx-file" type="button" role="tab">job-scout.application.ts</button>
+				</div>
 			</div>
 			<pre class="agx-body"><code id="agx-src"></code></pre>
 		</div>
-		<p class="agx-about" id="agx-about"></p>
 	</div>
+</div>
+
+<div class="agboss-sr-only">
+
+## Why engineering teams build production agents on AGBoss
+
+<p>Unlike lightweight prompt wrappers or hosted agent platforms that lock your state and traces behind a proprietary API, AGBoss compiles directly into your Node.js service with verifiable runtime guarantees.</p>
+
+<ul>
+	<li><strong>100% compile-time graph and DI verification:</strong> Every path slot, constructor dependency, and DTO schema is verified by the <a href="https://www.typescriptlang.org/" target="_blank" rel="noopener">TypeScript</a> compiler and <code>agboss check</code> before deployment, eliminating runtime wiring faults.</li>
+	<li><strong>200+ decision and chat model endpoints:</strong> Built on <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a> and OpenRouter with calibrated decision routing, tenant-weighted rate limiting at 120 calls per minute, and shared 429 cooldowns.</li>
+	<li><strong>100% self-hosted trace and PII isolation:</strong> Sensitive fields are pseudonymized before leaving your boundary, and full execution trees export to self-hosted <a href="https://langfuse.com/" target="_blank" rel="noopener">Langfuse</a> and OpenTelemetry collectors.</li>
+</ul>
+
 </div>
 
 <script src="/scripts/hero-rotator.js" is:inline></script>
