@@ -126,8 +126,8 @@ test("executes SupportWorkflow deterministically without an API key", async ({ a
 
 Once your workflow and application are defined, use the `agboss` CLI to validate the graph, inspect resolved providers and budgets, or start an interactive session:
 
-1. **Generate flow types and validate assembly:** Run `npx agboss check --workflow src/support.workflow.ts` to write `.agboss/types.d.ts` and verify every path, DTO transition, and budget rule without an API key.
-2. **Inspect the assembled topology:** Run `npx agboss describe --workflow src/support.workflow.ts` to print every path, node producer, model provider resolution, and worst-case step count.
-3. **Run interactively in the terminal:** Run `npx agboss chat --workflow src/support.workflow.ts` to chat with the workflow and inspect per-turn spend.
+1. **Generate flow types and validate assembly:** Run `npx agboss check --application src/support.workflow.ts` to write `.agboss/types.d.ts` and verify every path, DTO transition, and budget rule without an API key.
+2. **Inspect the assembled topology:** Run `npx agboss describe --application src/support.workflow.ts` to print every path, node producer, model provider resolution, and worst-case step count.
+3. **Run interactively in the terminal:** Run `npx agboss chat --application src/support.workflow.ts` to chat with the workflow and inspect per-turn spend.
 
 Next, learn how the [`@Application` root](/concepts/application/), [Component Decorators](/concepts/decorators/), and [Workflow DSL](/concepts/workflow/) work in detail.

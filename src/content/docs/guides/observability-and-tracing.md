@@ -145,7 +145,7 @@ Every element of the workflow graph has its own typed `On*Start` / `On*End` call
 
 Start the local Langfuse stack (`./scripts/langfuse.sh up`) and set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_BASE_URL` in your environment. Every workflow execution, child workflow, parallel branch, and RAG retrieval is exported automatically without sending data to a third-party SaaS.
 
-To analyze real production coverage of your graph branches, tools, prompts, and DTO fields, export the declarative revision snapshot (`{ application, workflows[], schemas }`) in CI with `agboss describe --json --workflow <path>`:
+To analyze real production coverage of your graph branches, tools, prompts, and DTO fields, export the declarative revision snapshot (`{ application, workflows[], schemas }`) in CI with `agboss describe --json --application <path>`:
 
 - **Revision & prompt fingerprinting (`configHash`, `promptHash`, `schemaHash`):** Runtime traces and `ExecutionRecord` entries carry `WorkflowRecord.configHash`, `ComponentRecord` (`{ name, kind, promptHash, schemaHash }`), and `StepRecord` (`{ toolLoopIteration, validationAttempts, branch: { verdict, status } }`) so observability pipelines can join live Langfuse / OpenTelemetry spans directly against the `agboss describe --json` snapshot to see which `@Router` branches, `@Tool` definitions, and `@Action` `compensateWith` saga edges were exercised in production.
 - **Versioned child workflow pause compatibility (`[ChildWorkflowV1, ChildWorkflowV2]`):** When a parent workflow registers multiple versions of a child workflow for rolling upgrades, the revision snapshot records each version's `configHash` so long-sleeping pauses (`PendingPause`) always resume on their matching workflow definition.

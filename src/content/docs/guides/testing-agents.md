@@ -11,7 +11,7 @@ Testing agent systems in CI should never require live LLM API keys, flaky networ
 
 <!-- snippet-context
 import { ExecutionCancelledError, Injectable, type JudgeHandler, type JudgeInput, type JudgeVerdict } from "agboss";
-import { Text } from "agboss/dto";
+import { PlainTextDto, Text } from "agboss/dto";
 export class ChangesRequestedDto {
   @Text({ prompt: "what to change" })
   notes!: string;
@@ -25,8 +25,8 @@ declare class SendOfferAction {}
 declare class SearchJobsTool {
   run(input: { readonly query: string }): Promise<{ readonly jobs: string }>;
 }
-declare class GroundedJudge implements JudgeHandler {
-  judge(input: JudgeInput): Promise<JudgeVerdict>;
+declare class GroundedJudge implements JudgeHandler<PlainTextDto> {
+  judge(input: JudgeInput<PlainTextDto>): Promise<JudgeVerdict>;
 }
 @Injectable()
 export class JobBoardService {
@@ -88,9 +88,11 @@ it("a grounded reply passes the decision judge", async () => {
     model: decideWith({ grounded: 0.9 }),
   });
 
+  const reply = { text: "Acme hires TS engineers [acme.example]" };
   const { output } = await runJudge({
+    variant: PlainTextDto,
+    reply,
     task: "Find TS jobs",
-    reply: "…",
     attempt: 0,
   });
 

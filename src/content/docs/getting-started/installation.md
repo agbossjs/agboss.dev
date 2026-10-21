@@ -49,7 +49,7 @@ npx agboss g openapi pets --url ./pets.yaml --workflow src/support-desk/support-
 Run `agboss check` against your workflow to generate `.agboss/types.d.ts` and validate every flow rule, environment field, and prompt file without making any LLM calls:
 
 ```bash
-npx agboss check --workflow src/support-desk/support-desk.workflow.ts
+npx agboss check --application src/support-desk/support-desk.application.ts
 ```
 
 Continue to the [Quick start](/getting-started/quick-start/) to build and execute your first workflow.

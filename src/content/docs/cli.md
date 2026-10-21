@@ -32,22 +32,22 @@ agboss g workflow onboarding
 | :--- | :--- |
 | `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with workflow, `@Application`, environments, `.agboss/types.d.ts`, and Vitest tests |
 | `agboss generate <kind>` (`agboss g`) | Generates and wires an `agent`, `router`, `tool`, `arbiter`, `mcp`, `rag`, `workflow`, or `openapi` client |
-| `agboss check --workflow <path>` | Writes `.agboss/types.d.ts` and validates all flow, assembly, environment, and prompt rules without calling models |
-| `agboss check --strict --workflow <path>` | Treats analyser warnings (`[flow.path-too-deep]`) and assembly warnings (`[application.in-memory-cost-ledger]`) as errors |
-| `agboss check --models --workflow <path>` | Verifies every model setting across the application against its resolved `@ModelProvider` |
-| `agboss describe --workflow <path>` | Prints paths, node inputs by producer, `{ about }` links, `historyOf` limits, model → provider resolution, budgets, and step limits |
-| `agboss describe --json --workflow <path>` | Exports the full declarative revision snapshot (`configHash`, `maxInstanceConcurrency`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and model/tool registries) for Langfuse/OTel trace coverage analysis and versioned pause compatibility checks |
-| `agboss chat --workflow <path>` | Starts an interactive terminal chat (`--thread`, `--profile`, `--env`) on the workflow's `@Application` |
-| `agboss run --workflow <path> "task"` | Executes a single task on the workflow's `@Application` and prints the output and spend summary |
+| `agboss check --application <path>` | Writes `.agboss/types.d.ts` and validates all flow, assembly, environment, and prompt rules without calling models |
+| `agboss check --strict --application <path>` | Treats analyser warnings (`[flow.path-too-deep]`) and assembly warnings (`[application.in-memory-cost-ledger]`) as errors |
+| `agboss check --models --application <path>` | Verifies every model setting across the application against its resolved `@ModelProvider` |
+| `agboss describe --application <path>` | Prints paths, node inputs by producer, `{ about }` links, `historyOf` limits, model → provider resolution, budgets, and step limits |
+| `agboss describe --json --application <path>` | Exports the full declarative revision snapshot (`configHash`, `maxInstanceConcurrency`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and model/tool registries) for Langfuse/OTel trace coverage analysis and versioned pause compatibility checks |
+| `agboss chat --application <path>` | Starts an interactive terminal chat (`--thread`, `--profile`, `--env`) on the `@Application` |
+| `agboss run --application <path> "task"` | Executes a single task on the `@Application` and prints the output and spend summary |
 | `agboss eval` / `agboss replay` | Scores recent runs with Jev or replays a prompt version against recorded tasks |
 | `agboss golden add --name <n>` | Saves recent real tasks as a reusable golden evaluation dataset |
 | `agboss compare --profiles base,<p>` | Compares YAML configuration profiles side by side against a golden set |
-| `agboss rag:index` | Builds or updates `@Rag` knowledge-base indexes |
+| `agboss rag index` | Builds or updates `@Rag` knowledge-base indexes |
 | `agboss migrate imports` | Rewrites imports from deprecated sub-entries to current AGBoss entries |
 
 ## Exporting a declarative revision snapshot with `agboss describe --json`
 
-Running `agboss describe --json --workflow <path>` dumps the complete machine-readable anatomy (`{ application, workflows[], schemas }`) of an application revision without booting model providers:
+Running `agboss describe --json --application <path>` dumps the complete machine-readable anatomy (`{ application, workflows[], schemas }`) of an application revision without booting model providers:
 
 - **Application & graph topology (`configHash`):** Deterministic hash of the workflow graph, `starts`, `finishes`, `edges`, `onError` handlers, `maxInstanceConcurrency`, `compensationTimeout`, and versioned child workflow registrations (`[ChildWorkflowV1, ChildWorkflowV2]`) so sleeping pauses can be verified and resumed across rolling releases.
 - **Component & saga metadata (`promptHash`, `schemaHash`, `compensateWith`, `committedBy`):** Full configuration of every `@Agent`, `@Router`, `@Arbiter`, `@Action`, and `@Tool` in `workflows[].nodes[]`, including individual SHA-256 `promptHash` and `schemaHash` fingerprints and saga compensation edges.

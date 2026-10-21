@@ -56,10 +56,10 @@ AGBoss separates fast, deterministic CI checks from live model benchmarking so y
 | Tier | Command / Runner | Network & Cost | Purpose |
 | :--- | :--- | :--- | :--- |
 | **1. Offline Unit & Workflow Tests** | `npm test` (`testWith`, `testTool`, `testJudge`, …) | Zero network (`VirtualClock`, $0.00) | Verifies graph paths, review loops, error handlers, PII policies, budgets, and multi-instance leases on every commit |
-| **2. Golden Set Profile Comparison** | `npx agboss compare --workflow src/job-scout.workflow.ts` | Recorded VCR cassettes or live models | Compares two or more YAML profiles side by side on quality, latency, and USD cost across a golden dataset |
-| **3. Live Provider Smoke Check** | `npx agboss check --models --workflow src/job-scout.workflow.ts` | Read-only model catalogue check | Verifies that every model identifier in `@Workflow` and `profiles/` is served by its `@ModelProvider` |
+| **2. Golden Set Profile Comparison** | `npx agboss compare --application src/job-scout.application.ts` | Recorded VCR cassettes or live models | Compares two or more YAML profiles side by side on quality, latency, and USD cost across a golden dataset |
+| **3. Live Provider Smoke Check** | `npx agboss check --models --application src/job-scout.application.ts` | Read-only model catalogue check | Verifies that every model identifier in `@Workflow` and `profiles/` is served by its `@ModelProvider` |
 
 ## How to run profile comparisons from the CLI
 
-1. **Validate profile model coverage:** Run `npx agboss check --models --workflow src/job-scout.workflow.ts` to ensure every model referenced in your YAML profiles matches a registered `@ModelProvider`.
-2. **Run a side-by-side comparison:** Run `npx agboss compare --workflow src/job-scout.workflow.ts --profiles base,scout-low-thinking` to execute both profiles against your golden cases and print a diff table of pass rates, step counts, and total USD spend.
+1. **Validate profile model coverage:** Run `npx agboss check --models --application src/job-scout.application.ts` to ensure every model referenced in your YAML profiles matches a registered `@ModelProvider`.
+2. **Run a side-by-side comparison:** Run `npx agboss compare --application src/job-scout.application.ts --profiles base,scout-low-thinking` to execute both profiles against your golden cases and print a diff table of pass rates, step counts, and total USD spend.

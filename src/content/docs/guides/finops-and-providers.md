@@ -7,7 +7,7 @@ Running multi-agent workflows in production requires strict guardrails against r
 
 ## How `@ModelProvider` pools manage rate limits and tenant fairness
 
-Every model in an application resolves to exactly one `@ModelProvider` listed in `@Application({ providers })` by matching its `serves` list (checked by `npx agboss check --models --workflow src/job-scout.workflow.ts`). A provider's `name` must end with `-model-provider`, and its `rateLimitPolicy` and `circuitBreakerPolicy` are shared across all executions, tenants, and instances via `RateLimitRepository`:
+Every model in an application resolves to exactly one `@ModelProvider` listed in `@Application({ providers })` by matching its `serves` list (checked by `npx agboss check --models --application src/job-scout.application.ts`). A provider's `name` must end with `-model-provider`, and its `rateLimitPolicy` and `circuitBreakerPolicy` are shared across all executions, tenants, and instances via `RateLimitRepository`:
 
 ```ts title="src/model-providers/openrouter.model-provider.ts" file=src/model-providers/openrouter.model-provider.ts
 import { ModelCost, ModelProvider, OpenRouterProvider, OPENROUTER_BASE_URL, PromptCaching, QueueBalancingStrategy, RateLimitPolicy, Reasoning, RetryPolicy, TRANSIENT_FAILURES, type OpenRouterFields } from "agboss/models";

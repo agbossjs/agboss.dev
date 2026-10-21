@@ -10,8 +10,8 @@ When enterprise workflows process customer tickets, financial records, or medica
 A `@PiiPolicy` class (whose `name` must end with `-pii-policy`) can declare built-in `rules: [pii(Kind | Group, Action)]` or implement `PiiPolicyHandler.findMatches(text)` for custom project detectors. Masking happens at the model boundary: models only see masked tokens (such as `<email:7f3a91>`), while `PiiAction.replaceWithToken()` uses an HMAC with `pseudonymKey` so tools, actions, and finishes receive the restored real values:
 
 ```ts title="src/policies/customer.pii-policy.ts"
-import { Guardrail, Injectable, PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, secret, type PiiMatch, type PiiPolicyHandler, type PiiRefusal } from "agboss";
-import { Text } from "agboss/dto";
+import { ExecutionContext, Injectable, InputGuardrail, OutputGuardrail, PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, secret, type GuardrailRefusal, type PiiMatch, type PiiPolicyHandler, type PiiRefusal } from "agboss";
+import { OneOf, Text } from "agboss/dto";
 
 // 1. Declarative PII policy with reversible token replacement and card blocking
 @PiiPolicy({
@@ -63,20 +63,46 @@ export class TicketDto {
   account!: string;
 }
 
-// 4. Code guardrail around agent answers and tool calls
-type AnswerContext = Parameters<NonNullable<Guardrail["beforeAgentAnswer"]>>[0];
+// 4. Input and output model guardrails with computed or fixed refusal
+export class ClinicExecutionContext extends ExecutionContext {
+  @OneOf({ values: ["en", "he"] })
+  locale!: "en" | "he";
+}
 
-@Guardrail({ name: "no-internal-urls" })
-export class NoInternalUrlsGuardrail implements Guardrail {
-  beforeAgentAnswer(ctx: AnswerContext): Promise<void> {
-    if ((ctx.replyWith ?? "").includes(".internal.corp")) {
-      return Promise.reject(
-        new Error(`${ctx.agent} tried to expose an internal hostname`),
-      );
-    }
-    return Promise.resolve();
+@Injectable()
+export class RefusalTextService {
+  legalAdvice(locale: "en" | "he"): Promise<string> {
+    return Promise.resolve(locale === "he" ? "אין ייעוץ משפטי." : "No legal advice.");
   }
 }
+
+@InputGuardrail({
+  name: "legal-advice-guardrail",
+  description: "Blocks requests for legal advice",
+  prompt: "Does the message ask for legal advice?",
+  model: "typesafe/jev-1.13",
+  threshold: 0.8,
+  deps: [ClinicExecutionContext, RefusalTextService],
+})
+export class LegalAdviceGuardrail implements GuardrailRefusal {
+  constructor(
+    private readonly clinicExecutionContext: ClinicExecutionContext,
+    private readonly refusalTextService: RefusalTextService,
+  ) {}
+
+  refusal(): Promise<string> {
+    return this.refusalTextService.legalAdvice(this.clinicExecutionContext.locale);
+  }
+}
+
+@OutputGuardrail({
+  name: "no-legal-advice-guardrail",
+  description: "Blocks answers that give legal advice",
+  prompt: "Does the answer give legal advice?",
+  threshold: 0.8,
+  refusal: "I can't give legal advice. Please contact a lawyer.",
+})
+export class NoLegalAdviceGuardrail {}
 ```
 
 ```ts title="test/customer.pii-policy.test.ts" no-check: context tab

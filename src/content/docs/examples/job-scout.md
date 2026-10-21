@@ -83,7 +83,6 @@ import { WorkflowStartTextDto } from "agboss/dto";
     models: { temperature: 0 },
     router: { model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 8 },
-    history: { limit: 5 },
   },
   providers: [JobFitJudge],
 })
@@ -145,11 +144,10 @@ npm run describe
 - **`src/review/` (Parallel launches in waves):** Runs a reviewer per document section via `.toParallelAgents(...)`, joins their outputs, and launches a second wave with a critic alongside parallel fact-checker copies.
 - **`src/topic/` (Recursive `ThisWorkflow`):** Researches broad topics by launching `.toParallelWorkflows(ThisWorkflow, { maxItems })` with `@Workflow({ maxDepth: 3 })`.
 
-Inspect any pattern workflow directly with the CLI:
+Inspect the pattern application directly with the CLI:
 
 ```bash
 cd examples/flow-patterns
-npx agboss describe --workflow src/offer/offer.workflow.ts
-npx agboss describe --workflow src/credit/credit.workflow.ts
+npx agboss describe --application src/flow-patterns.application.ts
 npm test
 ```
