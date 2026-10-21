@@ -32,33 +32,24 @@ if (route?.head) {
 			}
 		}
 	}
-	// Remove duplicate og:type / og:site_name / twitter:card entries if Starlight merged head array
+	// Remove duplicate og:type / og:site_name / og:image / twitter:card / twitter:image entries if Starlight merged head array
 	const seenMeta = new Set<string>();
 	route.head = route.head.filter((item) => {
 		if (item.tag !== 'meta' || !item.attrs) return true;
 		const key = String(item.attrs.property || item.attrs.name || '');
-		if (key === 'og:type' || key === 'og:site_name' || key === 'twitter:card') {
+		if (
+			key === 'og:type' ||
+			key === 'og:site_name' ||
+			key === 'og:image' ||
+			key === 'twitter:card' ||
+			key === 'twitter:image'
+		) {
 			if (seenMeta.has(key)) return false;
 			seenMeta.add(key);
 		}
 		return true;
 	});
 }
-
-const homepageSoftwareJsonLd = isHome
-	? {
-			'@context': 'https://schema.org',
-			'@type': ['SoftwareApplication', 'SoftwareSourceCode'],
-			name: 'AGBoss',
-			applicationCategory: 'DeveloperApplication',
-			operatingSystem: 'Node.js, Cross-platform',
-			programmingLanguage: 'TypeScript',
-			license: 'https://www.apache.org/licenses/LICENSE-2.0',
-			url: 'https://agboss.dev',
-			description:
-				'A dependency-injected, Spring-style DSL for building and unit-testing LangGraph agents in TypeScript.',
-		}
-	: null;
 
 const publishedDate = '2026-10-01';
 const modifiedDate = new Date().toISOString().slice(0, 10);
@@ -130,16 +121,18 @@ const speakableSpec = {
 
 const pageEntity = isHome
 	? {
-			'@type': 'SoftwareApplication',
+			'@type': ['SoftwareApplication', 'SoftwareSourceCode'],
 			'@id': `${canonicalUrl}#software`,
 			name: 'AGBoss',
 			headline: title,
 			description,
 			url: canonicalUrl,
+			image: `${siteOrigin}/og-image.png`,
 			applicationCategory: 'DeveloperApplication',
 			softwareVersion: '0.0.2',
-			operatingSystem: 'Node.js 22+',
+			operatingSystem: 'Node.js, Cross-platform',
 			programmingLanguage: 'TypeScript',
+			codeRepository: 'https://github.com/agbossjs/agboss',
 			license: 'https://www.apache.org/licenses/LICENSE-2.0',
 			datePublished: publishedDate,
 			dateModified: modifiedDate,
@@ -159,6 +152,7 @@ const pageEntity = isHome
 			name: title,
 			description,
 			url: canonicalUrl,
+			image: `${siteOrigin}/og-image.png`,
 			datePublished: publishedDate,
 			dateModified: modifiedDate,
 			author: authorPerson,
@@ -167,20 +161,7 @@ const pageEntity = isHome
 			speakable: speakableSpec,
 		};
 
-const videoSchema = {
-	'@type': 'VideoObject',
-	'@id': `${siteOrigin}/#overview-video`,
-	name: 'AGBoss — Production TypeScript Framework for LangGraph Agents',
-	description:
-		'Architectural overview of AGBoss: @Application container, path-based @Workflow DSL, @Budget FinOps controls, and deterministic testing.',
-	thumbnailUrl: [`${siteOrigin}/favicon.svg`],
-	uploadDate: publishedDate,
-	contentUrl: 'https://www.youtube.com/@agbossjs',
-	embedUrl: 'https://www.youtube.com/@agbossjs',
-	publisher: { '@id': `${siteOrigin}/#organization` },
-};
-
-const graph: Record<string, unknown>[] = [orgSchema, websiteSchema, pageEntity, videoSchema];
+const graph: Record<string, unknown>[] = [orgSchema, websiteSchema, pageEntity];
 if (!isHome && breadcrumbItems.length > 1) {
 	graph.push({
 		'@type': 'BreadcrumbList',
@@ -196,15 +177,11 @@ const jsonLd = {
 ---
 
 <Default />
-<!-- TODO: Add og:image and twitter:image meta tags once /og-image.png (1200x630) is placed in public/ -->
 <link rel="llms" type="text/plain" href="/llms.txt" />
 <link rel="alternate" type="text/markdown" href="/llms-full.txt" />
 <meta property="article:published_time" content={publishedDate} />
 <meta property="article:modified_time" content={modifiedDate} />
 <meta name="author" content="Pavel Ravvich" />
-{homepageSoftwareJsonLd && (
-	<script type="application/ld+json" set:html={JSON.stringify(homepageSoftwareJsonLd)} />
-)}
 <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 <script src="/scripts/code-tabs.js" defer></script>
 
