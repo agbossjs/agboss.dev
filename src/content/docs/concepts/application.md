@@ -1,6 +1,6 @@
 ---
 title: "@Application & Runtime"
-description: Assemble workflows, typed environment contracts, model providers, budgets, PII policies, channels, persistence, and lifecycle hooks in a single @Application root.
+description: Assemble workflows, typed environments, model providers, budgets, PII policies, channels, and storage repositories in a single @Application root.
 ---
 
 Every AGBoss service has a single `@Application` assembly root that lists the workflows, typed environment contract, shared `@ModelProvider` classes, mandatory `@Budget` ceilings (application, tenant, and execution scopes), `@PiiPolicy` rules, `observers`, and storage repositories. Both `createApp(Application, options)` and `testWith(Application)` boot this container, validating every contract at startup before any workflow executes.

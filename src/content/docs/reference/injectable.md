@@ -1,6 +1,6 @@
 ---
 title: "@Injectable"
-description: Complete API reference for the @Injectable decorator in AGBoss — constructor dependency injection, OnInit/OnStart/OnStop/OnDestroy lifecycle hooks, ExecutionObservers, and DI overrides.
+description: Complete API reference for @Injectable in AGBoss — constructor dependency injection, OnInit/OnStart/OnStop/OnDestroy lifecycle hooks, and DI overrides.
 ---
 
 The `@Injectable` decorator marks a TypeScript class (`services/*.service.ts` or `observers/*.observer.ts`) as a managed singleton in the AGBoss dependency injection container. Injectable classes receive their constructor dependencies via `deps: [...]`, participate in the four application lifecycle phases (`OnInit`, `OnStart`, `OnStop`, `OnDestroy`), can implement `ExecutionObserver` hooks (`OnExecutionEnd`, `OnToolEnd`, `OnSpend`, `OnValuesOutdated`), and are replaced in tests by class inheritance via `override(BaseService, FakeService)`.

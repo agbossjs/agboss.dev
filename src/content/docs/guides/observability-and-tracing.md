@@ -1,6 +1,6 @@
 ---
 title: Observability, Observers & Langfuse Tracing
-description: Monitor AGBoss workflows in production using typed ExecutionObserver hooks, PII-masked structured logs, pause audit records, and self-hosted Langfuse tracing.
+description: Monitor AGBoss workflows in production with typed ExecutionObserver hooks, PII-masked structured logs, revision snapshots, and self-hosted Langfuse.
 ---
 
 Operating multi-agent systems in production requires visibility into every workflow execution, agent visit, tool call, FinOps spend entry, and human-in-the-loop pause. AGBoss provides two complementary observability layers: compile-checked `ExecutionObserver` classes registered in `@Application({ observers })` for in-process metrics and alerts, and built-in [Langfuse](https://langfuse.com/) tracing for full execution tree inspection.

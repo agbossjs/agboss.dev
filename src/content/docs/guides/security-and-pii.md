@@ -1,6 +1,6 @@
 ---
 title: Security, Guardrails & PII Policies
-description: Protect prompts, tool calls, and logs in AGBoss using @PiiPolicy rules, reversible replaceWithToken() pseudonymization, @Guardrail hooks, and secret() masking.
+description: Protect prompts, tool calls, and logs in AGBoss using @PiiPolicy rules, reversible replaceWithToken() pseudonymization, @Guardrail, and secret() masking.
 ---
 
 When enterprise workflows process customer tickets, financial records, or medical notes, personal data and credentials must never leak into external LLM prompts or observability logs. AGBoss provides three defense-in-depth mechanisms: `@PiiPolicy` for declarative or custom PII masking and reversible pseudonymization at the model boundary, `@Guardrail` for tool/answer boundary hooks, and `secret()` for environment credential masking.

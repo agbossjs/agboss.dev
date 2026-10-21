@@ -1,6 +1,6 @@
 ---
 title: Conversation Memory & Compaction
-description: Manage multi-turn thread history windows and automatic FIFO summary compaction in AGBoss workflows and agents.
+description: Configure multi-turn thread history windows, slot isolation across turns, and automatic FIFO summary compaction in AGBoss workflows and agents.
 ---
 
 In AGBoss, a conversation thread is a sequence of completed workflow executions (**turns**). Routers and agents automatically see a bounded window of recent finished turns plus compacted summaries of older turns, keeping context windows small and predictable without losing long-range facts.

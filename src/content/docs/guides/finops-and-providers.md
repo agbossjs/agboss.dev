@@ -1,6 +1,6 @@
 ---
 title: FinOps, Budgets & Model Providers
-description: Control LLM costs, rate limits, tenant fairness, and circuit breakers with @Budget, @ModelProvider, RateLimitPolicy, SpendRecorder, and observers in AGBoss.
+description: Control LLM costs, rate limits, tenant fairness, and circuit breakers with @Budget, @ModelProvider, RateLimitPolicy, and SpendRecorder in AGBoss.
 ---
 
 Running multi-agent workflows in production requires strict guardrails against runaway spend, vendor rate-limit spikes, and noisy-neighbor tenants. AGBoss builds FinOps and traffic management directly into the `@Application` container via `@ModelProvider` (`agboss/models`), mandatory `@Budget` components across three scopes, `SpendRecorder` for paid non-LLM APIs, and `CostLedgerRepository`.

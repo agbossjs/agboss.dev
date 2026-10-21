@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install the AGBoss framework and CLI to scaffold and typecheck production agent workflows in TypeScript.
+description: Install the AGBoss TypeScript framework and CLI in Node.js 22+ to scaffold, typecheck, and run production multi-agent workflows on LangGraph.
 ---
 
 Installing AGBoss gives you the core TypeScript decorator runtime (`agboss`), focused sub-entries (`agboss/dto`, `agboss/units`, `agboss/models`, `agboss/testing`, `agboss/mcp`, `agboss/rag`), and the `agboss-cli` command-line tool (`agboss`) for scaffolding projects, generating components, and checking workflow types. Importing `agboss` has zero side effects: tracing, MCP, and SQLite load only when an application uses them.

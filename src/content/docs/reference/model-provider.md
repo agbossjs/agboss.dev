@@ -1,6 +1,6 @@
 ---
 title: "@ModelProvider"
-description: Complete API reference for the @ModelProvider decorator in AGBoss — OpenAiCompatibleProvider, RateLimitPolicy, RetryPolicy, CircuitBreakerPolicy, ModelCost, and tenant fairness.
+description: Complete API reference for @ModelProvider in AGBoss — OpenAiCompatibleProvider, RateLimitPolicy, RetryPolicy, CircuitBreakerPolicy, and tenant fairness.
 ---
 
 The `@ModelProvider` decorator (`config/models.config.ts`) defines an application-level LLM gateway registered in `@Application({ providers })`. Every model string referenced by an `@Agent`, `@Router`, `@Arbiter`, `@Judge`, or `@PiiPolicy` is matched at startup against the `serves` regular expressions of your registered `@ModelProvider` classes (`[model.unserved]` or `[model.ambiguous-provider]` if zero or multiple providers match).

@@ -72,6 +72,12 @@ export default defineConfig({
 			favicon: '/favicon.svg',
 			head: [
 				{ tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' } },
+				{ tag: 'meta', attrs: { property: 'og:type', content: 'website' } },
+				{ tag: 'meta', attrs: { property: 'og:site_name', content: 'AGBoss' } },
+				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
+				// TODO: Wire up default Open Graph & Twitter image once /og-image.png (1200x630) is added to public/:
+				// { tag: 'meta', attrs: { property: 'og:image', content: 'https://agboss.dev/og-image.png' } },
+				// { tag: 'meta', attrs: { name: 'twitter:image', content: 'https://agboss.dev/og-image.png' } },
 			],
 			editLink: {
 				baseUrl: 'https://github.com/agbossjs/agboss.dev/edit/main/',

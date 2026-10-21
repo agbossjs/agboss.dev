@@ -1,6 +1,6 @@
 ---
 title: CLI Reference
-description: Complete reference for the agboss CLI (agboss-cli) — project creation, component generators, static flow checking, interactive chat, evaluation, and profile comparisons.
+description: Complete reference for the agboss CLI (agboss-cli) — project scaffolding, component generators, static flow checking, interactive chat, and evaluation.
 ---
 
 The `agboss-cli` package provides the `agboss` command-line interface for scaffolding projects (`agboss create`), generating and wiring components (`agboss generate`), generating `.agboss/types.d.ts` and checking assembly rules (`agboss check`), inspecting workflows (`agboss describe`), running interactive or one-shot turns (`agboss chat`, `agboss run`), and evaluating prompt profiles (`agboss eval`, `agboss compare`).

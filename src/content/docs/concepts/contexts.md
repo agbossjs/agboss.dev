@@ -1,6 +1,6 @@
 ---
 title: Contexts & Authorization
-description: Understand the three-level AGBoss context hierarchy (ApplicationContext, TenantContext, ExecutionContext), ownerId/tenantId authorization, and step idempotency keys.
+description: Understand the three-level AGBoss context hierarchy (ApplicationContext, TenantContext, ExecutionContext), authorization, and step idempotency keys.
 ---
 
 AGBoss strictly separates **domain state** (DTOs carried in the Path Scope and persisted in checkpoints) from **runtime identity and metadata** (injected via three hierarchical context classes). Exactly three context tokens exist — `ApplicationContext`, `TenantContext`, and `ExecutionContext` — forming a parent-linked chain inspired by Spring's context hierarchy.

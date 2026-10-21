@@ -1,6 +1,6 @@
 ---
 title: "@Workflow"
-description: Complete API reference for the @Workflow decorator in AGBoss — options, Path Scope Flow DSL methods, parallel waves, quorums, child workflows, and recursion.
+description: Complete API reference for @Workflow in AGBoss — options, Path Scope Flow DSL methods, parallel waves, quorums, child workflows, and review loops.
 ---
 
 The `@Workflow` decorator defines a typed state graph (`*.workflow.ts`) in AGBoss. Every workflow declares its `name`, `version`, and `flow` array of paths built with `start()`, `agent()`, `router()`, `action()`, `workflow()`, `route()`, and `caseOf()`, enforcing strictly one chained method call per line (`@stylistic/newline-per-chained-call`) and compile-time Path Scope verification.

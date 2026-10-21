@@ -1,6 +1,6 @@
 ---
 title: Testing Workflows & Units
-description: Test multi-agent workflows and individual components deterministically with agboss/testing — testWith(Application), mockLlm, override, decideWith, TestConcurrency, and 8 unit runners.
+description: Test multi-agent workflows and components deterministically with agboss/testing — testWith(Application), mockLlm, override, and 8 isolated unit runners.
 ---
 
 Testing agent systems in CI should never require live LLM API keys, flaky network calls, or real wall-clock waiting. The `agboss/testing` entry provides a two-tier testing architecture: `testWith(Application)` for full workflow integration tests on a `VirtualClock` with scripted model replies and blocked network calls, plus eight dedicated unit runners for testing individual components in isolation.

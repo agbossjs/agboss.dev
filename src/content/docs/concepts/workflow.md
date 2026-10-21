@@ -1,6 +1,6 @@
 ---
 title: Workflow DSL
-description: Master the AGBoss Workflow DSL — strict one-call-per-line paths, DTO contracts, review loops with about and historyOf, branching, parallel launches, quorums, and recursion.
+description: Master the AGBoss Workflow DSL — one-call-per-line paths, DTO contracts, review loops with about and historyOf, branching, parallel waves, and quorums.
 ---
 
 In AGBoss, a workflow is a `@Workflow` class whose `flow` is a list of **paths**. Each path reads like a sentence starting at a source (`start(StartClass)`, `agent(AgentClass)`, `router(RouterClass)`, `workflow(ChildWorkflow)`), with **strictly one chained call per line** (`@stylistic/newline-per-chained-call`), and every value produced on an edge declared explicitly via `.returns(...)`.

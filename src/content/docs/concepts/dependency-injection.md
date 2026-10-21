@@ -1,6 +1,6 @@
 ---
 title: Dependency Injection & Lifecycle
-description: How @Injectable constructor injection, class-inheritance overrides, OnInit/OnStart/OnStop/OnDestroy lifecycle hooks, ExecutionContext, Clock, and Logger work in AGBoss.
+description: How @Injectable constructor injection, class-inheritance overrides, lifecycle hooks, ExecutionContext, Clock, and Logger work in AGBoss applications.
 ---
 
 AGBoss includes a deterministic dependency injection container modeled on Angular and NestJS. Every component (`@Injectable`, `@Tool`, `@Action`, `@Router`, `@Arbiter`, `@Judge`, `@Guardrail`, `@PiiPolicy`, `@Channel`, `@Rag`, `@Budget`) declares its constructor dependencies in `deps: [...]`, and the container resolves them at application startup.

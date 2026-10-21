@@ -1,6 +1,6 @@
 ---
 title: "@Budget"
-description: Complete API reference for the @Budget decorator in AGBoss — Application, Tenant, and Execution spend scopes, BudgetPeriod, BudgetHandler, and CostLedgerRepository.
+description: Complete API reference for the @Budget decorator in AGBoss — Application, Tenant, and Execution spend scopes, BudgetPeriod, and CostLedgerRepository.
 ---
 
 The `@Budget` decorator (`config/budget.config.ts`) defines a FinOps spend ceiling registered in `@Application({ budgets })`. Budgets are checked before the first step of an execution and reconciled after every model call and `SpendRecorder.record()` entry across three hierarchical scopes: **`BudgetScope.Application`**, **`BudgetScope.Tenant`**, and **`BudgetScope.Execution`**.

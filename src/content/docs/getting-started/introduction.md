@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: What AGBoss is, why it exists, and how it brings production architecture to LangGraph agents in TypeScript.
+description: Learn what AGBoss is, why it exists, and how it brings dependency injection, static graph checks, and FinOps to LangGraph agents in TypeScript.
 ---
 
 AGBoss — short for **A**gent **G**raph **B**uilder, **O**pen-**S**ource **S**oftware — is a TypeScript application framework for building, testing, and operating [LangGraph](https://www.langchain.com/langgraph) agent workflows in production Node.js services. Think of it as Angular or NestJS for multi-agent systems: agents, tools, routers, MCP servers, and knowledge bases are decorated classes wired by a `@Workflow` module and assembled into a single `@Application` container.

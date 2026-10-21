@@ -1,6 +1,6 @@
 ---
 title: "DTO Field Decorators (@Text, @ListOf, @Nested…)"
-description: Complete API reference for all DTO field decorators in agboss/dto — @Text, @Integer, @Decimal, @Flag, @OneOf, @ListOf, @Nested, ISO/format scalars, sensitive PII tagging, and standard DTOs.
+description: Complete API reference for DTO field decorators in agboss/dto — @Text, @Integer, @Decimal, @Flag, @OneOf, @ListOf, @Nested, PII tags, and standard DTOs.
 ---
 
 In AGBoss, every payload crossing a workflow path, `@Agent`, `@Action`, `@Router`, `@Tool`, or `@ChannelRole` boundary is a **DTO class** whose properties carry field decorators from `agboss/dto`. A single DTO class serves simultaneously as the compile-time TypeScript type, the runtime validator, the JSON Schema generator for LLM structured outputs, and the field-level PII redaction contract. Runtime values are always plain object literals `{ ... }` — never instantiate DTOs with `new`.

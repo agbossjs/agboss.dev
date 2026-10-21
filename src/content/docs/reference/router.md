@@ -1,6 +1,6 @@
 ---
 title: "@Router"
-description: Complete API reference for the @Router decorator in AGBoss — DecidedBy.Model vs DecidedBy.Code, SpawnPolicy, FailurePolicy, RouterHandler, and testRouter().
+description: Complete API reference for @Router in AGBoss — DecidedBy.Model vs DecidedBy.Code, SpawnPolicy, FailurePolicy, RouterHandler, and testRouter().
 ---
 
 The `@Router` decorator defines a control-flow decision node (`routers/*.router.ts`) in AGBoss. Routers decouple orchestration from domain agents and come in two forms discriminated by `decidedBy`: **`DecidedBy.Model`** (where a fast classifier model like `typesafe/jev-1.13` picks the target route from prompt criteria) and **`DecidedBy.Code`** (where deterministic TypeScript in `route(input)` with constructor DI picks the target at zero LLM cost and zero latency).

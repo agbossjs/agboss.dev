@@ -1,6 +1,6 @@
 ---
 title: "@Arbiter & @OnAnswer"
-description: Complete API reference for the @Arbiter and @OnAnswer decorators in AGBoss — quorum voting, DecidedBy.Code vs DecidedBy.Model, .acceptedBy(), and testArbiter().
+description: Complete API reference for the @Arbiter and @OnAnswer decorators in AGBoss — quorum voting, DecidedBy.Code vs DecidedBy.Model, and testArbiter().
 ---
 
 The `@Arbiter` class decorator and `@OnAnswer(AgentClass)` method decorator (`arbiters/*.arbiter.ts`) evaluate individual answers arriving from a parallel agent launch (`.toParallelAgents(...)`) to decide whether each answer counts toward a `.joinQuorum()` or `.joinQuorumGroups()` consensus. Unlike a `@Router`, an `@Arbiter` never chooses where the graph goes next — it votes `true` (accept) or `false` (reject) as each parallel branch finishes so the quorum can resolve immediately and cancel slower branches.

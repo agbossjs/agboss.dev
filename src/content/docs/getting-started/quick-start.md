@@ -1,6 +1,6 @@
 ---
 title: Quick start
-description: Build, typecheck, run, and test a minimal AGBoss workflow and application in TypeScript.
+description: Build, statically verify with agboss check, run, and unit-test your first multi-agent workflow and @Application container in TypeScript.
 ---
 
 Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `agboss/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.

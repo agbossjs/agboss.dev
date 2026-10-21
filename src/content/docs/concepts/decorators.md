@@ -1,6 +1,6 @@
 ---
 title: Component Decorators
-description: Overview of AGBoss decorators for applications, workflows, agents, actions, routers, arbiters, tools, DTOs, model providers, budgets, guardrails, and PII policies.
+description: Overview of AGBoss decorators for applications, workflows, agents, actions, routers, arbiters, tools, DTOs, model providers, budgets, and PII policies.
 ---
 
 AGBoss organizes every part of a multi-agent system as a decorated TypeScript class with a single, clear responsibility. Instead of mixing prompt templates, HTTP calls, branching logic, and safety filters inside monolithic functions, you declare dedicated classes and let the `@Workflow` and `@Application` modules wire them together.

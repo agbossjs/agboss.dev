@@ -1,6 +1,6 @@
 ---
 title: Digital & Physical AI Missions (System-2 Planner)
-description: How AGBoss orchestrates long-running mission-critical digital workflows and acts as the System-2 high-level mission planner for Physical AI, robotics, and smart devices.
+description: How AGBoss orchestrates mission-critical digital workflows and acts as the System-2 high-level mission planner for Physical AI, robotics, and devices.
 ---
 
 AGBoss is a strictly typed TypeScript application framework designed for **mission-critical multi-agent systems and long-running autonomous missions** on top of [LangGraph](https://www.langchain.com/langgraph). While lightweight prompt chains and untyped graphs suffice for conversational chatbots, production digital operations and physical autonomous systems require static graph and saga verification (`agboss check`), automatic LIFO side-effect compensation (`compensateWith` / `committedBy`), pre-call FinOps budget reservations, multi-instance lease work-stealing, and two-phase human-in-the-loop pauses with automatic button withdrawal (`ChannelHandler.withdraw`).

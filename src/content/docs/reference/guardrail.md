@@ -1,6 +1,6 @@
 ---
 title: "@Guardrail"
-description: Complete API reference for the @Guardrail decorator in AGBoss — beforeToolCall, afterToolCall, onChannelDecision, beforeAgentAnswer hooks, and testGuardrail().
+description: Complete API reference for the @Guardrail decorator in AGBoss — beforeToolCall, afterToolCall, onChannelDecision, beforeAgentAnswer, and testGuardrail().
 ---
 
 The `@Guardrail` decorator (`guardrails/*.guardrail.ts`) defines a programmable policy interceptor that inspects and validates tool calls, channel approval decisions, and agent answers at runtime. Guardrails can be attached at the `@Workflow`, `@Agent`, or `@Tool` level, receive constructor dependencies via `deps: [...]`, and can either mutate tool arguments (`{ overrideArguments }`) or throw to block execution.

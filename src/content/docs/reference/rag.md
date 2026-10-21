@@ -1,6 +1,6 @@
 ---
 title: "@Rag"
-description: Complete API reference for the @Rag decorator in AGBoss — RagConnector, SqliteFtsConnector, RagMode.Tool vs RagMode.Context, source citations, and testRag().
+description: Complete API reference for the @Rag decorator in AGBoss — RagConnector, SqliteFtsConnector, RagMode.Tool vs RagMode.Context, citations, and testRag().
 ---
 
 The `@Rag` decorator (`rag/*.rag.ts`) defines a knowledge base component implementing `RagConnector` (or extending the built-in zero-dependency `SqliteFtsConnector`). Agents attach knowledge bases via `@Agent({ rag: [{ use: DocsRag, mode: RagMode.Tool | RagMode.Context }] })`, and AGBoss automatically formats retrieved passages with `[source]` citations and tracks retrieval spend under `rag:<name>`.

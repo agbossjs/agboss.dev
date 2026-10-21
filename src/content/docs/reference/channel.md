@@ -1,6 +1,6 @@
 ---
 title: "@ChannelRole & @Channel"
-description: Complete API reference for the @ChannelRole and @Channel decorators in AGBoss — out-of-process pauses, ChannelOf, ChannelOutcome, PauseAnswerer, and two-phase app.resume().
+description: Complete API reference for @ChannelRole and @Channel in AGBoss — out-of-process pauses, ChannelOutcome, withdraw(), and two-phase app.resume().
 ---
 
 The `@ChannelRole` and `@Channel` decorators (`channels/*.channel.ts`) power human-in-the-loop approvals and external questions in AGBoss. A `@Tool` declares which abstract `@ChannelRole` gates its execution (`@Tool({ channel: RefundApprovalChannel })`), while `@Application({ providers })` binds the concrete `@Channel` implementation (such as Slack, PagerDuty, or email) by class inheritance — and tests can swap in `AutoApproveChannel` or `AutoRejectChannel` without touching tool code.

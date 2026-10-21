@@ -1,6 +1,6 @@
 ---
 title: "@Tool & @BindTool"
-description: Complete API reference for the @Tool and @BindTool decorators in AGBoss — ToolHandler<In, Out>, channel approvals, ExecutionContext, SpendRecorder, and testTool().
+description: Complete API reference for @Tool and @BindTool in AGBoss — ToolHandler<In, Out>, channel approvals, ExecutionContext, SpendRecorder, and testTool().
 ---
 
 The `@Tool` class decorator (`tools/*.tool.ts`) defines a typed capability that an `@Agent` can invoke during its tool-calling loop, or that can be called directly via `app.tool(ToolClass).invoke(input)` or exposed over MCP via `@McpExpose`. Every `@Tool` declares its input and output DTO classes from `agboss/dto` and implements `ToolHandler<In, Out>`. The companion `@BindTool` method decorator binds tool callbacks onto component methods.

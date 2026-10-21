@@ -1,6 +1,6 @@
 ---
 title: "@McpExpose"
-description: Complete API reference for the @McpExpose decorator and createMcpService in AGBoss — exposing workflows and tools as an outbound Model Context Protocol server.
+description: Complete API reference for @McpExpose and createMcpService in AGBoss — exposing workflows and tools as an outbound Model Context Protocol (MCP) server.
 ---
 
 The `@McpExpose` decorator and `createMcpService(Application)` turn an AGBoss `@Application` or `@Workflow` into a standards-compliant **Model Context Protocol (MCP) server** (`mcp/*.expose.ts`). External MCP clients (Claude Desktop, Cursor, or another AGBoss service) can discover and call your exposed `@WorkflowStart` entry points and `@Tool` classes with full `@Budget`, `@PiiPolicy`, and `@Guardrail` enforcement.

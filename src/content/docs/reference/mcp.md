@@ -1,6 +1,6 @@
 ---
 title: "@McpServer, @McpTool & @McpExpose"
-description: Complete API reference for the @McpServer, @McpTool, and @McpExpose decorators in AGBoss — consuming external MCP servers with typed DTOs and exposing AGBoss tools over MCP.
+description: Complete API reference for @McpServer, @McpTool, and @McpExpose in AGBoss — consuming external MCP servers with typed DTOs and exposing tools over MCP.
 ---
 
 AGBoss provides three decorators for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/): **`@McpServer`** (declares and supervises a connection to an external stdio, SSE, or Streamable HTTP MCP server), **`@McpTool`** (wraps an external server's tool in compile-checked TypeScript input/output DTOs and `ToolHandler`), and **`@McpExpose`** (exposes your own `@Tool` classes as an MCP server via `createMcpService(app, ConfigClass)`).

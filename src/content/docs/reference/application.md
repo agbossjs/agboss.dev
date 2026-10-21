@@ -1,6 +1,6 @@
 ---
 title: "@Application"
-description: Complete API reference for the @Application decorator in AGBoss — all configuration options, createApp(), App runtime methods, contexts, repositories, and testWith().
+description: Complete API reference for the @Application decorator in AGBoss — configuration options, createApp(), App runtime methods, contexts, and testWith().
 ---
 
 The `@Application` decorator defines the single assembly root (`*.application.ts`) of an AGBoss service. It wires your top-level `@Workflow` classes, typed `environment` contract, `@ModelProvider` gateways, mandatory `@Budget` caps, `@PiiPolicy` rules, `ExecutionObserver` hooks, and multi-instance storage repositories into one container verified at startup by `createApp(Application)` and in tests by `testWith(Application)`.

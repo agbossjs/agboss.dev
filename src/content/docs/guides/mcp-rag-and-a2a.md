@@ -1,6 +1,6 @@
 ---
 title: MCP Servers, RAG & Sub-Workflows
-description: Connect AGBoss agents to Model Context Protocol (@McpServer, @McpTool, @McpExpose), knowledge bases (@Rag, RagConnector), and child workflows (.toWorkflow()).
+description: Connect AGBoss agents to Model Context Protocol (@McpServer, @McpTool, @McpExpose), knowledge bases (@Rag), A2A agents, and built-in AI coding skills.
 ---
 
 Modern agent architectures rarely operate in isolation: they query internal knowledge bases via retrieval-augmented generation (`agboss/rag`), consume or expose tools over the Model Context Protocol (`agboss/mcp`), and delegate subtasks to child workflows or A2A peers. AGBoss models all of these integrations as typed, testable TypeScript components.

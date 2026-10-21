@@ -1,6 +1,6 @@
 ---
 title: Error Handling & Rollback (.onError)
-description: Handle step failures, review-loop visit limits, quorum deadlines, and multi-step rollbacks explicitly in AGBoss workflows using .onError() and .onJoinError().
+description: Handle step failures, review-loop visit limits, quorum deadlines, and transactional rollbacks in AGBoss using .onError(), .onJoinError(), and LIFO sagas.
 ---
 
 Production workflows interact with unreliable external systems, rate-limited APIs, and bounded review loops that can fail mid-flight. AGBoss makes failure recovery explicit in `@Workflow({ flow })` via `.onError(ErrorClass, sidePath)` on individual steps and `.onJoinError(ErrorClass, sidePath)` on parallel joins, keeping compensation logic type-checked and unit-tested alongside the happy path.

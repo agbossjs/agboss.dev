@@ -1,6 +1,6 @@
 ---
 title: "Examples: job-scout & flow-patterns"
-description: Explore the runnable job-scout and flow-patterns examples in the AGBoss repository — multi-agent routing, review loops with about, code routers, parallel launches, MCP, and RAG.
+description: Explore runnable job-scout and flow-patterns examples in AGBoss — multi-agent routing, review loops with about, code routers, parallel waves, MCP, and RAG.
 ---
 
 The AGBoss repository includes two complete reference packages under `examples/` that depend only on the public `agboss` entries (enforced by ESLint): `examples/job-scout` for a full interactive multi-agent application, and `examples/flow-patterns` for advanced workflow control-flow patterns verified by scripted tests.

@@ -1,6 +1,6 @@
 ---
 title: "@PiiPolicy"
-description: Complete API reference for the @PiiPolicy decorator in AGBoss — declarative pii() rules, reversible replaceWithToken() pseudonymization, custom PiiPolicyHandler detectors, and testPii().
+description: Complete API reference for @PiiPolicy in AGBoss — declarative pii() rules, reversible replaceWithToken() pseudonymization, custom handlers, and testPii().
 ---
 
 The `@PiiPolicy` decorator (`policies/*.pii-policy.ts`) defines personal-data protection rules applied at the LLM and tool boundaries as well as across structured logs and traces. `@PiiPolicy` supports two forms: **declarative policies** (mapping built-in `PiiKind` / `PiiGroup` targets to `PiiAction` transformations like reversible HMAC tokens `<email:7f3a91>`) and **custom detectors** implementing `PiiPolicyHandler.findMatches(text)`.
