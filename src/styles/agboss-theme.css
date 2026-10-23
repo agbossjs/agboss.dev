@@ -25,10 +25,11 @@
 }
 
 :root[data-theme='light'] {
-	/* AGBoss brand — light mode */
+	/* AGBoss brand — light mode: unified #1864ac blue (same as AGBoss heading on /roadmap/) */
 	--sl-color-accent-low: #dceefc;
-	--sl-color-accent: #258ceb;
+	--sl-color-accent: #1864ac;
 	--sl-color-accent-high: #1864ac;
+	--sl-color-text-accent: #1864ac;
 
 	--sl-color-bg: #ffffff;
 	--sl-color-bg-nav: #ffffff;
