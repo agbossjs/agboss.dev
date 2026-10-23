@@ -30,32 +30,54 @@ agboss g workflow onboarding
 
 | Command | What It Does |
 | :--- | :--- |
-| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with workflow, `@Application`, environments, `.agboss/types.d.ts`, and Vitest tests |
+| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with workflow, `@Application`, environments, `eslint.config.mjs` (`agboss/eslint`), `.agboss/types.d.ts`, `AGENTS.md`, and Vitest tests |
 | `agboss generate <kind>` (`agboss g`) | Generates and wires an `agent`, `router`, `tool`, `arbiter`, `mcp`, `rag`, `workflow`, or `openapi` client |
-| `agboss check --application <path>` | Writes `.agboss/types.d.ts` and validates all flow, assembly, environment, and prompt rules without calling models |
-| `agboss check --strict --application <path>` | Treats analyser warnings (`[flow.path-too-deep]`) and assembly warnings (`[application.in-memory-cost-ledger]`) as errors |
+| `agboss check --application <path>` | Writes `.agboss/types.d.ts`, syncs `.claude/skills/agboss/`, and validates all flow, assembly, environment, and prompt rules without calling models |
+| `agboss check --strict --application <path>` | Treats analyser warnings (`[flow.path-too-deep]`, `[judge.same-model-family]`) and assembly warnings (`[application.in-memory-cost-ledger]`) as errors |
 | `agboss check --models --application <path>` | Verifies every model setting across the application against its resolved `@ModelProvider` |
+| `$ agboss check --cassettes <dir>` | Verifies recorded VCR cassettes against current `promptHash` and `schemaHash` fingerprints (`[vcr.stale-cassette]`) |
+| `$ agboss check --federation <dir>` | Verifies cross-repository `@A2AAgent` / `@McpServer` contracts against `@A2AExpose` / `@McpExpose` snapshots from `agboss describe --json` (`[federation.*]`) |
 | `agboss describe --application <path>` | Prints paths, node inputs by producer, `{ about }` links, `historyOf` limits, model → provider resolution, budgets, and step limits |
-| `agboss describe --json --application <path>` | Exports the full declarative revision snapshot (`configHash`, `maxInstanceConcurrency`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and model/tool registries) for Langfuse/OTel trace coverage analysis and versioned pause compatibility checks |
+| `agboss describe --json --application <path>` | Exports the full declarative revision snapshot (`configHash`, `application.contracts` passport, `maxConcurrentSteps`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and model/tool registries) |
 | `agboss chat --application <path>` | Starts an interactive terminal chat (`--thread`, `--profile`, `--env`) on the `@Application` |
 | `agboss run --application <path> "task"` | Executes a single task on the `@Application` and prints the output and spend summary |
 | `agboss eval` / `agboss replay` | Scores recent runs with Jev or replays a prompt version against recorded tasks |
+| `$ agboss eval run --suite <name>` | Runs an `@EvalSuite` across `--runs <k>` trials (`pass@k` and `pass^k`), `--baseline <file> --fail-on-regression`, `--chaos`, `--metamorphic`, and `--html <report.html>` |
+| `$ agboss eval calibrate` | Computes pairwise **Cohen's kappa ($\kappa$)** and confusion matrices between `@Judge` verdicts and human JSONL annotations (`--min-kappa`) |
+| `$ agboss eval show` / `$ agboss eval ui` | Renders a self-contained static HTML report (`--html`) or launches the local interactive Eval UI workbench (`127.0.0.1`) |
 | `agboss golden add --name <n>` | Saves recent real tasks as a reusable golden evaluation dataset |
 | `agboss compare --profiles base,<p>` | Compares YAML configuration profiles side by side against a golden set |
 | `agboss rag index` | Builds or updates `@Rag` knowledge-base indexes |
 | `agboss migrate imports` | Rewrites imports from deprecated sub-entries to current AGBoss entries |
 
+## Key static analyzer diagnostics (`agboss check`)
+
+`agboss check` verifies structural, dataflow, security, and governance invariants before a single token is spent:
+
+| Rule Code | What It Catches |
+| :--- | :--- |
+| `[name.kind-suffix]` | A decorated component's `name` option (`"-agent"`, `"-budget"`, `"-tool-interceptor"`) or its TypeScript class identifier (`*Agent`, `*Budget`, `*ToolInterceptor`) is missing its kind suffix. |
+| `[input.missing-on-path]` & `[input.outdated-on-path]` | A downstream node reads a DTO that is not produced on every incoming branch or was invalidated by a review loop's `{ about: Dto }` without being re-produced. |
+| `[flow.uncompensated-action]` & `[graph.limit-handler-uses-model]` | A side-effecting `@Action` lacks `compensateWith` / `committedBy`, or a resource-limit `.onError()` handler routes to an LLM node instead of a deterministic `@Action` / `@WorkflowFinish`. |
+| `[prompt.input-in-instructions]` | Runtime `input` fields are interpolated into `prompt` / `promptUrls` (which would break LLM KV prefix caching). |
+| `[compaction.missing-handler]` & `[compaction.invalid-setting]` | A `CompactionStrategy.Custom` class omits `compact(input)`, or sets model-only options (`model`, `prompt`, `summaryQueueLength`, `summaryMaxTokens`). |
+| `[guardrail.missing-handler]` & `[tool-interceptor.missing-handler]` | A `DecidedBy.Code` guardrail omits `check(text)`, or a `@ToolInterceptor` implements neither `BeforeToolCall` nor `AfterToolCall`. |
+| `[model-provider.both-modes]` | A `@ModelProvider` mixes HTTP `baseUrl` / `apiKey` options with a custom `ModelProviderHandler.complete(request)` implementation. |
+| `[vcr.stale-cassette]` & `[judge.same-model-family]` | A VCR cassette's recorded `promptHash` / `schemaHash` no longer matches current code, or a `DecidedBy.Model` `@Judge` uses the same model family as the judged `@Agent`. |
+| `[federation.incompatible-schema]` & `[federation.missing-target]` | Cross-service `@A2AAgent` / `@McpServer` DTO schemas drifted from the producer's `@A2AExpose` / `@McpExpose` `schemaHash` in `agboss describe --json`. |
+
 ## Exporting a declarative revision snapshot with `agboss describe --json`
 
 Running `agboss describe --json --application <path>` dumps the complete machine-readable anatomy (`{ application, workflows[], schemas }`) of an application revision without booting model providers:
 
-- **Application & graph topology (`configHash`):** Deterministic hash of the workflow graph, `starts`, `finishes`, `edges`, `onError` handlers, `maxInstanceConcurrency`, `compensationTimeout`, and versioned child workflow registrations (`[ChildWorkflowV1, ChildWorkflowV2]`) so sleeping pauses can be verified and resumed across rolling releases.
+- **Application & graph topology (`configHash`):** Deterministic hash of the workflow graph, `starts`, `finishes`, `edges`, `onError` handlers, `maxConcurrentSteps`, `compensationTimeout`, and versioned child workflow registrations (`[ChildWorkflowV1, ChildWorkflowV2]`) so sleeping pauses can be verified and resumed across rolling releases.
 - **Component & saga metadata (`promptHash`, `schemaHash`, `compensateWith`, `committedBy`):** Full configuration of every `@Agent`, `@Router`, `@Arbiter`, `@Action`, and `@Tool` in `workflows[].nodes[]`, including individual SHA-256 `promptHash` and `schemaHash` fingerprints and saga compensation edges.
 - **DTO schema registry & trace join keys:** Every DTO class, field decorator (`@Text`, `@Integer`, `@Float`, `@Enum`, `@List`), constraint, and `schemaHash` in `schemas` joins directly against runtime `ExecutionRecord` (`WorkflowRecord.configHash`), `ComponentRecord` (`{ name, kind, promptHash, schemaHash }`), and `StepRecord` (`{ toolLoopIteration, validationAttempts, branch: { verdict, status } }`) spans in Langfuse / OpenTelemetry to measure real branch, tool, and DTO field coverage.
 
 ## AI coding-agent skills and machine-readable docs
 
-AGBoss is designed for seamless pair-programming with AI coding agents (Claude Code, Cursor, Windsurf, GitHub Copilot, and OpenCode):
+AGBoss is built for Senior/Staff engineers steering AI coding agents (OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Aider, and Claude Code):
 
+- **Universal project entrypoints (`AGENTS.md` & `CLAUDE.md`):** `agboss create <name>` generates root `AGENTS.md` and a one-line `CLAUDE.md` (`@AGENTS.md`) once and commits them to Git. They are never overwritten, allowing you to add project-specific domain rules alongside the AGBoss skill routing table.
+- **Offline, gitignored skill suite (`SKILL.md` + `references/01..12.md`):** Bundled directly inside the `agboss` npm package (`node_modules/agboss/skills/agboss/`) and automatically synced into `.claude/skills/agboss/` (`SKILL.md`, `references/01-composition-and-architecture.md` .. `12-end-to-end-recipes.md`, and `.agboss-skills.json`) whenever `npm install` (`"postinstall": "npm run types"`, where `"types": "agboss check"`), `agboss check`, or `agboss generate` runs. Opt out anytime via `"agboss": { "skills": false }` in `package.json`. See [AI-Assisted Engineering & Coding Skills](/concepts/ai-coding-skills/) for the full architecture.
 - **Machine-readable documentation:** Every documentation page on `agboss.dev` is published in [`/llms.txt`](/llms.txt) and [`/llms-full.txt`](/llms-full.txt) for instant context ingestion.
-- **Coding-agent project rules:** Scaffolded projects include `CLAUDE.md` and `.claude/skills/` conventions enforcing AGBoss architecture (`@Application` assembly, one chained call per line in `flow`, plain object DTOs without `new`, `usd()` / `seconds()` / `minutes()` units, and `testWith` / unit runners).

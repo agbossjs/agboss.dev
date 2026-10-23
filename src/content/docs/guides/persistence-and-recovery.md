@@ -1,26 +1,27 @@
 ---
-title: Persistence, Leases & Multi-Instance Recovery
-description: Run AGBoss across multiple processes using SQLite WAL repositories, 30-second execution leases, compare-and-swap completion, and crash recovery sweeps.
+title: Multi-Instance Distribution, Leases, SQLite & Custom Stores
+description: Run AGBoss across multiple processes and machines using the 7 shared repository contracts, SQLite WAL stores, 30-second execution leases, cross-instance cancellation, distributed rate limits, and custom store overrides.
 ---
 
-Stateful multi-agent workflows can run across parallel branches, spawn child workflows, or pause awaiting human approval. AGBoss coordinates multi-instance execution through seven storage repository contracts, each shipped with a ready-to-use [SQLite WAL](https://www.sqlite.org/wal.html) implementation enabled simply by listing it in `@Application({ providers })`.
+An AGBoss `@Application` can run as **multiple instances (processes, containers, or Kubernetes pods)** over shared storage: any instance can resume a pause created on another instance, recover an execution whose worker process died mid-step, or cancel a running thread across the cluster — while 30-second execution-tree leases guarantee that two instances never advance the same execution tree simultaneously.
 
-## What are the 7 storage repositories in AGBoss?
+---
 
-| Base Repository Contract | Built-in SQLite Implementation | Responsibility |
-| :--- | :--- | :--- |
-| `ExecutionRecordRepository` | `SqliteExecutionRecordRepository` | Persists execution status (`Running`, `Completed`, `Failed`), output, and atomic CAS transitions |
-| `CostLedgerRepository` | `SqliteCostLedgerRepository` | Tracks cumulative spend across execution, tenant, and application `@Budget` scopes |
-| `PausedExecutionRepository` | `SqlitePausedExecutionRepository` | Stores `Pending`, `Resolved`, `Taken`, and `Cancelled` human-in-the-loop pauses |
-| `BaseCheckpointSaver` | `SqliteCheckpointSaver` | Saves LangGraph checkpoints after every node transition |
-| `ExecutionLeaseRepository` | `SqliteExecutionLeaseRepository` | Coordinates 30-second execution tree ownership leases across processes |
-| `ExecutionTreeRepository` | `SqliteExecutionTreeRepository` | Tracks parent and child workflow execution trees |
-| `RateLimitRepository` | `SqliteRateLimitRepository` | Shares `@ModelProvider` rate-limit slots, `Retry-After` pauses, and circuit-breaker state |
+## Multi-instance application & failover test
 
-All listed SQLite repositories share a single SQLite file per machine (configured via `sqlitePath` on your `@Application` environment contract, running in WAL mode with `BEGIN IMMEDIATE` transactions and `sqlitePath: ":memory:"` in tests):
+Below is a complete multi-instance application wired with the 7 `Sqlite*` WAL repositories, a custom `TableExecutionLeaseRepository extends ExecutionLeaseRepository` implementation, and a multi-instance `testWith(App, { instances: 2 })` test suite:
 
-```ts title="src/environments/prod.environment.ts"
-import { SqliteCheckpointSaver, SqliteCostLedgerRepository, SqliteExecutionLeaseRepository, SqliteExecutionRecordRepository, SqliteExecutionTreeRepository, SqlitePausedExecutionRepository, SqliteRateLimitRepository, env } from "agboss";
+```ts title="src/environments/prod.environment.ts" file=src/environments/prod.environment.ts
+import {
+  SqliteCheckpointSaver,
+  SqliteCostLedgerRepository,
+  SqliteExecutionLeaseRepository,
+  SqliteExecutionRecordRepository,
+  SqliteExecutionTreeRepository,
+  SqlitePausedExecutionRepository,
+  SqliteRateLimitRepository,
+  env,
+} from "agboss";
 
 export class StoreEnvironment {
   sqlitePath!: string;
@@ -43,14 +44,54 @@ export const durableStores = [
 ];
 ```
 
-```ts title="src/support.application.ts" no-check: context tab
-import { Application, SqliteCheckpointSaver, SqliteCostLedgerRepository, SqliteExecutionLeaseRepository, SqliteExecutionRecordRepository, SqliteExecutionTreeRepository, SqlitePausedExecutionRepository, SqliteRateLimitRepository } from "agboss";
+<!-- snippet-context
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "agboss";
+import { WorkflowStartTextDto } from "agboss/dto";
+import { usd, type Usd } from "agboss/units";
+import { StoreEnvironment } from "./environments/prod.environment.js";
+
+export { WorkflowStartTextDto };
+@WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
+export class SupportStart {}
+@WorkflowFinish({ name: "support-workflow-finish", description: "Finish", output: WorkflowStartTextDto })
+export class SupportFinish {}
+@Workflow({
+  name: "support-workflow",
+  version: "1.0.0",
+  flow: [
+    start(SupportStart)
+      .returns(WorkflowStartTextDto)
+      .toFinish(SupportFinish),
+  ],
+})
+export class SupportWorkflow {}
+@Budget({ name: "support-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class SupportAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
+@Budget({ name: "support-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class SupportTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(10); } }
+@Budget({ name: "support-exec-budget", scope: BudgetScope.Execution })
+export class SupportExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
+// @snippet
+-->
+```ts title="src/support.application.ts" file=src/support.application.ts
+import {
+  Application,
+  SqliteCheckpointSaver,
+  SqliteCostLedgerRepository,
+  SqliteExecutionLeaseRepository,
+  SqliteExecutionRecordRepository,
+  SqliteExecutionTreeRepository,
+  SqlitePausedExecutionRepository,
+  SqliteRateLimitRepository,
+} from "agboss";
 import { seconds } from "agboss/units";
 
 @Application({
   name: "support-application",
   version: "1.0.0",
+  environment: StoreEnvironment,
   workflows: [SupportWorkflow],
+  budgets: [SupportAppBudget, SupportTenantBudget, SupportExecBudget],
   providers: [
     SqliteExecutionRecordRepository,
     SqliteCostLedgerRepository,
@@ -60,26 +101,180 @@ import { seconds } from "agboss/units";
     SqliteExecutionTreeRepository,
     SqliteRateLimitRepository,
   ],
-  maxInstanceConcurrency: 32,
+  maxConcurrentSteps: 32,
   compensationTimeout: seconds(15),
   shutdownTimeout: seconds(25),
 })
 export class SupportApplication {}
 ```
 
-## How execution leases, recovery sweeps, and rolling deploys work
+```ts title="src/stores/table-lease.repository.ts" file=src/stores/table-lease.repository.ts
+import {
+  ExecutionLeaseRepository,
+  Injectable,
+  type ExecutionLease,
+} from "agboss";
+import type { Milliseconds } from "agboss/units";
 
-1. **One holder per execution tree (`seconds(30)` lease):** `app.execute` and `app.resume` acquire the execution tree's lease (`seconds(30)`, renewed every 10 seconds on the application's `Clock` and before every checkpoint write).
-2. **Immediate mid-tool-loop fencing (`ExecutionLeaseLostError`):** If an instance freezes past its lease expiry — even in the middle of an `@Agent`'s `maxToolCalls` iteration loop — the internal lease watchdog immediately aborts `ExecutionContext.signal` and throws `ExecutionLeaseLostError` (`execution.lease-lost`) before the next tool or model call executes. Every tool call iteration also carries a deterministic `step.idempotencyKey` (`${executionId}:${nodeId}:${visitNumber}:${copyNumber}:tool:${iteration}`) so external APIs can deduplicate side effects.
-3. **Automatic recovery sweep (every 30 s):** At startup and every 30 seconds, each instance scans for `running` root and child executions whose holder died or stopped, acquires their lease, and resumes them from their last committed checkpoint (`onExecutionResume` with `ResumeReason.Recovered`).
-4. **Zero-downtime rolling deploys (`app.close({ timeout })`):** On `SIGTERM` / `SIGINT` or `await app.close({ timeout: seconds(10) })`, the instance stops accepting new runs (`ApplicationStoppingError`), waits up to `timeout` (default `seconds(25)`) for active passes to finish, and then interrupts any still-running execution — releasing its lease immediately while keeping its record `running` so another instance continues it without waiting for the 30-second TTL to expire.
+@Injectable()
+export class LeaseTableService {
+  insertIfFree(
+    _tenantId: string,
+    _rootExecutionId: string,
+    _lease: number,
+  ): Promise<ExecutionLease | undefined> {
+    return Promise.resolve(undefined);
+  }
+  extendIfHeld(
+    _executionLease: ExecutionLease,
+    _lease: number,
+  ): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+  deleteIfHeld(_executionLease: ExecutionLease): Promise<void> {
+    return Promise.resolve();
+  }
+  selectOne(): Promise<void> {
+    return Promise.resolve();
+  }
+}
 
-## How multi-instance work-stealing and `maxInstanceConcurrency` protect pods from overload
+@Injectable({ deps: [LeaseTableService] })
+export class TableExecutionLeaseRepository extends ExecutionLeaseRepository {
+  constructor(private readonly leaseTableService: LeaseTableService) {
+    super();
+  }
 
-When a workflow fans out into dozens of parallel branches or child workflows (`.toParallelWorkflows`, `.toWorkflow`), AGBoss prevents individual Node.js pods from running out of memory and distributes child workflows across the cluster:
+  override acquire(
+    tenantId: string,
+    rootExecutionId: string,
+    lease: Milliseconds,
+  ): Promise<ExecutionLease | undefined> {
+    return this.leaseTableService.insertIfFree(
+      tenantId,
+      rootExecutionId,
+      lease,
+    );
+  }
 
-- **Local pod ceiling (`maxInstanceConcurrency`):** Configured on `@Application({ maxInstanceConcurrency: 32 })` (`<= 0` or non-integer fails assembly with `[application.invalid-instance-concurrency]`). When all 32 slots on a pod are occupied, additional steps enter an in-memory priority queue with three deadlock-safe levels: **Priority 1** for finishing parents (`.join()`, `.joinQuorum()`, `.onError()`, `.onJoinError()`, `@WorkflowFinish`), **Priority 2** for deeper in-flight steps (`depth`, then `visitNumber`) with wait-time aging, and **Priority 3** for newly arriving `app.execute` / `app.resume` calls and unstarted parallel branch items. While saturated, `await app.checkReadiness()` returns `HealthStatus.Degraded` (with `{ activeSlots, maxSlots, queuedCount }`) so Kubernetes / load balancers route new traffic to idle pods, and the recovery sweep only claims orphaned executions up to the number of free local slots.
-- **Distributed child workflow work-stealing & parent yield:** When `ExecutionLeaseRepository` and `ExecutionRecordRepository` are shared across pods, `.toParallelWorkflows` and `.toWorkflow` persist each child workflow as `Pending` in storage, and the parent checkpoints its fan-out state and yields its lease while waiting. Idle cluster instances claim pending child workflows via `ExecutionLeaseRepository`, execute them with shared `@Budget` accounting, and wake the parent (`ResumeReason.ChildrenCompleted`) once all children finish or `FailurePolicy.FailFast` triggers.
-- **Multi-turn `threadId` slot isolation & versioned child workflow upgrades:** Each root `app.execute` pass snapshots and writes its own workflow state keyed by `(threadId, executionId)` while carrying only conversation messages across turns on the same `threadId` — preventing stale slot values or `outdated` cascades from bleeding between turns. During rolling upgrades, registering multiple versions of a child workflow (`[ChildWorkflowV1, ChildWorkflowV2]`) allows long-sleeping pauses (`PendingPause`) to resume on the exact workflow version matching their saved `configHash`, while oversized `@Tool` / `@Rag` outputs are bounded before compaction so checkpoints stay compact.
-- **Cross-pod `piiTokens` preservation:** Even if no `pseudonymKey` is configured, AGBoss generates and persists a random 32-byte fallback key per `rootExecutionId` in the root execution record so `piiTokens` maps (`[EMAIL_1]`, `[PHONE_1]`) unmask identically when a child workflow or resumed pause runs on a different pod.
-- **Instant sibling abort on `@Budget` breach:** If any parallel branch or child workflow breaches an `Execution`, `Tenant`, or `Application` `@Budget`, the runtime immediately aborts `ExecutionContext.signal` across all sibling branches with `BudgetExceededError` (`execution.budget-exceeded`) and triggers LIFO saga compensation (`compensateWith`) without burning extra LLM tokens.
+  override renew(
+    executionLease: ExecutionLease,
+    lease: Milliseconds,
+  ): Promise<boolean> {
+    return this.leaseTableService.extendIfHeld(executionLease, lease);
+  }
+
+  override release(executionLease: ExecutionLease): Promise<void> {
+    return this.leaseTableService.deleteIfHeld(executionLease);
+  }
+
+  override ping(): Promise<void> {
+    return this.leaseTableService.selectOne();
+  }
+}
+```
+
+```ts title="test/multi-instance.test.ts" file=test/multi-instance.test.ts
+import { Application, EmptyEnvironment } from "agboss";
+import { expect } from "vitest";
+import { testWith } from "agboss/testing";
+import { seconds } from "agboss/units";
+import { SupportFinish, SupportStart, SupportWorkflow } from "../src/support.application.js";
+
+@Application({
+  name: "cluster-test-application",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [SupportWorkflow],
+})
+export class ClusterTestApplication {}
+
+const test = testWith(ClusterTestApplication, { instances: 2 });
+
+test("runs two application instances over shared stores and a shared virtual clock", async ({
+  apps,
+  clock,
+}) => {
+  const [instanceA, instanceB] = apps;
+  if (!instanceA || !instanceB) throw new Error("Expected 2 instances");
+  const first = await instanceA.execute(
+    SupportStart,
+    { text: "Turn 1 on instance A" },
+    { threadId: "shared-thread-1" },
+  );
+  expect(first.finish).toBe(SupportFinish);
+
+  await clock.advance(seconds(31));
+
+  const second = await instanceB.execute(
+    SupportStart,
+    { text: "Turn 2 on instance B" },
+    { threadId: "shared-thread-1" },
+  );
+  expect(second.output).toEqual({ text: "Turn 2 on instance B" });
+});
+```
+
+---
+
+## 4-stage progressive infrastructure scaling
+
+Because `@Agent`, `@Router`, `@Arbiter`, `@Action`, and `@Tool` classes never import storage drivers directly, your application scales across four infrastructure stages purely by updating `@Application({ providers })`:
+
+| Stage | `@Application({ providers })` Configuration | Use Case |
+| :--- | :--- | :--- |
+| **Stage 1: In-Memory (Default)** | `providers: []` (built-in `InMemory*` stores) | Local prototyping (`npm run chat`), unit tests (`testWith`), and deterministic CI suites |
+| **Stage 2: Single-Node Durable** | Built-in `Sqlite*` WAL repositories (`sqlitePath`) | Single-VM / single-container production with durable checkpoints, pauses, and spend ledgers |
+| **Stage 3: Multi-Instance on One Machine** | Shared `Sqlite*` WAL file + `SqliteExecutionLeaseRepository` | Multiple worker processes on one host sharing WAL storage, 30s leases, and recovery sweeps |
+| **Stage 4: Multi-Machine Cluster Stores** | Custom `@Injectable()` classes extending `ExecutionRecordRepository`, `ExecutionLeaseRepository`, etc. | Distributed Postgres / Redis / DynamoDB backends across Kubernetes nodes |
+
+---
+
+## What the 7 shared stores coordinate across instances
+
+Every store is an infrastructure contract with a built-in in-memory default and a built-in zero-dependency `node:sqlite` WAL implementation:
+
+| Base Repository Contract | Built-in SQLite Implementation | What It Coordinates Across Instances |
+| :--- | :--- | :--- |
+| `BaseCheckpointSaver` | `SqliteCheckpointSaver` | Saves LangGraph state checkpoints so a pause or crash on Instance A resumes on Instance B |
+| `PausedExecutionRepository` | `SqlitePausedExecutionRepository` | Transitions pauses `Pending → Resolved` atomically (CAS) once, whichever instance handles `app.resume()` |
+| `ExecutionRecordRepository` | `SqliteExecutionRecordRepository` | Persists tenant-isolated threads, owners, `Tern` records, and atomic CAS status transitions |
+| `CostLedgerRepository` | `SqliteCostLedgerRepository` | Aggregates token and tool spend across all instances for `Execution`, `Tenant`, and `Application` `@Budget` scopes |
+| `ExecutionLeaseRepository` | `SqliteExecutionLeaseRepository` | Guarantees a single active holder (`seconds(30)` lease) per `(tenantId, rootExecutionId)` execution tree |
+| `ExecutionTreeRepository` | `SqliteExecutionTreeRepository` | Shares request-scoped keys (`saveIfAbsent`), `@agboss/cancel-request`, and `@agboss/unwinding` across the execution tree |
+| `RateLimitRepository` | `SqliteRateLimitRepository` | Shares `@ModelProvider` concurrency slots (`<provider>:slots`), per-minute call/token windows, 429 cooldowns, and open circuit breakers |
+
+---
+
+## How 30-second execution leases & local fencing work
+
+One lease exists per execution tree, keyed by `(tenantId, rootExecutionId)`, held by `ApplicationContext.instanceId`:
+
+1. **Background renewal & pre-checkpoint renewal:** The active holder renews its `seconds(30)` lease every 10 seconds on the application's `Clock` and immediately before every checkpoint write. Paused or finished trees hold no lease.
+2. **Immediate mid-tool-loop fencing (`ExecutionLeaseLostError`):** If a renewal returns `false` (the instance froze for >30s and another instance took the lease with `leaseEpoch + 1`), or if the lease store fails to confirm a renewal before `confirmedUntil` (local self-fencing), the holder immediately aborts `ExecutionContext.signal` with `ExecutionLeaseLostError` (`execution.lease-lost`). An `@Agent` tool loop starts no further model or tool calls, and the error bypasses `.onError` and `onExecutionError` because the new lease holder now owns the execution.
+3. **Concurrent `app.resume()` calls:** `app.resume` runs in two phases: first it transitions the pause `Pending → Resolved` atomically (a duplicate click gets `NotPausedError`), then it acquires or waits for the tree's lease. When two parallel branch pauses are answered simultaneously on two different instances, both decisions are recorded and drained in a single pass so each branch runs once.
+
+---
+
+## Crash recovery, cross-instance `app.cancel`, and mid-undo recovery
+
+- **Automatic recovery sweep (every 30 s):** At startup and every 30 seconds, each instance scans `ExecutionRecordStatus.Running` records (`findByStatus`), claims any tree whose holder died or released its lease on shutdown, and resumes from the **last committed checkpoint** (`onExecutionResume` with `ResumeReason.Recovered`). Because every finished step is checkpointed before the next starts, only the interrupted step runs again, and external side effects deduplicate via `executionContext.step.idempotencyKey`. The sweep also purges `Taken` / `Cancelled` pause records older than `@Application({ pauseRecordRetention })` (default `hours(24)`).
+- **Cross-instance `app.cancel(threadId)`:** Behind a load balancer, `app.cancel` can land on any instance. If the target thread is running on another instance, `app.cancel` writes the reserved key `@agboss/cancel-request` into the shared `ExecutionTreeRepository`. The holding instance checks this key on every lease renewal (every 10s and before each checkpoint write) and aborts the run with `ExecutionCancelledError`.
+- **Durable LIFO saga unwinding (`@agboss/unwinding`):** Before automatic LIFO rollback of [`@Action({ compensateWith })`](/guides/error-handling-and-rollback/) starts, the holder writes `@agboss/unwinding` and marks each completed compensator under `@agboss/compensated/<key>`. If the instance crashes or times out mid-rollback, the next instance taking the lease reads `@agboss/unwinding`, skips already-compensated steps, and finishes the remaining compensators in LIFO order.
+
+---
+
+## Instance step caps (`maxConcurrentSteps`) & distributed work-stealing
+
+- **Local pod ceiling (`@Application({ maxConcurrentSteps: 32 })`):** Caps how many `@Agent`, `@Router`, and `@Action` steps run concurrently inside one process across all tenants and trees. When all slots are busy, additional steps wait in a deadlock-free priority queue:
+  1. **Priority 1:** Steps that close a branch (right after a child workflow or `.join()` / `.joinQuorum()`).
+  2. **Priority 2:** Deeper in-flight executions (`depth`, with +1 depth aging per 10s waited on the `Clock`).
+  3. **Priority 3:** Newly arriving root `app.execute` calls.
+- **Load-balancer readiness shedding (`step-slots`):** While all `maxConcurrentSteps` slots are busy, `await app.checkReadiness()` reports component `step-slots` as `HealthStatus.Degraded` so Kubernetes / load balancers route new requests to idle pods, and the recovery sweep claims at most as many orphans as the instance has free slots.
+- **Shared `@ModelProvider` rate limits (`RateLimitRepository`):** Across all instances, `RateLimitRepository` enforces a provider's `maxConcurrentCalls` slots (`acquire` / `renew` / `release`), per-minute call and token windows (`addToWindow`), and 429 `Retry-After` pauses / open circuit breakers (`pauseUntil` / `pausedUntil`).
+
+---
+
+## Extending SQLite stores or writing custom Postgres/Redis stores
+
+You can either subclass a built-in `Sqlite*` store (injecting `SqliteConnection`, `Clock`, `ApplicationContext`, `IdGenerator`) to add custom audit logging, or subclass any of the 7 base repository contracts (`extends ExecutionLeaseRepository`, `extends PausedExecutionRepository`, `extends RateLimitRepository`, etc.) to back AGBoss with Postgres, Redis, or DynamoDB. Every store contract includes `ping(): Promise<void>`, which `await app.checkReadiness()` calls under a 2-second timeout to verify database connectivity.

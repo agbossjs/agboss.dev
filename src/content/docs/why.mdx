@@ -1,83 +1,82 @@
 ---
 title: Why AGBoss?
-description: Why engineering teams build production LangGraph agents with AGBoss — compile-time Path Scope, constructor DI, FinOps budgets, sagas, and offline testing.
+description: Why Senior, Staff, and Principal engineers use AGBoss (Agent Graph Builder Open Source System) and its built-in HarnessDSL (HDSL) grammar to keep AI coding agents deterministic on LangGraph systems scaling to hundreds of nodes — 7 distributed-systems invariants enforced at compile time.
 template: splash
 ---
 
 <div class="agp not-content">
 
-<p class="agp-lead">AGBoss is the production application framework for LangGraph agents in TypeScript, bringing the architectural rigor of Angular, NestJS, and Spring to multi-agent engineering. You declare typed components inside an <code>@Application</code> container; the compiler verifies every graph path, review loop, and dependency before a single model call runs.</p>
+<p class="agp-lead">Modern engineering teams already know two truths: complex problems require networks of specialized agents, and engineers no longer write orchestration boilerplate by hand — <strong>AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code)</strong> write the code under an engineer's architectural direction. <strong>AGBoss</strong> (<em>Agent Graph Builder Open Source System</em>) is the TypeScript framework, static graph compiler (<code>agboss check</code>), and production runtime on LangGraph (<code>npm i agboss</code>), and <strong>HarnessDSL (HDSL)</strong> is the declarative graph grammar and verification specification built into AGBoss — giving coding agents hard distributed-systems guardrails so graphs with hundreds of nodes stay deterministic, cache-invariant, and refactorable.</p>
 
 <div class="agp-actions">
-<a class="agp-btn" href="/getting-started/quick-start/">Try the quickstart →</a>
-<a class="agp-btn is-ghost" href="/roadmap/">See the roadmap</a>
+<a class="agp-btn" href="/concepts/architecture/">Explore the 7 Architectural Principles →</a>
+<a class="agp-btn is-ghost" href="/getting-started/quick-start/">Try the quickstart</a>
 </div>
 
 <div class="agp-features">
 
 <div class="agp-feature">
-<div class="agp-feature-icon">@</div>
+<div class="agp-feature-icon">1</div>
 <div>
-<h3>Compile-time Path Scope & DI</h3>
-<p>Agents, tools, routers, actions, arbiters, and workflows are classes wired into an <code>@Application</code> root. Dependencies arrive through constructors and contracts are replaced by subclass inheritance.</p>
-<p>The chain-per-line Flow DSL tracks what each step produces (<code>.returns(Dto, &#123; about &#125;)</code>, <code>historyOf(Dto)</code>) and rejects missing or stale inputs at compile time via <code>.agboss/types.d.ts</code>.</p>
+<h3>Computational Role Segregation & Canonical Topology</h3>
+<p>In raw graph SDKs, coding agents create "god nodes" and format the same topology ten different ways. AGBoss segregates <code>@Agent</code>, <code>@Router</code>, <code>@Arbiter</code>, and <code>@Action</code>, and enforces a <strong>1-to-1 isomorphism</strong> between graph topology and code layout (<code>in-degree = 1</code> inline, <code>in-degree &ge; 2</code> top-level entry, 1 chained call per line).</p>
 </div>
 </div>
 
 <div class="agp-feature">
-<div class="agp-feature-icon">✓</div>
+<div class="agp-feature-icon">2</div>
 <div>
-<h3>Deterministic testing & 8 unit runners</h3>
-<p>Drive whole multi-instance workflows offline with <code>testWith(App)</code>, scripted models, <code>VirtualClock</code>, and <code>TestConcurrency.inOrder()</code> race control, or test any component in isolation with <code>testTool</code>, <code>testAction</code>, <code>testRouter</code>, <code>testArbiter</code>, <code>testRag</code>, <code>testJudge</code>, <code>testPii</code>, and <code>testGuardrail</code>.</p>
+<h3>Path-Scoped SSA Dataflow & Provenance</h3>
+<p>Shared mutable state bags (<code>Annotation.Root</code>) collapse at 50+ nodes when coding agents hallucinate nullable fields or consume stale loop state. <code>agboss check</code> runs static Path-Scope dominance analysis and emits <code>.agboss/types.d.ts</code> with narrowed <code>Produced&lt;Dto, Producer&gt;</code> inputs, rejecting missing (<code>[input.missing-on-path]</code>) or stale (<code>[input.outdated-on-path]</code>) values before runtime.</p>
 </div>
 </div>
 
 <div class="agp-feature">
-<div class="agp-feature-icon">$</div>
+<div class="agp-feature-icon">3</div>
 <div>
-<h3>Multi-tenant FinOps & fair queues</h3>
-<p><code>@Budget</code> components cap spend per execution, per tenant, or across the application per day, week, or month (UTC). <code>@ModelProvider</code> enforces tenant-weighted queues, shared 429 cooldowns, and circuit breakers.</p>
+<h3>Prompt Prefix Cache Invariance & Boundary PII</h3>
+<p>Interpolating dynamic inputs into system prompts or masking PII with random UUIDs destroys LLM KV-cache hit rates (up to 10x higher token cost). AGBoss enforces <code>[prompt.input-in-instructions]</code> at compile time and uses deterministic HMAC pseudonymization (<code>PiiAction.replaceWithToken()</code>) so identical values produce identical tokens across turns while restoring real values inside <code>@Tool</code> calls.</p>
 </div>
 </div>
 
 <div class="agp-feature">
-<div class="agp-feature-icon">⛨</div>
+<div class="agp-feature-icon">4</div>
 <div>
-<h3>Boundary PII & durable execution</h3>
-<p><code>@PiiPolicy</code> masks sensitive data into reversible tokens (or HMAC pseudonyms) before any prompt leaves your perimeter. Seven repository contracts with built-in <code>Sqlite*</code> WAL stores provide 30-second execution leases, CAS recovery, and two-phase <code>app.resume()</code>.</p>
+<h3>Transactional LIFO Sagas & Idempotent Execution</h3>
+<p>When a parallel branch fails, a quorum cancels slow siblings as <code>Surplus</code>, or a budget trips, external side effects cannot be left dangling. Side-effecting <code>@Action</code> nodes declare <code>compensateWith</code> and <code>committedBy</code> (verified by <code>[flow.uncompensated-action]</code>) and receive a deterministic <code>step.idempotencyKey</code> for safe retry and LIFO rollback.</p>
 </div>
 </div>
 
 <div class="agp-feature">
-<div class="agp-feature-icon">↔</div>
+<div class="agp-feature-icon">5</div>
 <div>
-<h3>Zero lock-in, inside your backend</h3>
-<p>AGBoss runs inside the Node.js 22+ backend you already operate. Keep your own HTTP server, SQLite/Postgres database, OpenRouter or custom model providers, and self-hosted Langfuse tracing.</p>
+<h3>Zero-Leakage DI & 4-Stage Infrastructure Scaling</h3>
+<p>Every component is wired inside a single <code>@Application</code> root using class-inheritance DI (<code>override(Base, Fake)</code>) and deterministic lifecycle hooks (<code>OnInit &rarr; OnStart &rarr; OnStop &rarr; OnDestroy</code>). Scale from zero-setup <code>InMemory*</code> stores in tests to <code>Sqlite*</code> WAL single-node durability and multi-pod 30s lease handoff without changing a single line of business logic.</p>
 </div>
 </div>
 
 <div class="agp-feature">
-<div class="agp-feature-icon">◇</div>
+<div class="agp-feature-icon">6</div>
 <div>
-<h3>Native LangGraph & AI-ready</h3>
-<p>Every workflow compiles down to a standard LangGraph state graph compatible with LangGraph Studio, and ships with built-in <code>AGENTS.md</code> and <code>.claude/skills/agboss/</code> references kept in sync by <code>agboss check</code>.</p>
+<h3>Progressive Crystallization & Universal Coding Skills</h3>
+<p>Start with flexible <code>DecidedBy.Model</code> routers and multi-tool agents, then join <code>agboss describe --json</code> (<code>configHash</code>, <code>promptHash</code>, <code>schemaHash</code>) with production traces to crystallize settled paths into zero-cost <code>DecidedBy.Code</code> routers and <code>@Action</code> nodes — guided by <code>AGENTS.md</code> and 12 offline-synced skill modules.</p>
 </div>
 </div>
 
 </div>
 
 <section class="agp-section">
-<h2 class="agp-h2">What you can build with AGBoss</h2>
+<h2 class="agp-h2">Deep-dive into the architecture</h2>
 <div class="agp-grid">
-<a class="agp-card" href="/concepts/workflow/"><span class="agp-kicker">@Router · @Arbiter</span><h3>Routing, parallel waves & quorums</h3><p>Combine calibrated decision routers (Jev), parallel agent waves, and priority quorum joins with deadline cancellation.</p><span class="agp-more">Read Workflow & Path Scope →</span></a>
-<a class="agp-card" href="/guides/mcp-rag-and-a2a/"><span class="agp-kicker">@Tool · MCP · A2A</span><h3>Typed tools, MCP & A2A</h3><p>Verify MCP server contracts at startup, generate tools from OpenAPI, or expose workflows as MCP and A2A endpoints.</p><span class="agp-more">Read MCP, RAG & A2A →</span></a>
-<a class="agp-card" href="/guides/mcp-rag-and-a2a/#knowledge-bases-with-rag"><span class="agp-kicker">@Rag</span><h3>Knowledge bases</h3><p>Ground agent answers in your own documents with zero-dependency SQLite FTS5 (BM25) or custom vector connectors.</p><span class="agp-more">Explore Knowledge Bases →</span></a>
-<a class="agp-card" href="/guides/channels-and-pauses/"><span class="agp-kicker">@ChannelRole</span><h3>Channels & two-phase pauses</h3><p>Pause execution on sensitive writes with durable PendingPause records and resume safely across restarts via app.resume().</p><span class="agp-more">Read Channels & Pauses →</span></a>
+<a class="agp-card" href="/concepts/architecture/"><span class="agp-kicker">7 Invariants</span><h3>Distributed-Systems Architecture</h3><p>How AGBoss turns raw LLM orchestration into a compiler-verified distributed system across all 7 architectural invariants.</p><span class="agp-more">Read the Architecture Guide →</span></a>
+<a class="agp-card" href="/concepts/ai-coding-skills/"><span class="agp-kicker">AGENTS.md · Skills</span><h3>AI-Assisted Engineering & Skills</h3><p>How AGENTS.md and the 12 offline-synced skill reference modules keep Codex, Cursor, Windsurf, Copilot, and Claude Code 100% aligned with your compiler.</p><span class="agp-more">Read AI Coding Skills →</span></a>
+<a class="agp-card" href="/concepts/progressive-crystallization/"><span class="agp-kicker">describe --json</span><h3>Progressive Crystallization</h3><p>Join content-addressed configHash, promptHash, and schemaHash with traces to evolve LLM steps into deterministic TypeScript code.</p><span class="agp-more">Read Progressive Crystallization →</span></a>
+<a class="agp-card" href="/concepts/path-scope/"><span class="agp-kicker">.agboss/types.d.ts</span><h3>Path Scope & Dataflow</h3><p>Static Single Assignment (SSA) dominance, .returns(Dto, &#123; about &#125;) provenance, historyOf() windows, and narrowed Produced&lt;Dto, P&gt; inputs.</p><span class="agp-more">Read Path Scope & Dataflow →</span></a>
 </div>
 </section>
 
 <div class="agp-cta">
-<div><h2>Ready to get started?</h2><p>Scaffold and run your first type-checked agent application in minutes.</p></div>
+<div><h2>Ready to build with compile-time guarantees?</h2><p>Scaffold a new project with built-in AI coding skills and Path Scope verification in under a minute.</p></div>
 <div class="agp-actions"><a class="agp-btn" href="/getting-started/quick-start/">Try the quickstart →</a></div>
 </div>
 

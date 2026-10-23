@@ -5,30 +5,13 @@ description: Complete API reference for @Tool and @BindTool in AGBoss — ToolHa
 
 The `@Tool` class decorator (`tools/*.tool.ts`) defines a typed capability that an `@Agent` can invoke during its tool-calling loop, or that can be called directly via `app.tool(ToolClass).invoke(input)` or exposed over MCP via `@McpExpose`. Every `@Tool` declares its input and output DTO classes from `agboss/dto` and implements `ToolHandler<In, Out>`. The companion `@BindTool` method decorator binds tool callbacks onto component methods.
 
-## What options do `@Tool` and `@BindTool` accept?
-
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | Snake_case or kebab-case tool name exposed to the model (`"refund_card"`). |
-| `description` | `string` | Yes | Concise description telling the model what the tool does. |
-| `input` | `DtoClass` | Yes | DTO class (`agboss/dto`) validating the tool's input arguments and generating its JSON Schema. |
-| `output` | `DtoClass` | Yes | DTO class validating the plain object returned by `run(input)`. |
-| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `SpendRecorder`, `@Injectable` services) verified against constructor parameters. |
-| `prompt` / `promptUrls` | `string` / `readonly string[]` | No | Detailed usage instructions for the tool appended to the agent's tool guidance. |
-| `channel` | `Class` | No | `@ChannelRole` or `@Channel` class that gates tool execution on human or external approval. |
-| `timeoutMs` | `number` | No | Per-call timeout in milliseconds (`30_000` by default); aborts `executionContext.signal` when exceeded. |
-| `guardrails` | `readonly Class<Guardrail>[]` | No | `@Guardrail` classes running `beforeToolCall` and `afterToolCall` on this tool. |
-| `overrideGuardrails` | `readonly Class<Guardrail>[]` | No | Replaces inherited workflow/agent guardrails for this specific tool. |
-| `disableGuardrails` | `readonly Class<Guardrail>[]` | No | Exempts this tool from specific inherited `@Guardrail` classes. |
-
 ## Complete `@Tool` example with all capabilities
 
-```ts title="src/tools/refund-card-payment.tool.ts" no-check: reference example
+```ts title="src/tools/refund-card-payment.tool.ts" file=src/tools/refund-card-payment.tool.ts
 import { ExecutionContext, SpendRecorder, Tool, type ToolHandler } from "agboss";
 import { Integer, OneOf, Text } from "agboss/dto";
-import { seconds, usd } from "agboss/units";
+import { kilobytes, seconds, usd } from "agboss/units";
 import { RefundApprovalChannel } from "../channels/refund-approval.channel.js";
-import { HighValueRefundGuardrail } from "../guardrails/high-value-refund.guardrail.js";
 import { PaymentsService } from "../services/payments.service.js";
 
 export class RefundInputDto {
@@ -54,8 +37,8 @@ export class RefundOutputDto {
   input: RefundInputDto,
   output: RefundOutputDto,
   channel: RefundApprovalChannel,
-  timeoutMs: seconds(15),
-  guardrails: [HighValueRefundGuardrail],
+  timeout: seconds(15),
+  maxResultSize: kilobytes(64),
   deps: [ExecutionContext, SpendRecorder, PaymentsService],
 })
 export class RefundCardPaymentTool implements ToolHandler<RefundInputDto, RefundOutputDto> {
@@ -81,57 +64,61 @@ export class RefundCardPaymentTool implements ToolHandler<RefundInputDto, Refund
 }
 ```
 
-```ts title="src/services/payments.service.ts" no-check: reference example
+```ts title="src/services/payments.service.ts" file=src/services/payments.service.ts
 import { Injectable } from "agboss";
 
 @Injectable()
 export class PaymentsService {
-  async refund(
-    req: { chargeId: string; amountCents: number; reason: string },
-    opts: { idempotencyKey: string; signal: AbortSignal },
-  ): Promise<{ refundId: string }> {
-    return { refundId: `re_${req.chargeId}_${opts.idempotencyKey.slice(0, 8)}` };
+  refund(req: {
+    orderId: string;
+    amountCents: number;
+    idempotencyKey: string;
+    signal: AbortSignal;
+  }): Promise<string> {
+    return Promise.resolve(`re_${req.orderId}_${req.idempotencyKey.slice(0, 8)}`);
   }
 }
 ```
 
-```ts title="src/agents/refund-specialist.agent.ts" no-check: reference example
+```ts title="src/channels/refund-approval.channel.ts" file=src/channels/refund-approval.channel.ts
+import { ChannelOf, ChannelRole, PauseAnswerer } from "agboss";
+import { RefundInputDto } from "../tools/refund-card-payment.tool.js";
+
+@ChannelRole({
+  name: "refund-approval-channel",
+  description: "Requests human sign-off before executing high-value card refunds",
+  approves: RefundInputDto,
+  answeredBy: PauseAnswerer.Channel,
+})
+export abstract class RefundApprovalChannel
+  extends ChannelOf<RefundApprovalChannel> {}
+```
+
+```ts title="src/agents/refund-specialist.agent.ts" file=src/agents/refund-specialist.agent.ts
 import { Agent } from "agboss";
-import { RefundCardPaymentTool } from "../tools/refund-card-payment.tool.js";
+import { RefundOutputDto, RefundCardPaymentTool } from "../tools/refund-card-payment.tool.js";
 
 @Agent({
   name: "refund-specialist-agent",
   description: "Issues idempotent Stripe refunds via RefundCardPaymentTool",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Verify the charge ID and call refund_card_payment when eligible.",
+  prompt: "Verify the order ID and call refund_card_payment when eligible.",
   tools: [RefundCardPaymentTool],
+  output: RefundOutputDto,
   maxToolCalls: 2,
 })
 export class RefundSpecialistAgent {}
 ```
 
-## What related entities work with `@Tool`?
-
-| Related Entity | Import Path | Purpose |
-| :--- | :--- | :--- |
-| `ToolHandler<TInput, TOutput>` | `"agboss"` | Contract implemented by `@Tool` and `@McpTool` classes (`run(input: TInput): Promise<TOutput>`). |
-| `ExecutionContext` | `"agboss"` | Injected via `deps: [ExecutionContext]`; provides `step.idempotencyKey`, `step.callId`, `signal`, `executionId`, and `ownerId`. |
-| `SpendRecorder` | `"agboss"` | Injected via `deps: [SpendRecorder]`; records external API spend (`spendRecorder.record({ service, cost })`) against `@Budget` limits. |
-| `app.tool(ToolClass).invoke(input)` | `"agboss"` | Executes a registered tool directly inside its own isolated execution context. |
-| `testTool(ToolClass, options?)` | `"agboss/testing"` | Isolated unit runner that executes `run(input)` with DI `overrides` and returns `{ output, spend }`. |
-| `mockTool(ToolClass)` | `"agboss/testing"` | Mocks or spies on a tool inside a `testWith(Application)` workflow test. |
-
-### Unit-testing a `@Tool` in isolation with `testTool`
-
-```ts title="test/refund-card-payment.tool.test.ts" no-check: reference example
+```ts title="test/refund-card-payment.tool.test.ts" file=test/refund-card-payment.tool.test.ts
 import { expect, it } from "vitest";
 import { override, testTool } from "agboss/testing";
-import { RefundCardPaymentTool } from "./refund-card-payment.tool.js";
-import { PaymentsService } from "../services/payments.service.js";
+import { RefundCardPaymentTool } from "../src/tools/refund-card-payment.tool.js";
+import { PaymentsService } from "../src/services/payments.service.js";
 
 class FakePaymentsService extends PaymentsService {
-  override async refund(): Promise<string> {
-    return "re_test_1042";
+  override refund(): Promise<string> {
+    return Promise.resolve("re_test_1042");
   }
 }
 
@@ -152,17 +139,29 @@ it("executes RefundCardPaymentTool with a fake PaymentsService", async () => {
 });
 ```
 
-```ts title="src/channels/refund-approval.channel.ts" no-check: reference example
-import { Channel, ChannelOutcome, ChannelRole, type ChannelAsk, type ChannelHandler } from "agboss";
+## What options do `@Tool` and `@BindTool` accept?
 
-@Channel({
-  name: "refund-approval-channel",
-  description: "Requests human sign-off before executing high-value card refunds",
-  role: ChannelRole.Approval,
-})
-export class RefundApprovalChannel implements ChannelHandler {
-  async send(_ask: ChannelAsk): Promise<ChannelOutcome> {
-    return ChannelOutcome.awaitReply();
-  }
-}
-```
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | Yes | Snake_case or kebab-case tool name exposed to the model (`"refund_card"`). |
+| `description` | `string` | Yes | Concise description telling the model what the tool does. |
+| `input` | `DtoClass` | Yes | DTO class (`agboss/dto`) validating the tool's input arguments and generating its JSON Schema. |
+| `output` | `DtoClass` | Yes | DTO class validating the plain object returned by `run(input)`. |
+| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `SpendRecorder`, `@Injectable` services) verified against constructor parameters. |
+| `prompt` / `promptUrls` | `string` / `readonly string[]` | No | Detailed usage instructions for the tool appended to the agent's tool guidance. |
+| `channel` | `Class` | No | [`@ChannelRole`](/reference/channel-role/) or [`@Channel`](/reference/channel/) class that gates tool execution on human or external approval. |
+| `toolInterceptors` | `readonly Class[]` | No | [`@ToolInterceptor`](/reference/tool-interceptor/) classes attached directly to this tool (`BeforeToolCall` / `AfterToolCall`). |
+| `excludeToolInterceptors` | `readonly Class[]` | No | Inherited application, workflow, or agent `@ToolInterceptor` classes exempted for this tool. |
+| `timeout` | `Milliseconds` | No | Per-call timeout (`seconds(15)`); defaults to `seconds(30)` and aborts `executionContext.signal` when exceeded. |
+| `maxResultSize` | `Bytes` | No | Maximum UTF-8 result size (`kilobytes(256)`) shown to the model before truncation (`kilobytes(128)` by default). |
+
+## What related entities work with `@Tool`?
+
+| Related Entity | Import Path | Purpose |
+| :--- | :--- | :--- |
+| `ToolHandler<TInput, TOutput>` | `"agboss"` | Contract implemented by `@Tool` and `@McpTool` classes (`run(input: TInput): Promise<TOutput>`). |
+| `ExecutionContext` | `"agboss"` | Injected via `deps: [ExecutionContext]`; provides `step.idempotencyKey`, `step.callId`, `signal`, `executionId`, and `ownerId`. |
+| `SpendRecorder` | `"agboss"` | Injected via `deps: [SpendRecorder]`; records external API spend (`spendRecorder.record({ service, cost })`) against `@Budget` limits. |
+| `app.tool(ToolClass).invoke(input)` | `"agboss"` | Executes a registered tool directly inside its own isolated execution context. |
+| `testTool(ToolClass, options?)` | `"agboss/testing"` | Isolated unit runner that executes `run(input)` with DI `overrides` and returns `{ output, spend }`. |
+| `mockTool(ToolClass)` | `"agboss/testing"` | Mocks or spies on a tool inside a `testWith(Application)` workflow test. |

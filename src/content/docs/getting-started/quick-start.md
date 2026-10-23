@@ -105,20 +105,20 @@ export async function runOnce() {
 }
 ```
 
-```ts title="test/support.workflow.test.ts" no-check: context tab
+```ts title="test/support.workflow.test.ts" file=test/support.workflow.test.ts
 import { expect } from "vitest";
+import { ExecutionStatus } from "agboss";
 import { replyWith, testWith } from "agboss/testing";
-import { WorkflowFinishTextDto } from "agboss/dto";
 import { SupportAgent, SupportApplication, SupportWorkflowStart } from "../src/support.workflow.js";
 
 const test = testWith(SupportApplication);
 
 test("executes SupportWorkflow deterministically without an API key", async ({ app, mockLlm }) => {
   mockLlm(SupportAgent).thenReturn(
-    replyWith(WorkflowFinishTextDto, { text: "Open Settings > API Keys > Rotate." }),
+    replyWith("Open Settings > API Keys > Rotate."),
   );
   const res = await app.execute(SupportWorkflowStart, { text: "How do I rotate my API token?" });
-  expect(res.isFinished()).toBe(true);
+  expect(res.status).toBe(ExecutionStatus.Finished);
 });
 ```
 

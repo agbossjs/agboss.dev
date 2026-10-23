@@ -1,39 +1,50 @@
 ---
 title: Component Decorators
-description: Overview of AGBoss decorators for applications, workflows, agents, actions, routers, arbiters, tools, DTOs, model providers, budgets, and PII policies.
+description: Overview of AGBoss and HarnessDSL decorators for applications, workflows, agents, actions, routers, arbiters, tools, DTOs, model providers, budgets, guardrails, compaction, and PII policies.
 ---
 
-AGBoss organizes every part of a multi-agent system as a decorated TypeScript class with a single, clear responsibility. Instead of mixing prompt templates, HTTP calls, branching logic, and safety filters inside monolithic functions, you declare dedicated classes and let the `@Workflow` and `@Application` modules wire them together.
+In **AGBoss** (*Agent Graph Builder Open Source System*) and its declarative specification grammar **HarnessDSL**, every part of a multi-agent harness is organized as a decorated TypeScript class with a single, clear computational role ([Principle 1: Computational Role Segregation](/concepts/architecture/#1-computational-role-segregation)). Instead of mixing prompt templates, HTTP calls, branching logic, and safety filters inside monolithic functions, you declare dedicated classes and let `@Workflow` (`HarnessDSL`) and `@Application` wire and verify them at compile time via `agboss check`.
 
 ## What decorators does AGBoss provide?
 
 | Decorator | Public Entry & File Convention | Role in the Application |
 | :--- | :--- | :--- |
-| [`@Application`](/reference/application/) | `agboss` (`*.application.ts`) | Single assembly root binding workflows, environment, providers, budgets, PII, and observers |
-| [`@Workflow`](/reference/workflow/) | `agboss` (`*.workflow.ts`) | Typed state graph declaring `flow` paths, `defaults`, `guards`, and `providers` |
+| [`@Application`](/reference/application/) | `agboss` (`*.application.ts`) | Single assembly root binding workflows, environment, providers, budgets, PII, guardrails, health checks, and observers |
+| [`@Workflow`](/reference/workflow/) | `agboss` (`*.workflow.ts`) | Typed state graph declaring `flow` paths, `defaults`, `compaction`, and `maxSteps` |
 | [`@WorkflowStart`](/reference/workflow-start/) / [`@WorkflowFinish`](/reference/workflow-finish/) | `agboss` (`*.workflow-start.ts` / `*.workflow-finish.ts`) | Entry (`input: Dto`) and exit (`output: Dto` / `FinishHandler`) boundaries of a workflow |
 | [`@Agent`](/reference/agent/) | `agboss` (`*.agent.ts` + `*.prompt.md`) | LLM reasoning node with `model`, `prompt`/`promptUrls`, `tools`, `rag`, `judges`, `input`, and `output` |
 | [`@Action`](/reference/action/) | `agboss` (`*.action.ts`) | Deterministic TypeScript step (`ActionHandler`, `execute(input)`) for code-only workflow nodes |
 | [`@Router`](/reference/router/) | `agboss` (`*.router.ts`) | Branching component (`DecidedBy.Model` or `DecidedBy.Code`) selecting one or more `routes` |
 | [`@Arbiter`](/reference/arbiter/) / [`@OnAnswer`](/reference/on-answer/) | `agboss` (`*.arbiter.ts`) | Quorum consensus voter attached with `.acceptedBy()` before `.joinQuorum()` |
 | [`@Tool`](/reference/tool/) / [`@BindTool`](/reference/bind-tool/) | `agboss` (`*.tool.ts`) | Agent-callable capability (`ToolHandler<In, Out>`, `run(input)`) with DTO schema validation |
-| [`@Judge`](/reference/judge/) | `agboss` (`*.judge.ts`) | Quality gate (`JudgeHandler`, `judge({ reply, task, attempt })`) using `JudgeModel` (`decide` or `invoke`) |
+| [`@ToolInterceptor`](/reference/tool-interceptor/) | `agboss` (`*.tool-interceptor.ts`) | Cross-cutting pre-call (`BeforeToolCall` $\to$ `ToolCallDecision`) and post-call (`AfterToolCall`) interceptor for `@Tool` and `@McpTool` |
+| [`@Judge`](/reference/judge/) | `agboss` (`*.judge.ts`) | Quality gate (`JudgeHandler<TReply>`, `DecidedBy.Model` or `DecidedBy.Code`) inspecting reply DTOs and `toolCalls` |
+| [`@Compaction`](/reference/compaction/) | `agboss` (`*.compaction.ts`) | Conversation history compaction strategy (`SummaryQueue`, `SingleSummary`, `Custom` with `CompactionHandler`, or `None`) |
 | [`@Injectable`](/reference/injectable/) | `agboss` (`*.service.ts`) | Injectable service or `ExecutionObserver` with `OnInit`, `OnStart`, `OnStop`, `OnDestroy` hooks |
-| [`@ModelProvider`](/reference/model-provider/) | `agboss/models` (`*.model-provider.ts`) | Model vendor pool (`-model-provider` suffix) with `serves`, `rateLimitPolicy`, and `circuitBreakerPolicy` |
+| [`@HealthCheck`](/reference/health-check/) | `agboss` (`*.health-check.ts`) | Liveness and readiness probe component (`HealthCheckHandler`, `checkLiveness()`, `checkReadiness()`) |
+| [`@ModelProvider`](/reference/model-provider/) | `agboss/models` (`*.model-provider.ts`) | Model vendor pool (`-model-provider` suffix) with HTTP or custom `ModelProviderHandler` transport, `serves`, `promptCaching`, `rateLimitPolicy`, and `circuitBreakerPolicy` |
 | [`@Budget`](/reference/budget/) | `agboss` (`*.config.ts`) | Spend ceiling (`BudgetHandler`, `maxSpend(): Usd`) for `Application`, `Tenant`, or `Execution` scope |
-| [`@PiiPolicy`](/reference/pii-policy/) | `agboss` (`*.pii-policy.ts`) | Declarative `rules: [pii(...)]` or custom `PiiPolicyHandler.findMatches(text)` (`-pii-policy` suffix) |
-| [`@Guardrail`](/reference/guardrail/) | `agboss` (`*.guardrail.ts`) | Boundary hooks (`beforeToolCall`, `afterToolCall`, `onChannelDecision`, `beforeAgentAnswer`) |
-| [`@ChannelRole`](/reference/channel-role/) / [`@Channel`](/reference/channel/) | `agboss` (`*.channel.ts`) | Out-of-process pause role (`approves` or `ask`/`answer`) and transport implementation (`send(ask)`) |
-| [`@Rag`](/reference/rag/) | `agboss/rag` (`*.rag.ts`) | Knowledge base (`RagConnector`, `retrieve(query, { topK, signal })`) |
-| [`@McpServer`](/reference/mcp/) / [`@McpTool`](/reference/mcp-tool/) / [`@McpExpose`](/reference/mcp-expose/) | `agboss/mcp` (`*.server.ts`, `*.mcp.ts`, `*.expose.ts`) | Model Context Protocol client servers, tools, and server exposure |
-| [`@A2AAgent`](/reference/a2a-agent/) | `agboss/a2a` (`*.a2a.ts`) | Remote Agent-to-Agent protocol client (`extends A2AClient`) |
+| [`@PiiPolicy`](/reference/pii-policy/) | `agboss` (`*.pii-policy.ts`) | Declarative `rules: [pii(...)]` or custom `PiiPolicyHandler.findMatches(text)` with deterministic HMAC `replaceWithToken()` |
+| [`@InputGuardrail` & `@OutputGuardrail`](/reference/guardrail/) | `agboss` (`*.guardrail.ts`) | Input/output guardrails (`DecidedBy.Model` with `threshold` or `DecidedBy.Code` with `GuardrailHandler`) across `Application`, `Workflow`, and `Agent` scopes |
+| [`@ChannelRole`](/reference/channel-role/) / [`@Channel`](/reference/channel/) / [`@ReplyInterpreter`](/reference/reply-interpreter/) | `agboss` (`*.channel.ts`) | Out-of-process pause role (`approves`), free-text `@ReplyInterpreter`, and transport implementation (`send(ask)`, `withdraw(info)`) |
+| [`@Rag`](/reference/rag/) | `agboss` / `agboss/rag` (`*.rag.ts`) | Knowledge base (`RagConnector`, `SqliteFtsConnector`) |
+| [`@McpServer`](/reference/mcp/) / [`@McpTool`](/reference/mcp-tool/) / [`@McpExpose`](/reference/mcp-expose/) | `agboss` / `agboss/mcp` (`*.mcp.ts`) | Model Context Protocol client servers, typed tools, and server exposure |
+| [`@A2AAgent` & `@A2AExpose`](/reference/a2a-agent/) | `agboss` / `agboss/a2a` (`*.a2a.ts`) | Remote Agent-to-Agent protocol client (`A2AClient`), `@A2AExpose` boundary, and multi-tenant `a2aHttpListener` |
 | [`@Text`, `@ListOf`, `@Nested`, …](/reference/dto/) | `agboss/dto` (`*.dto.ts`) | Field decorators on plain DTO classes compiled to JSON Schema and checked by `agboss check` |
+
+## Naming & suffix invariant (`[name.kind-suffix]`)
+
+Every component decorator enforces a dual naming rule (`[name.kind-suffix]`):
+1. Its kebab-case `name` option must end with the component kind's suffix (for example, `"scout-agent"`, `"daily-budget"`, `"tenant-order-tool-interceptor"`, `"support-workflow-start"`).
+2. Its PascalCase TypeScript class identifier must end with the corresponding suffix (`ScoutAgent`, `DailyBudget`, `TenantOrderToolInterceptor`, `SupportWorkflowStart`).
+
+This guarantees that both humans and AI coding agents can tell a class's computational role at a glance in every import and `flow` chain.
 
 ## How DTO classes and explicit units work
 
-In AGBoss, DTOs are plain TypeScript classes decorated with field decorators from `agboss/dto` (`@Text`, `@ListOf`, `@Integer`, `@Decimal`, `@Flag`). Runtime values returned from tools and actions are plain object literals `{ ... }` (never `new MyDto()`), and all currency and duration values use factory functions from `agboss/units` (`usd()`, `seconds()`, `minutes()`):
+In AGBoss, DTOs are plain TypeScript classes decorated with field decorators from `agboss/dto` (`@Text`, `@ListOf`, `@Integer`, `@Decimal`, `@Flag`). Runtime values returned from tools and actions are plain object literals `{ ... }` (never `new MyDto()`), and all currency and duration values use factory functions from `agboss/units` (`usd()`, `seconds()`, `minutes()`, `hours()`):
 
-```ts title="src/tools/lookup-order.tool.ts"
+```ts title="src/tools/lookup-order.tool.ts" file=src/tools/lookup-order.tool.ts
 import { Budget, BudgetScope, ExecutionContext, Tool, type BudgetHandler, type ToolHandler } from "agboss";
 import { Integer, Text } from "agboss/dto";
 import { usd, type Usd } from "agboss/units";
@@ -83,7 +94,7 @@ export class LookupOrderTool
 }
 ```
 
-```ts title="src/agents/order-assistant.agent.ts" no-check: context tab
+```ts title="src/agents/order-assistant.agent.ts" file=src/agents/order-assistant.agent.ts
 import { Agent } from "agboss";
 import { LookupOrderTool } from "../tools/lookup-order.tool.js";
 
@@ -97,13 +108,14 @@ import { LookupOrderTool } from "../tools/lookup-order.tool.js";
 export class OrderAssistantAgent {}
 ```
 
-```ts title="test/lookup-order.tool.test.ts" no-check: context tab
+```ts title="test/lookup-order.tool.test.ts" file=test/lookup-order.tool.test.ts
 import { expect, it } from "vitest";
 import { testTool } from "agboss/testing";
 import { LookupOrderTool } from "../src/tools/lookup-order.tool.js";
 
 it("executes LookupOrderTool in isolation without booting the workflow", async () => {
-  const res = await testTool(LookupOrderTool, { orderId: "ord_104" });
+  const run = testTool(LookupOrderTool);
+  const res = await run({ orderId: "ord_104" });
   expect(res.output.status).toBe("shipped:ord_104");
 });
 ```

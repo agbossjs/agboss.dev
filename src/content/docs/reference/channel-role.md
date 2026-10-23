@@ -1,46 +1,64 @@
 ---
 title: "@ChannelRole"
-description: Complete API reference for the @ChannelRole decorator in AGBoss — declaring approval and question/answer pause contracts decoupled from transport channels.
+description: Complete API reference for the @ChannelRole decorator in AGBoss — declaring tool-approval and question/answer pause contracts with PauseAnswerer and replyInterpreter.
 ---
 
-The `@ChannelRole` decorator defines a transport-independent **human-in-the-loop pause contract** (`channels/*.channel-role.ts`). Workflows, tools (`approvalChannel`), and actions reference the `@ChannelRole` class, while `@Application({ providers })` binds a concrete `@Channel({ role })` implementation (such as Slack, webhook, or `AutoApproveChannel` in tests).
+The `@ChannelRole` decorator (`"agboss"`) defines a transport-independent **human-in-the-loop pause contract**. Tools (`@Tool({ channel: RefundApprovalChannel })`) reference the abstract `@ChannelRole` class, while [`@Application({ providers })`](/reference/application/) binds the concrete [`@Channel`](/reference/channel/) implementation (such as Slack, webhook, or `AutoApproveChannel` in tests) by class inheritance.
 
-## What options does `@ChannelRole` accept?
+## Complete `@ChannelRole` example
 
-Every `@ChannelRole` class name ends with `ChannelRole` (or `Channel`) and supports two modes — **tool approval** (`approves`) or **custom question/answer** (`ask` + `answer`):
+```ts title="src/channels/refund-approval.channel-role.ts" file=src/channels/refund-approval.channel-role.ts
+import {
+  Channel,
+  ChannelOf,
+  ChannelOutcome,
+  ChannelRole,
+  Injectable,
+  PauseAnswerer,
+  Tool,
+  type ChannelAsk,
+  type ToolHandler,
+} from "agboss";
+import { Flag, Integer, Text } from "agboss/dto";
 
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | Unique kebab-case identifier ending with `-channel` or `-channel-role`. |
-| `description` | `string` | Yes | Explains what human decision this pause role requests. |
-| `approves` | `readonly Class[]` | No* | List of `@Tool` classes whose calls require approval through this role (*mutually exclusive with `ask`/`answer`). |
-| `ask` | `DtoClass` | No* | Question DTO sent to the human responder (*used together with `answer`). |
-| `answer` | `DtoClass` | No* | Decision DTO validated when `app.resume({ pauseId, decision })` is called. |
+export class RefundCardInputDto {
+  @Text({ prompt: "charge id" })
+  chargeId!: string;
 
-## Complete `@ChannelRole` example with tool approval and custom Q&A roles
+  @Integer({ prompt: "refund amount in cents" })
+  amountCents!: number;
+}
 
-```ts title="src/channels/refund-approval.channel-role.ts" no-check: reference example
-import { ChannelRole } from "agboss";
-import { Boolean, Integer, Text } from "agboss/dto";
-import { RefundCardPaymentTool } from "../tools/refund-card-payment.tool.js";
+export class RefundCardOutputDto {
+  @Text({ prompt: "refund status" })
+  status!: string;
+}
 
-// 1. Tool approval role (uses ToolCallApprovalAskDto / ToolCallApprovalDecisionDto automatically):
+// 1. Tool approval role (approves: RefundCardInputDto):
 @ChannelRole({
   name: "refund-approval-channel",
-  description: "Finance approval required before executing high-value card refunds",
-  approves: [RefundCardPaymentTool],
+  description: "Finance approval required before executing card refunds",
+  approves: RefundCardInputDto,
+  answeredBy: PauseAnswerer.Channel,
 })
-export class RefundApprovalChannelRole {}
+export abstract class RefundApprovalChannel
+  extends ChannelOf<RefundApprovalChannel> {}
 
-// 2. Custom question/answer role with project-defined DTOs:
+// 2. Custom question/answer role (ask + answer DTOs):
 export class LegalSignOffQuestionDto {
-  @Text() contractId!: string;
-  @Integer() liabilityCapUsd!: number;
+  @Text({ prompt: "contract id" })
+  contractId!: string;
+
+  @Integer({ prompt: "liability cap in USD" })
+  liabilityCapUsd!: number;
 }
 
 export class LegalSignOffDecisionDto {
-  @Boolean() approved!: boolean;
-  @Text() counselNotes!: string;
+  @Flag({ prompt: "whether approved" })
+  approved!: boolean;
+
+  @Text({ prompt: "counsel notes" })
+  counselNotes!: string;
 }
 
 @ChannelRole({
@@ -48,57 +66,166 @@ export class LegalSignOffDecisionDto {
   description: "Requests legal counsel sign-off on non-standard liability caps",
   ask: LegalSignOffQuestionDto,
   answer: LegalSignOffDecisionDto,
+  answeredBy: PauseAnswerer.Channel,
 })
-export class LegalSignOffChannelRole {}
-```
+export abstract class LegalSignOffChannel
+  extends ChannelOf<LegalSignOffChannel> {}
 
-```ts title="src/channels/slack-refund.channel.ts" no-check: reference example
-import { Channel, ChannelOf, ChannelOutcome, type ChannelAsk } from "agboss";
-import { RefundApprovalChannelRole } from "./refund-approval.channel-role.js";
-import { SlackService } from "../services/slack.service.js";
+@Injectable()
+export class SlackWebhookClient {
+  postApproval(_pauseId: string, _chargeId: string): Promise<void> {
+    return Promise.resolve();
+  }
+}
 
+// 3. Concrete @Channel implementation extending the @ChannelRole class:
 @Channel({
-  name: "slack-refund-channel",
-  description: "Delivers RefundApprovalChannelRole requests to #finance-approvals in Slack",
-  role: RefundApprovalChannelRole,
-  deps: [SlackService],
+  name: "slack-refund-approval-channel",
+  description: "Delivers RefundApprovalChannel requests to #finance-approvals in Slack",
+  deps: [SlackWebhookClient],
 })
-export class SlackRefundChannel extends ChannelOf(RefundApprovalChannelRole) {
-  constructor(private readonly slack: SlackService) {
+export class SlackRefundApprovalChannel extends RefundApprovalChannel {
+  constructor(private readonly slack: SlackWebhookClient) {
     super();
   }
 
-  async send(ask: ChannelAsk<RefundApprovalChannelRole>): Promise<ChannelOutcome<RefundApprovalChannelRole>> {
-    await this.slack.postApprovalButtons({
-      pauseId: ask.pauseId,
-      toolName: ask.question.toolName,
-    });
+  async send(
+    ask: ChannelAsk<RefundApprovalChannel>,
+  ): Promise<ChannelOutcome<RefundApprovalChannel>> {
+    await this.slack.postApproval(ask.pauseId, ask.value.arguments.chargeId);
     return ChannelOutcome.awaitReply();
+  }
+}
+
+// 4. @Tool referencing the abstract @ChannelRole:
+@Tool({
+  name: "refund_card_payment",
+  description: "Refunds a card payment after finance approval",
+  input: RefundCardInputDto,
+  output: RefundCardOutputDto,
+  channel: RefundApprovalChannel,
+})
+export class RefundCardPaymentTool
+  implements ToolHandler<RefundCardInputDto, RefundCardOutputDto>
+{
+  run({ chargeId }: RefundCardInputDto): Promise<RefundCardOutputDto> {
+    return Promise.resolve({ status: `refunded:${chargeId}` });
   }
 }
 ```
 
-```ts title="test/refund-approval.channel-role.test.ts" no-check: reference example
+<!--
+```ts file=src/refund-support.application.ts
+import {
+  Agent,
+  Application,
+  Budget,
+  BudgetPeriod,
+  BudgetScope,
+  EmptyEnvironment,
+  Workflow,
+  WorkflowFinish,
+  WorkflowStart,
+  start,
+  type BudgetHandler,
+} from "agboss";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { usd, type Usd } from "agboss/units";
+import {
+  RefundCardPaymentTool,
+  SlackRefundApprovalChannel,
+  SlackWebhookClient,
+} from "./channels/refund-approval.channel-role.js";
+
+@WorkflowStart({ name: "refund-workflow-start", description: "Start", input: WorkflowStartTextDto })
+export class RefundWorkflowStart {}
+
+@WorkflowFinish({ name: "refund-workflow-finish", description: "Finish", output: WorkflowFinishTextDto })
+export class RefundWorkflowFinish {}
+
+@Agent({
+  name: "refund-support-agent",
+  description: "Handles refund requests",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Process refund requests using refund_card_payment.",
+  tools: [RefundCardPaymentTool],
+})
+export class RefundSupportAgent {}
+
+@Workflow({
+  name: "refund-support-workflow",
+  version: "1.0.0",
+  providers: [SlackRefundApprovalChannel, SlackWebhookClient],
+  flow: [
+    start(RefundWorkflowStart)
+      .returns(WorkflowStartTextDto)
+      .toAgent(RefundSupportAgent)
+      .toFinish(RefundWorkflowFinish),
+  ],
+})
+export class RefundSupportWorkflow {}
+
+@Budget({ name: "ref-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class RefAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
+@Budget({ name: "ref-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class RefTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
+@Budget({ name: "ref-exec-budget", scope: BudgetScope.Execution })
+export class RefExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
+
+@Application({
+  name: "refund-support-application",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [RefundSupportWorkflow],
+  budgets: [RefAppBudget, RefTenantBudget, RefExecBudget],
+})
+export class RefundSupportApplication {}
+```
+-->
+
+```ts title="test/refund-approval.channel-role.test.ts" file=test/refund-approval.channel-role.test.ts
 import { expect } from "vitest";
+import { ExecutionStatus } from "agboss";
 import { callTool, testWith } from "agboss/testing";
-import { SupportApplication } from "../src/support.application.js";
-import { RefundCardPaymentTool } from "../src/tools/refund-card-payment.tool.js";
+import { RefundCardPaymentTool } from "../src/channels/refund-approval.channel-role.js";
+import {
+  RefundSupportAgent,
+  RefundSupportApplication,
+  RefundWorkflowStart,
+} from "../src/refund-support.application.js";
 
-const test = testWith(SupportApplication);
+const test = testWith(RefundSupportApplication);
 
-test("binds RefundApprovalChannelRole to Slack or AutoApproveChannel without changing tools", async ({ app, mockLlm }) => {
-  mockLlm(RefundAgent).thenReturn(
-    callTool(RefundCardPaymentTool, { chargeId: "ch_9", amountCents: 40 }),
+test("pauses tool execution when RefundApprovalChannel returns awaitReply()", async ({
+  app,
+  mockLlm,
+}) => {
+  mockLlm(RefundSupportAgent).thenReturn(
+    callTool(RefundCardPaymentTool, { chargeId: "ch_901", amountCents: 15_000 }),
   );
-  const paused = await app.execute(SupportStart, { text: "Refund ch_9" });
-  expect(paused.isPaused()).toBe(true);
+  const res = await app.execute(RefundWorkflowStart, { text: "Refund ch_901" });
+  expect(res.status).toBe(ExecutionStatus.Paused);
 });
 ```
+
+## What options does `@ChannelRole` accept?
+
+Every `@ChannelRole` class extends `ChannelOf<Self>`, has a `name` ending with `-channel`, requires `answeredBy` (`PauseAnswerer.Channel` or `PauseAnswerer.ThreadOwner`), and uses one of two forms — **tool approval** (`approves`) or **custom question/answer** (`ask` + `answer`):
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-channel` (`"refund-approval-channel"`). |
+| `description` | `string` | **Yes** | Explains what human decision this pause role requests. |
+| `answeredBy` | `PauseAnswerer.Channel \| PauseAnswerer.ThreadOwner` | **Yes** | Who may call `app.resume()`: the external channel (`PauseAnswerer.Channel`, requiring `{ answeredBy }`) or the thread's owner (`PauseAnswerer.ThreadOwner`, checked against `ownerId`). |
+| `approves` | `DtoClass` | Form 1* | Input DTO class of the `@Tool`s this role approves (`[channel.wrong-tool]` if a tool with another input DTO names this role). *Mutually exclusive with `ask`/`answer`. |
+| `ask` & `answer` | `DtoClass` | Form 2* | Custom question and answer DTO classes (*mutually exclusive with `approves`). |
+| `replyInterpreter` | `Class` | No | Optional [`@ReplyInterpreter`](/reference/reply-interpreter/) class that turns free-text `app.resume({ pauseId, reply })` messages into the role's typed decision. |
 
 ## What related entities work with `@ChannelRole`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| [`@Channel`](/reference/channel/) & `ChannelOf(Role)` | `"agboss"` | Concrete transport implementation bound in `@Application({ providers })`. |
-| `AutoApproveChannel` & `AutoRejectChannel` | `"agboss"` | Built-in test channels for automated approval or rejection in `testWith()`. |
+| [`@Channel`](/reference/channel/) & `ChannelOf<Role>` | `"agboss"` | Concrete transport implementation bound in `@Application({ providers })` by extending the `@ChannelRole` class. |
+| [`@ReplyInterpreter`](/reference/reply-interpreter/) | `"agboss"` | Parses free-text human replies (`app.resume({ pauseId, reply })`) into the role's typed decision. |
+| `AutoApproveChannel` & `AutoRejectChannel` | `"agboss"` | Built-in test channels for automated approval or rejection. |
 | `ToolCallApprovalAskDto` & `ToolCallApprovalDecisionDto` | `"agboss/dto"` | Standard DTOs used by `@ChannelRole({ approves })`. |

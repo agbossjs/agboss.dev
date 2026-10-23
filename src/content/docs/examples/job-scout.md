@@ -9,45 +9,6 @@ The AGBoss repository includes two complete reference packages under `examples/`
 
 `examples/job-scout` reads a candidate's resume from disk, proposes a structured search brief, fetches live openings from public Greenhouse boards, ranks every match using the Jev decision model (`JobFitJudge`), explains why top matches fit using a SQLite FTS5 `@Rag` knowledge base (`company_notes`), and saves selected jobs through the official filesystem `@McpServer` after pausing for user approval (`TerminalUserChannel`):
 
-<!--
-```ts file=job-scout.components.ts
-import { Agent, DecidedBy, Injectable, Router, WorkflowFinish, WorkflowStart } from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
-
-@WorkflowStart({ name: "chat-workflow-start", description: "A message", input: WorkflowStartTextDto })
-export class ChatWorkflowStart {}
-
-@WorkflowFinish({ name: "chat-workflow-finish", description: "The answer", output: WorkflowFinishTextDto })
-export class ChatWorkflowFinish {}
-
-@Agent({ name: "profiler-agent", description: "Reads the resume", prompt: "Read the resume.", model: "moonshotai/kimi-k2.6" })
-export class ProfilerAgent {}
-
-@Agent({ name: "scout-agent", description: "Finds jobs", prompt: "Find jobs.", model: "moonshotai/kimi-k2.6" })
-export class ScoutAgent {}
-
-@Agent({ name: "shortlist-agent", description: "Saves jobs", prompt: "Save shortlist.", model: "moonshotai/kimi-k2.6" })
-export class ShortlistAgent {}
-
-@Router({
-  name: "main-router",
-  description: "Sends the message to the agent that answers it",
-  decidedBy: DecidedBy.Model,
-  prompt: "Pick the agent that answers the message.",
-  input: { message: WorkflowStartTextDto },
-  routes: [
-    { prompt: "Reading the resume", target: ProfilerAgent },
-    { prompt: "Finding jobs", target: ScoutAgent },
-    { prompt: "Managing the shortlist", target: ShortlistAgent },
-  ],
-})
-export class MainRouter {}
-
-@Injectable()
-export class JobFitJudge {}
-```
--->
-
 <!-- snippet-context
 import {
   ChatWorkflowFinish,
@@ -89,7 +50,7 @@ import { WorkflowStartTextDto } from "agboss/dto";
 export class JobScout {}
 ```
 
-```ts title="src/job-scout.components.ts" no-check: context tab
+```ts title="src/job-scout.components.ts" file=job-scout.components.ts
 import { Agent, DecidedBy, Injectable, Router, WorkflowFinish, WorkflowStart } from "agboss";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
 
@@ -124,6 +85,59 @@ export class MainRouter {}
 
 @Injectable()
 export class JobFitJudge {}
+```
+
+<!-- snippet-context
+import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "agboss";
+import { usd, type Usd } from "agboss/units";
+@Budget({ name: "js-ex-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class JsExAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
+@Budget({ name: "js-ex-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class JsExTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
+@Budget({ name: "js-ex-exec-budget", scope: BudgetScope.Execution })
+export class JsExExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
+// @snippet
+-->
+```ts title="test/job-scout.workflow.test.ts" file=job-scout.workflow.test.ts
+import { Application, EmptyEnvironment } from "agboss";
+import { expect } from "vitest";
+import { replyWith, routeTo, testWith } from "agboss/testing";
+import { JobScout } from "./job-scout.workflow.js";
+import {
+  ChatWorkflowFinish,
+  ChatWorkflowStart,
+  MainRouter,
+  ScoutAgent,
+} from "./job-scout.components.js";
+
+@Application({
+  name: "job-scout-example-app",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [JobScout],
+  budgets: [JsExAppBudget, JsExTenantBudget, JsExExecBudget],
+})
+export class JobScoutExampleApp {}
+
+const test = testWith(JobScoutExampleApp);
+
+test("routes job search queries through MainRouter to ScoutAgent", async ({
+  app,
+  mockLlm,
+}) => {
+  mockLlm(MainRouter).thenReturn(routeTo(ScoutAgent));
+  mockLlm(ScoutAgent).thenReturn(
+    replyWith("Found 2 matching Staff TypeScript roles."),
+  );
+
+  const result = await app.execute(ChatWorkflowStart, {
+    text: "Find Staff TypeScript roles",
+  });
+  expect(result.finish).toBe(ChatWorkflowFinish);
+  expect(result.output).toEqual({
+    text: "Found 2 matching Staff TypeScript roles.",
+  });
+});
 ```
 
 Run `examples/job-scout` from the repository root:

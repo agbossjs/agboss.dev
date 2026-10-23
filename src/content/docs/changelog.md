@@ -1,27 +1,27 @@
 ---
 title: Changelog & Release Notes
-description: Release history, architectural milestones, and npm package versioning (@agboss/core and @agboss/cli) for the AGBoss TypeScript agent framework.
+description: Release history, architectural milestones, and npm package versioning (agboss and agboss-cli) for the AGBoss TypeScript agent framework.
 ---
 
 This page tracks releases and architectural milestones of the AGBoss framework. Every code snippet in the AGBoss documentation is compiled and verified against the current public package exports by `check:docs` in CI.
 
-## What shipped in AGBoss v0.0.2 (Latest)
+## What shipped in AGBoss (Latest)
 
-`v0.0.2` is the first public release of AGBoss (`v0.0.1` was published solely to reserve the `@agboss/core` and `@agboss/cli` package names on the npm registry). It ships the complete production runtime:
+AGBoss ships as two Apache 2.0 packages on the npm registry — `agboss` (the core runtime, decorators, Flow DSL, SQLite stores, testing harness, and bundled coding-agent skills) and `agboss-cli` (the `agboss` / `agb` CLI). Key capabilities include:
 
-| Area | Shipped in v0.0.2 |
+| Area | Shipped Capabilities |
 | :--- | :--- |
-| **Application Root (`#261`)** | `@Application` (`*.application.ts`) wires `workflows`, typed `environment` (`secret()`, `env()`, `env.optional()`), `providers`, mandatory `@Budget` classes, `piiPolicies`, `observers`, and `@HealthCheck` |
-| **Path Scope Flow DSL (`#272`, `#289`)** | One-call-per-line paths (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), `.chooseOne(route())`, `.switch(caseOf())`, and compile-time Path Scope verification |
-| **Review Loops & Provenance (`#271`)** | `.returns(Dto, { about })`, `caseOf(Dto, { about })`, `optional(Dto)`, `historyOf(Dto, { limit })`, and runtime `outdatedValues` cascades |
-| **Parallel & Quorums (`#273`, `#279`)** | `.toParallelAgents()`, `.toParallelWorkflows()`, `SpawnPolicy.Always` / `OnDemand`, `.joinQuorum({ min, max, deadline })`, `.joinQuorumGroups()`, and `@Arbiter` (`.acceptedBy()`) |
-| **Child & Recursive Flows (`#263`)** | `.toWorkflow(ChildWorkflow)` and recursive `ThisWorkflow` with `maxDepth` and `maxConcurrentExecutions` |
-| **Channels & Two-Phase Pauses (`#267`)** | `@ChannelRole` + `@Channel` (`ChannelOutcome.awaitReply()`), concurrent `result.pending` pause list, and atomic two-phase `app.resume({ pauseId, decision })` |
-| **Model Providers & FinOps (`#202`, `#261`)** | `@ModelProvider` pools (`RateLimitPolicy.of()`, `TenantRoundRobin`, circuit breaker) and pre-call `@Budget` reservation across `Application`, `Tenant`, and `Execution` scopes |
-| **Durability & Multi-Instance (`#265`)** | 7 repository contracts (`Sqlite*Repository`), 30s execution-tree leases (`ExecutionLeaseLostError`), CAS completion (`completeIfStatus`), and 30s recovery sweeps |
-| **Testing (`#262`, `#297`)** | `testWith(Application, { instances, overrides, concurrency: TestConcurrency.inOrder(...) })`, `VirtualClock`, and 8 unit runners (`testTool`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testPii`, `testGuardrail`) |
-| **Built-in AI Skills (`#305`)** | Auto-scaffolded `AGENTS.md`, `CLAUDE.md`, and `.claude/skills/agboss/SKILL.md` kept in sync by `agboss migrate` |
+| **Application Root & Governance (`#261`, `#300`, `#388`, `#389`)** | `@Application` (`*.application.ts`) wires `workflows`, typed `environment` (`secret()`, `env()`, `env.optional()`), `providers`, mandatory `@Budget` classes, `piiPolicies`, `guardrails`, `toolInterceptors`, `exposes`, `observers`, `@HealthCheck` (`checkLiveness()`, `checkReadiness()`), `maxConcurrentSteps`, `agboss/eslint` flat config, and `[name.kind-suffix]` enforcement on both `name` and class identifiers |
+| **Path Scope Flow DSL (`#272`, `#289`)** | One-call-per-line paths (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), `.chooseOne(route())`, `.switch(caseOf())`, and compile-time Path Scope verification via generated `.agboss/types.d.ts` (`Produced<Dto, Producer>`) |
+| **Review Loops & Provenance (`#271`)** | `.returns(Dto, { about })`, `caseOf(Dto, { about })`, `optional(Dto)`, `historyOf(Dto, { limit })`, and runtime `outdatedValues` cascades (`[input.outdated-on-path]`) |
+| **Parallel & Quorums (`#273`, `#279`)** | `.toParallelAgents()`, `.toParallelWorkflows()`, `SpawnPolicy.Always` / `OnDemand`, `.acceptedBy().joinQuorum({ min, max, deadline })`, `.joinQuorumGroups(group(...).priority(1))`, and `.onJoinError()` |
+| **Child, Recursive & Federated Mesh Flows (`#263`, `#387`, `#398`)** | `.toWorkflow(ChildWorkflow)`, recursive `ThisWorkflow` (`maxDepth`), `@A2AExpose` + multi-tenant `a2aHttpListener` (`callerOf`), typed `@A2AAgent`, signed Agent Mesh Envelope (`agboss-mesh` JWS propagating `origin`, `budget.remaining`, `deadline.remaining`, `callChain`), and `$ agboss check --federation` |
+| **Channels, Guardrails & Tool Interceptors (`#267`, `#383`, `#384`)** | `@ChannelRole`, `@ReplyInterpreter`, `@Channel`, atomic two-phase `app.resume({ pauseId, reply })`, `DecidedBy.Code` `@InputGuardrail` / `@OutputGuardrail` (`GuardrailHandler`, `GuardrailVerdict`), and cascading `@ToolInterceptor` (`BeforeToolCall` / `AfterToolCall`, `ToolCallDecision.replyToModel`) |
+| **Model Providers, Custom Compaction & FinOps (`#202`, `#261`, `#266`, `#382`, `#385`, `#395`)** | `@ModelProvider` pools (`OpenRouterProvider` with host/quantization pinning, `OpenAiCompatibleProvider`, and custom `ModelProviderHandler.complete(request)` transports), `CompactionStrategy.Custom` (`CompactionHandler`), KV-cache prefix invariance (`[prompt.input-in-instructions]`), and pre-call `@Budget` reservation |
+| **Durability & Multi-Instance (`#265`, `#268`)** | 7 repository contracts (`Sqlite*Repository`), 30s execution-tree leases (`ExecutionLeaseLostError`), CAS completion (`completeIfStatus`), 30s recovery sweeps, and `agboss describe --json` (`configHash`, `promptHash`, `schemaHash`, `application.contracts`) |
+| **Testing, Trajectories & Evals (`#262`, `#297`, `#395`, `#396`, `#397`)** | `testWith(Application)`, `VirtualClock`, 10 unit runners (`testTool`, `testToolInterceptor`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testCompaction`, `testPii`, `testGuardrail`), trajectory matchers (`toHaveCalledTools`, `toHaveToolCallMatching`), VCR `[vcr.stale-cassette]`, `@EvalSuite` (`pass@k` / `pass^k`, `--baseline --fail-on-regression`, Cohen's $\kappa$ calibration, `--chaos`, `--metamorphic`, and `$ agboss eval ui`) |
+| **Built-in AI Skills (`#305`)** | `agboss create` scaffolds committed `AGENTS.md` and `CLAUDE.md` (`@AGENTS.md`), while `npm install` (`postinstall`), `agboss check`, and `agboss generate` auto-sync gitignored `.claude/skills/agboss/` (`SKILL.md` + 12 reference guides) offline from `node_modules/agboss/skills/agboss/` |
 
-## Why does versioning start at v0.0.2?
+## Package naming and version history
 
-On the public npm registry (`registry.npmjs.org`), `@agboss/core@0.0.1` and `@agboss/cli@0.0.1` were published on October 11, 2026 as initial name-reservation placeholders. Because npm permanently locks any published version number (even if a version is later unpublished), `0.0.1` cannot be reused — making **`v0.0.2`** the first functional release.
+AGBoss is published under the unscoped `agboss` and `agboss-cli` package names on `registry.npmjs.org` (`v0.0.1` was used only as an initial placeholder during repository setup, followed by `v0.0.2` and `v0.1.0`). When upgrading from earlier pre-release layouts that imported subpath entry points such as `agboss/core` or `agboss/graph`, run `npx agboss migrate imports` to rewrite imports to the canonical entry points (`agboss`, `agboss/dto`, `agboss/models`, `agboss/units`, `agboss/rag`, `agboss/mcp`, `agboss/a2a`, `agboss/testing`).

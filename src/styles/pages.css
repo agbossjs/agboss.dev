@@ -1,4 +1,4 @@
-/* ---------- Spring-style content pages: Why AGBoss, Roadmap, Community, Enterprise ----------
+/* ---------- Splash content pages: Why AGBoss, Roadmap, Community, Enterprise ----------
    Each page wraps its body in <div class="agp not-content">. The Starlight page title (h1#_top)
    becomes the page hero. */
 
@@ -23,11 +23,12 @@ main:has(.agp) .content-panel:first-of-type::before {
 }
 
 main:has(.agp) h1#_top {
-	font-family: 'Ubuntu Mono', var(--sl-font-mono);
-	font-weight: 700;
-	font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.6rem);
-	letter-spacing: -0.01em;
-	line-height: 1.05;
+	font-family: 'Exo 2', var(--sl-font);
+	font-weight: 750;
+	font-size: clamp(2.1rem, 1.5rem + 2.2vw, 3.2rem);
+	letter-spacing: -0.015em;
+	line-height: 1.12;
+	text-wrap: balance;
 }
 
 .agp {
@@ -108,10 +109,12 @@ main:has(.agp) h1#_top {
 
 .agp-h2 {
 	margin: 0;
-	font-family: 'Ubuntu Mono', var(--sl-font-mono);
-	font-size: 2rem;
-	font-weight: 700;
-	line-height: 1.15;
+	font-family: 'Exo 2', var(--sl-font);
+	font-size: clamp(1.5rem, 1.2rem + 1vw, 1.95rem);
+	font-weight: 750;
+	line-height: 1.22;
+	letter-spacing: -0.015em;
+	text-wrap: balance;
 	color: var(--sl-color-white);
 }
 
@@ -207,10 +210,12 @@ a.agp-card:hover {
 }
 
 .agp-feature h3 {
-	margin: 0.15rem 0 0.45rem;
-	font-family: 'Ubuntu Mono', var(--sl-font-mono);
-	font-size: 1.45rem;
+	margin: 0.1rem 0 0.45rem;
+	font-family: 'Exo 2', var(--sl-font);
+	font-size: 1.28rem;
 	font-weight: 700;
+	line-height: 1.28;
+	text-wrap: balance;
 	color: var(--sl-color-white);
 }
 
@@ -247,8 +252,11 @@ a.agp-card:hover {
 
 .agp-cta h2 {
 	margin: 0 0 0.35rem;
-	font-family: 'Ubuntu Mono', var(--sl-font-mono);
-	font-size: 1.75rem;
+	font-family: 'Exo 2', var(--sl-font);
+	font-size: 1.55rem;
+	font-weight: 750;
+	line-height: 1.25;
+	text-wrap: balance;
 	color: var(--sl-color-white);
 }
 
@@ -305,8 +313,8 @@ a.agp-card:hover {
 
 .agp-lane-head h2 {
 	margin: 0;
-	font-family: 'Ubuntu Mono', var(--sl-font-mono);
-	font-size: 1.35rem;
+	font-family: 'Exo 2', var(--sl-font);
+	font-size: 1.25rem;
 	font-weight: 700;
 	color: var(--sl-color-white);
 }
@@ -440,8 +448,9 @@ a.agp-item:hover {
 
 .agp-plan h3 {
 	margin: 0;
-	font-family: 'Ubuntu Mono', var(--sl-font-mono);
-	font-size: 1.4rem;
+	font-family: 'Exo 2', var(--sl-font);
+	font-size: 1.3rem;
+	font-weight: 700;
 	color: var(--sl-color-white);
 }
 
@@ -549,8 +558,11 @@ a.agp-item:hover {
 
 .agp-phase-body h3 {
 	margin: 0;
-	font-family: 'Ubuntu Mono', var(--sl-font-mono);
-	font-size: 1.6rem;
+	font-family: 'Exo 2', var(--sl-font);
+	font-size: 1.4rem;
+	font-weight: 700;
+	line-height: 1.28;
+	text-wrap: balance;
 	color: var(--sl-color-white);
 }
 
@@ -622,7 +634,7 @@ a.agp-item:hover {
 }
 
 
-/* ---------- page title with "Agent Graph Builder, Open-Source Software" set above "AGBoss" ---------- */
+/* ---------- page title with "Agent Graph Builder Open Source System" set above "AGBoss" ---------- */
 /* Source paragraph; public/scripts/acronym.js moves it into the title and removes it. */
 .agp-acronym {
 	display: none;

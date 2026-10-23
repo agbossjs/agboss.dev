@@ -5,19 +5,9 @@ description: Complete API reference for the @WorkflowStart decorator in AGBoss â
 
 The `@WorkflowStart` decorator defines a typed entry point (`workflow-starts/*.workflow-start.ts`) for starting a `@Workflow`. A workflow can declare multiple `@WorkflowStart` classes (for example, an interactive chat start and a batch webhook start), each seeding its own initial DTOs into the workflow's Path Scope via `start(StartClass).returns(InputDto)`.
 
-## What options does `@WorkflowStart` accept?
-
-Every `@WorkflowStart` class name ends with `WorkflowStart` and its `name` option ends with `-workflow-start`:
-
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow-start` (e.g., `"chat-workflow-start"`). |
-| `description` | `string` | Yes | Human- and CLI-readable description of what triggers this entry point. |
-| `input` | `DtoClass \| ListWrapper<DtoClass> \| Readonly<Record<string, ValueShape>>` | Yes | The DTO class, `listOf(DtoClass)`, or map of DTO fields required by `app.execute(StartClass, payload)`. |
-
 ## Complete `@WorkflowStart` examples (single DTO, list input, and multi-field input)
 
-```ts title="src/workflow-starts/role-match.workflow-start.ts" no-check: reference example
+```ts title="src/workflow-starts/role-match.workflow-start.ts" file=src/workflow-starts/role-match.workflow-start.ts
 import { WorkflowStart, listOf, optional } from "agboss";
 import { Text, Url } from "agboss/dto";
 
@@ -62,9 +52,12 @@ export class BatchCandidatesWorkflowStart {}
 export class RoleMatchWorkflowStart {}
 ```
 
-```ts title="src/agents/matcher.agent.ts" no-check: reference example
-import { Agent, listOf, optional } from "agboss";
-import { CandidateProfileDto, JobRoleDto } from "../workflow-starts/role-match.workflow-start.js";
+```ts title="src/agents/matcher.agent.ts" file=src/agents/matcher.agent.ts
+import { Agent, optional } from "agboss";
+import {
+  CandidateProfileDto,
+  JobRoleDto,
+} from "../workflow-starts/role-match.workflow-start.js";
 
 @Agent({
   name: "matcher-agent",
@@ -73,11 +66,105 @@ import { CandidateProfileDto, JobRoleDto } from "../workflow-starts/role-match.w
   prompt: "Rank the candidate profile against open roles.",
   input: {
     profile: CandidateProfileDto,
-    roles: optional(listOf(JobRoleDto)),
+    role: optional(JobRoleDto),
   },
 })
 export class MatcherAgent {}
 ```
+
+```ts title="src/workflows/role-match.workflow.ts" file=src/workflows/role-match.workflow.ts
+import { Workflow, WorkflowFinish, optional, start } from "agboss";
+import { WorkflowFinishTextDto } from "agboss/dto";
+import {
+  CandidateProfileDto,
+  JobRoleDto,
+  RoleMatchWorkflowStart,
+} from "../workflow-starts/role-match.workflow-start.js";
+import { MatcherAgent } from "../agents/matcher.agent.js";
+
+@WorkflowFinish({
+  name: "match-workflow-finish",
+  description: "Returns candidate match report",
+  output: WorkflowFinishTextDto,
+})
+export class MatchWorkflowFinish {}
+
+@Workflow({
+  name: "role-match-workflow",
+  version: "1.0.0",
+  flow: [
+    start(RoleMatchWorkflowStart)
+      .returns(CandidateProfileDto)
+      .returns(optional(JobRoleDto))
+      .toAgent(MatcherAgent)
+      .toFinish(MatchWorkflowFinish),
+  ],
+})
+export class RoleMatchWorkflow {}
+```
+
+<!--
+```ts file=src/role-match.application.ts
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
+import { usd, type Usd } from "agboss/units";
+import { RoleMatchWorkflow } from "./workflows/role-match.workflow.js";
+
+@Budget({ name: "rm-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class RmAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(20); } }
+@Budget({ name: "rm-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class RmTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
+@Budget({ name: "rm-exec-budget", scope: BudgetScope.Execution })
+export class RmExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
+
+@Application({
+  name: "role-match-application",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [RoleMatchWorkflow],
+  budgets: [RmAppBudget, RmTenantBudget, RmExecBudget],
+})
+export class RoleMatchApplication {}
+```
+-->
+
+```ts title="test/role-match.workflow-start.test.ts" file=test/role-match.workflow-start.test.ts
+import { expect } from "vitest";
+import { ExecutionStatus } from "agboss";
+import { replyWith, testWith } from "agboss/testing";
+import { RoleMatchApplication } from "../src/role-match.application.js";
+import { MatcherAgent } from "../src/agents/matcher.agent.js";
+import { RoleMatchWorkflowStart } from "../src/workflow-starts/role-match.workflow-start.js";
+
+const test = testWith(RoleMatchApplication);
+
+test("validates RoleMatchWorkflowStart input before entering the graph", async ({ app, mockLlm }) => {
+  mockLlm(MatcherAgent).thenReturn(replyWith("Strong match for Principal Systems Engineer"));
+  const res = await app.execute(
+    RoleMatchWorkflowStart,
+    {
+      candidate: { fullName: "Ada Lovelace", resumeUrl: "https://example.com/ada.pdf" },
+      role: { roleTitle: "Principal Systems Engineer" },
+    },
+    {
+      threadId: "candidate-ada-01",
+      ownerId: "recruiter-7",
+      tenant: { tenantId: "acme" },
+      record: true,
+    },
+  );
+  expect(res.status).toBe(ExecutionStatus.Finished);
+});
+```
+
+## What options does `@WorkflowStart` accept?
+
+Every `@WorkflowStart` class name ends with `WorkflowStart` and its `name` option ends with `-workflow-start`:
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow-start` (e.g., `"chat-workflow-start"`). |
+| `description` | `string` | Yes | Human- and CLI-readable description of what triggers this entry point. |
+| `input` | `DtoClass \| ListWrapper<DtoClass> \| Readonly<Record<string, ValueShape>>` | Yes | The DTO class, `listOf(DtoClass)`, or map of DTO fields required by `app.execute(StartClass, payload)`. |
 
 ## What related entities work with `@WorkflowStart`?
 
@@ -88,54 +175,3 @@ export class MatcherAgent {}
 | `app.execute(StartClass, input, options?)` | `"agboss"` | Executes the workflow owning `StartClass` with compile-checked `InputOf<StartClass>` payload. |
 | `ExecutionOptions` | `"agboss"` | Optional third argument to `app.execute`: `{ threadId, ownerId, tenant, execution, signal, record }`. |
 | `ExecutionOutput` | `"agboss"` | Return value of `app.execute`: discriminated by `status` (`ExecutionStatus.Finished` or `ExecutionStatus.Paused`). |
-
-### Wiring `@WorkflowStart` in a workflow and calling `app.execute()`
-
-```ts title="src/workflows/role-match.workflow.ts" no-check: reference example
-import { ExecutionStatus, start } from "agboss";
-import { RoleMatchWorkflowStart, CandidateProfileDto, JobRoleDto } from "./role-match.workflow-start.js";
-import { MatcherAgent } from "../agents/matcher.agent.js";
-import { MatchWorkflowFinish } from "../workflow-finishes/match.workflow-finish.js";
-
-// Inside @Workflow({ flow }):
-const path = start(RoleMatchWorkflowStart)
-  .returns(CandidateProfileDto)
-  .returns(JobRoleDto)
-  .toAgent(MatcherAgent)
-  .toFinish(MatchWorkflowFinish);
-
-// Calling app.execute() with typed payload and execution options:
-const result = await app.execute(
-  RoleMatchWorkflowStart,
-  {
-    candidate: { fullName: "Ada Lovelace", resumeUrl: "https://example.com/ada.pdf" },
-    role: { roleTitle: "Principal Systems Engineer" },
-  },
-  {
-    threadId: "candidate-ada-01",
-    ownerId: "recruiter-7",
-    tenant: { tenantId: "acme" },
-    record: true,
-  },
-);
-
-if (result.status === ExecutionStatus.Finished) {
-  console.log(result.finish.name, result.output);
-}
-```
-
-```ts title="test/role-match.workflow-start.test.ts" no-check: reference example
-import { expect } from "vitest";
-import { testWith } from "agboss/testing";
-import { RoleMatchApplication } from "../src/role-match.application.js";
-import { RoleMatchWorkflowStart } from "../src/workflow-starts/role-match.workflow-start.js";
-
-const test = testWith(RoleMatchApplication);
-
-test("validates RoleMatchWorkflowStart input before entering the graph", async ({ app }) => {
-  const res = await app.execute(RoleMatchWorkflowStart, {
-    profile: { fullName: "Ada Lovelace", resumeUrl: "https://example.com/ada.pdf" },
-  });
-  expect(res.record.executionId).toBeDefined();
-});
-```

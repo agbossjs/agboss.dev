@@ -6,14 +6,14 @@ const entry = route?.entry;
 const title = entry?.data?.title ?? 'AGBoss';
 const description =
 	entry?.data?.description ??
-	'Strictly typed TypeScript framework for mission-critical multi-agent workflows, enterprise backend automation, and System-2 Physical AI mission planning on LangGraph.';
+	'Strictly typed TypeScript framework and static graph compiler for multi-agent systems scaling to hundreds of nodes on LangGraph — enforcing 7 distributed-systems architectural principles via HarnessDSL, agboss check, and built-in AGENTS.md skills for AI coding agents.';
 
 const siteOrigin = 'https://agboss.dev';
 const pathname = Astro.url.pathname;
 const canonicalUrl = new URL(pathname, siteOrigin).toString();
 const isHome = pathname === '/' || pathname === '';
 const pageTitle = isHome
-	? 'AGBoss — Spring-style TypeScript Framework for LangGraph AI Agents'
+	? 'AGBoss — Compiler-Verified TypeScript Framework for Multi-Agent Systems'
 	: `${title} | AGBoss Docs`;
 
 if (route?.head) {
@@ -85,7 +85,7 @@ const orgSchema = {
 	'@id': `${siteOrigin}/#organization`,
 	name: 'AGBoss',
 	legalName: 'AGBoss',
-	alternateName: 'Agent Graph Builder, Open-Source Software',
+	alternateName: 'Agent Graph Builder Open Source System',
 	url: siteOrigin,
 	logo: {
 		'@type': 'ImageObject',
@@ -103,7 +103,7 @@ const websiteSchema = {
 	'@id': `${siteOrigin}/#website`,
 	name: 'AGBoss',
 	url: siteOrigin,
-	description: 'Strictly typed TypeScript framework for mission-critical multi-agent systems and autonomous digital & Physical AI missions on LangGraph.',
+	description: 'Strictly typed TypeScript framework and static graph compiler for multi-agent systems scaling to hundreds of nodes on LangGraph, enforcing 7 distributed-systems architectural principles at compile time.',
 	publisher: { '@id': `${siteOrigin}/#organization` },
 };
 

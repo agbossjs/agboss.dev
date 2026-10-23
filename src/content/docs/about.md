@@ -1,20 +1,26 @@
 ---
 title: About AGBoss
-description: What AGBoss is, why it layers an application framework on top of LangGraph in TypeScript, and how its open-source model works.
+description: What AGBoss (Agent Graph Builder Open Source System) and its built-in HarnessDSL (HDSL) grammar are, why they bring distributed-systems invariants and compiler-verified Path Scope to LangGraph in TypeScript, and how the Apache 2.0 open-source model works.
 ---
 
-AGBoss (Agent Graph Builder, Open-Source Software) is an Apache 2.0 licensed TypeScript application framework layered on top of [LangGraph](https://www.langchain.com/langgraph). It gives engineering teams a strict, compiler-verified architecture for building, testing, and operating multi-agent systems inside their own Node.js backend without vendor lock-in.
+**AGBoss** (**Agent Graph Builder Open Source System**) is an Apache 2.0 licensed TypeScript framework, static graph compiler (`agboss check`), and production runtime layered on top of [LangGraph](https://www.langchain.com/langgraph) (`npm i agboss`). Inside AGBoss, **HarnessDSL (`HDSL`)** is the declarative graph grammar and verification specification (much like JSX in React or PSL in Prisma) that defines how `*.workflow.ts` `flow` chains and contract decorators specify narrow `@Dto` handoffs, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas. It is designed for Senior, Staff, and Principal engineers and CTOs who build multi-agent systems scaling to hundreds of nodes with AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code) and require compile-time guarantees, predictable token economics, and zero vendor lock-in.
 
-## Why AGBoss exists
+## Why AGBoss & HarnessDSL (HDSL) exist
 
-Raw orchestration graphs give developers low-level state machines, while hosted agent platforms lock prompts, execution state, and observability inside third-party cloud infrastructure. Engineering teams running agents in production need a third option: an application layer that runs inside their existing perimeter with compile-time safety, dependency injection, and predictable cost controls.
+Engineering teams building production multi-agent systems face a fundamental architectural gap:
 
-AGBoss brings the proven architectural patterns of Spring, Angular, and NestJS to TypeScript agent workflows:
+1. **Raw graph libraries are too unconstrained for AI coding agents at scale.** When a coding agent modifies a 50-node graph built around a shared mutable state bag (`Annotation.Root`) and arbitrary `(state) => string` edges, it cannot statically prove which upstream fields are populated, whether a review loop is reading stale state from a previous iteration, or whether an error branch bypassed a mandatory rollback action.
+2. **Hosted agent SaaS platforms break enterprise data perimeters.** Routing proprietary prompts, customer PII, and durable execution state through a third-party cloud creates compliance blockers and vendor lock-in.
 
-- **Single `@Application` assembly root:** Workflows, typed `Environment` contracts (`secret()`, `env()`, `env.optional()`), `@ModelProvider` classes, `@Budget` ceilings, `@PiiPolicy` rules, `ExecutionObserver` hooks, and storage repositories are wired in one place.
-- **Compile-time Path Scope Flow DSL:** Every workflow path (`*.workflow.ts`) is written with one chained call per line (`start().returns().toAgent().toFinish()`), and `agboss check` generates `.agboss/types.d.ts` so missing or outdated inputs fail at build time.
-- **Multi-instance durability:** Seven repository contracts with built-in SQLite WAL implementations (`SqliteCheckpointSaver`, `SqliteExecutionLeaseRepository`, and others) coordinate 30-second execution tree leases, crash recovery sweeps, and two-phase `app.resume()` across horizontal replicas.
-- **Deterministic offline testing:** `testWith(App)` and the 8 isolated unit runners (`testTool`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testPii`, `testGuardrail`) verify every branch and race condition with zero network calls.
+**AGBoss** (the framework, static compiler, and runtime) and its built-in **HarnessDSL (`HDSL`)** grammar solve both problems by bringing the compiler rigor of distributed-systems engineering and structured frameworks (Spring, Angular, NestJS) directly into your Node.js 22+ backend through [7 architectural principles](/concepts/architecture/):
+
+- **Computational Role Segregation:** Distinct, single-responsibility decorators (`@Agent`, `@Router`, `@Arbiter`, `@Action`, `@Tool`, `@ToolInterceptor`) replace monolithic "god agents".
+- **Path-Scoped SSA Dataflow:** Every workflow path (`*.workflow.ts`) is verified by `agboss check`, which generates `.agboss/types.d.ts` with narrowed `Produced<Dto, Producer>` inputs and rejects missing (`[input.missing-on-path]`), dead (`[flow.unused-output]`), or stale (`[input.outdated-on-path]`) state at build time.
+- **Canonical Topology Isomorphism:** A strict 1-to-1 mapping between graph topology and code formatting (`in-degree = 1` inline chain, `in-degree >= 2` top-level `agent()`/`router()`/`action()` entry, one chained call per line) eliminates merge conflicts and structural entropy.
+- **Prompt Prefix Cache Invariance:** Static system prompt verification (`[prompt.input-in-instructions]`) and deterministic HMAC pseudonymization (`PiiAction.replaceWithToken()`) preserve LLM KV-cache hit rates across turns while keeping raw PII out of external model providers.
+- **Transactional LIFO Sagas & Idempotency:** Compensatable `@Action` nodes (`compensateWith`, `committedBy`) and deterministic `step.idempotencyKey` propagation guarantee clean rollback across errors, quorum `Surplus` aborts, and budget cutoffs.
+- **Zero-Leakage DI & 4-Stage Scaling:** Class-inheritance DI inside a single `@Application` root scales seamlessly from in-memory unit/integration tests (`testWith(App)`, 10 unit runners) to SQLite WAL durability and multi-pod 30-second execution lease handoff.
+- **Progressive Crystallization & Built-in Coding Skills:** Content-addressed revision snapshots (`agboss describe --json` with `configHash`, `promptHash`, `schemaHash`) let teams crystallize settled `DecidedBy.Model` paths into deterministic `DecidedBy.Code` and `@Action` nodes, while offline-synced `AGENTS.md` + 12 skill modules keep every coding agent aligned with the compiler.
 
 ## How AGBoss relates to LangGraph
 
@@ -22,11 +28,11 @@ AGBoss complements LangGraph rather than replacing it. Every `@Workflow` compile
 
 ## Open-source governance and licensing
 
-The entire AGBoss framework (`agboss`), CLI (`agboss-cli`), documentation verification suite, and built-in AI coding skills (`AGENTS.md` and `.claude/skills/agboss/`) are published under the [Apache License 2.0](https://github.com/agbossjs/agboss/blob/main/LICENSE).
+The entire AGBoss framework (`agboss`), CLI (`agboss-cli`), documentation verification suite, and built-in AI coding skills (`AGENTS.md`, `CLAUDE.md`, and `.claude/skills/agboss/`) are published under the [Apache License 2.0](https://github.com/agbossjs/agboss/blob/main/LICENSE).
 
 | Component | Package / Location | License | Purpose |
 | --- | --- | --- | --- |
-| Core Framework | `agboss` | Apache-2.0 | Decorators, Flow DSL, DI container, FinOps, PII, SQLite stores, `agboss/testing` |
-| Command-Line Interface | `agboss-cli` | Apache-2.0 | `agboss create`, `generate`, `check`, `describe`, `chat`, `run`, `eval`, `compare` |
+| Core Framework | `agboss` | Apache-2.0 | Decorators, Flow DSL, DI container, FinOps, PII, SQLite stores, `agboss/testing`, offline skills (`skills/agboss/`) |
+| Command-Line Interface | `agboss-cli` | Apache-2.0 | `agboss create`, `generate`, `check`, `describe`, `chat`, `run`, `eval`, `replay`, `golden`, `compare` |
 | Reference Examples | `examples/job-scout`, `examples/flow-patterns` | Apache-2.0 | End-to-end multi-agent workflows and flow pattern blueprints |
 | Documentation Site | [agboss.dev](https://agboss.dev) | Apache-2.0 | Compiler-checked guides, API reference, `/llms.txt`, and `/llms-full.txt` |

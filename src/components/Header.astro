@@ -1,5 +1,5 @@
 ---
-// Starlight Header override: logo · Spring-style mega menu · search · socials · theme.
+// Starlight Header override: logo · mega menu · search · socials · theme.
 import config from 'virtual:starlight/user-config';
 import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
 import Search from 'virtual:starlight/components/Search';
@@ -191,6 +191,7 @@ const isActive = (item: (typeof NAV)[number]) => {
 
 <style>
 	.agb-header {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 0.9rem;
@@ -399,67 +400,81 @@ const isActive = (item: (typeof NAV)[number]) => {
 		line-height: 1.4;
 	}
 
-	/* dropdown panel */
+	/* dropdown panel — flex-centered across the header on desktop */
 	.agb-panel {
 		position: absolute;
 		top: 100%;
-		left: -0.5rem;
+		left: 0;
+		right: 0;
 		z-index: 30;
 		display: none;
-		padding-top: 0.5rem; /* hover bridge between the button and the panel */
+		justify-content: center;
+		padding: 0.5rem 1rem 0; /* hover bridge between the button and the panel */
 	}
 
 	.agb-nav-item:hover .agb-panel,
 	.agb-nav-item:focus-within .agb-panel,
 	.agb-nav-item.is-open .agb-panel {
-		display: block;
+		display: flex;
 	}
 
 	.agb-panel-inner {
+		box-sizing: border-box;
 		display: flex;
-		gap: 2rem;
-		padding: 1.25rem 1.5rem;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+		max-width: calc(100vw - 2rem);
+		padding: 1.2rem 1.4rem;
 		border: 1px solid var(--sl-color-hairline);
 		border-radius: 12px;
 		background: var(--sl-color-bg-nav);
 		box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.55);
 	}
 
+	.agb-panel-inner:has(.agb-panel-group:nth-of-type(3)) .agb-panel-blurb {
+		display: none;
+	}
+
 	.agb-panel-blurb {
-		width: 13rem;
+		width: 12.5rem;
+		flex: none;
 		margin: 0;
-		padding-right: 1.5rem;
+		padding-right: 1.35rem;
 		border-right: 1px solid var(--sl-color-hairline);
 		color: var(--sl-color-gray-3);
 		font-size: var(--sl-text-sm);
 		line-height: 1.5;
+		text-wrap: pretty;
 	}
 
 	.agb-panel-title {
 		display: block;
 		margin-bottom: 0.4rem;
 		color: var(--sl-color-white);
-		font-family: 'Ubuntu Mono', var(--sl-font-mono);
-		font-size: 1.15rem;
-		font-weight: 700;
+		font-family: 'Exo 2', var(--sl-font);
+		font-size: 1.1rem;
+		font-weight: 750;
+		line-height: 1.25;
 	}
 
 	.agb-panel-group {
-		min-width: 9.5rem;
+		min-width: 10rem;
 	}
 
 	.agb-panel-group-title {
 		margin: 0 0 0.5rem;
 		color: var(--sl-color-gray-3);
-		font-size: 0.7rem;
-		font-weight: 600;
-		letter-spacing: 0.08em;
+		font-family: 'Exo 2', var(--sl-font);
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.07em;
 		text-transform: uppercase;
+		white-space: nowrap;
 	}
 
 	.agb-panel-group ul {
 		display: grid;
-		gap: 0.15rem;
+		gap: 0.12rem;
 		margin: 0;
 		padding: 0;
 		list-style: none;
@@ -470,9 +485,10 @@ const isActive = (item: (typeof NAV)[number]) => {
 		display: flex;
 		align-items: center;
 		gap: 0.45rem;
-		padding: 0.3rem 0;
+		padding: 0.28rem 0;
 		color: var(--sl-color-gray-2);
 		font-size: var(--sl-text-sm);
+		line-height: 1.35;
 		text-decoration: none;
 		white-space: nowrap;
 	}
@@ -596,13 +612,11 @@ const isActive = (item: (typeof NAV)[number]) => {
 			display: block;
 			margin-inline-start: auto;
 		}
+		.agb-nav-item {
+			position: static;
+		}
 		.agb-search {
 			margin-inline-start: 0;
-		}
-		/* panels of the right-most items open leftwards so they stay on screen */
-		.agb-nav-item:nth-last-child(-n + 2) .agb-panel {
-			left: auto;
-			right: -0.5rem;
 		}
 		.agb-burger {
 			display: none;

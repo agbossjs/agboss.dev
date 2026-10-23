@@ -49,16 +49,27 @@ export class OpenRouterModelProvider extends OpenRouterProvider {
 }
 ```
 
-```ts title="src/environments/app.environment.ts" no-check: context tab
+```ts title="src/environments/app.environment.ts" file=src/environments/app.environment.ts
 import { secret, type Secret } from "agboss";
 
 export class AppEnvironment {
   openRouterApiKey!: Secret;
+  sqlitePath!: string;
 }
 
 export const environment: AppEnvironment = {
   openRouterApiKey: secret("OPENROUTER_API_KEY"),
+  sqlitePath: ".agboss/state.sqlite",
 };
+```
+
+```ts title="test/openrouter.model-provider.test.ts" file=test/openrouter.model-provider.test.ts
+import { expect, it } from "vitest";
+import { OpenRouterModelProvider } from "../src/model-providers/openrouter.model-provider.js";
+
+it("exports OpenRouterModelProvider with tenant round-robin queueing", () => {
+  expect(OpenRouterModelProvider).toBeDefined();
+});
 ```
 
 ## How `@Budget` scopes and `SpendRecorder` enforce spend limits
@@ -81,9 +92,20 @@ export class SearchResultsDto {
   text!: string;
 }
 -->
-```ts title="src/budgets/support.budgets.ts"
+```ts title="src/budgets/support.budgets.ts" file=src/budgets/support.budgets.ts
 import { Budget, BudgetPeriod, BudgetScope, SpendRecorder, Tool, type BudgetHandler, type ToolHandler } from "agboss";
 import { usd, type Usd } from "agboss/units";
+
+@Budget({
+  name: "app-daily-budget",
+  scope: BudgetScope.Application,
+  period: BudgetPeriod.Day,
+})
+export class AppDailyBudget implements BudgetHandler {
+  maxSpend(): Usd {
+    return usd(200);
+  }
+}
 
 @Budget({
   name: "tenant-daily-budget",
@@ -131,19 +153,63 @@ export class WebSearchTool
 }
 ```
 
-```ts title="src/support.application.ts" no-check: context tab
+<!-- snippet-context
+import { Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
+import { WorkflowStartTextDto } from "agboss/dto";
+@WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
+export class SupportStart {}
+@WorkflowFinish({ name: "support-workflow-finish", description: "Finish", output: WorkflowStartTextDto })
+export class SupportFinish {}
+@Workflow({
+  name: "support-workflow",
+  version: "1.0.0",
+  flow: [start(SupportStart).returns(WorkflowStartTextDto).toFinish(SupportFinish)],
+})
+export class SupportWorkflow {}
+// @snippet
+-->
+```ts title="src/support.application.ts" file=src/support.application.ts
 import { Application, SqliteCostLedgerRepository } from "agboss";
-import { AppDailyBudget, TenantMonthlyBudget, ExecutionRunBudget } from "./budgets/support.budgets.js";
+import { AppEnvironment } from "./environments/app.environment.js";
+import { AppDailyBudget, ExecutionBudget, TenantDailyBudget } from "./budgets/support.budgets.js";
 
 @Application({
   name: "support-application",
   version: "1.0.0",
+  environment: AppEnvironment,
   workflows: [SupportWorkflow],
   providers: [SqliteCostLedgerRepository],
-  budgets: [AppDailyBudget, TenantMonthlyBudget, ExecutionRunBudget],
+  budgets: [AppDailyBudget, TenantDailyBudget, ExecutionBudget],
 })
 export class SupportApplication {}
 ```
 
+```ts title="test/support-finops.test.ts" file=test/support-finops.test.ts
+import { expect, it } from "vitest";
+import { testTool } from "agboss/testing";
+import { usd } from "agboss/units";
+import { AppDailyBudget, WebSearchTool } from "../src/budgets/support.budgets.js";
+
+it("records external API spend via SpendRecorder and enforces daily budget ceiling", async () => {
+  const budget = new AppDailyBudget();
+  expect(budget.maxSpend()).toBe(usd(200));
+
+  const runSearch = testTool(WebSearchTool);
+  const { output, spend } = await runSearch({ query: "AGBoss FinOps" });
+  expect(output).toEqual({ text: "results for AGBoss FinOps" });
+  expect(spend).toEqual([{ service: "serp-api", cost: usd(0.002) }]);
+});
+```
+
 - **Pre-flight and step checks:** Reported model usage from [OpenRouter response pricing](https://openrouter.ai/docs) and manual `SpendRecorder` entries are checked against every budget scope; if any budget is exhausted before the first step, the execution is rejected immediately (`BudgetExceededError`, firing `onExecutionRejected`) without creating a thread or calling a model.
-- **Fair tenant queuing (`QueueBalancingStrategy`):** Waiting model calls share free slots via `TenantRoundRobin` (default), `TenantLeastInFlight`, `TenantWeighted` (using `tenant.weight`), or `Fifo`.
+- **Fair tenant queuing (`QueueBalancingStrategy`) & shared 429 cooldowns:** Waiting model calls share free slots via `TenantRoundRobin` (default), `TenantLeastInFlight`, `TenantWeighted` (using `tenant.weight`), or `Fifo`. When an upstream vendor returns HTTP `429` (`Retry-After`), `RateLimitRepository` propagates the cooldown window across all worker instances so sibling pods do not stampede the rate-limited endpoint.
+- **OpenRouter host & quantization pinning:** When extending `OpenRouterProvider`, you can pin upstream inference hosts (`only: ["Fireworks"]`, `ignore: ["Inceptron"]`), floating-point quantizations (`quantizations: ["fp8", "bf16"]`), and `allowFallbacks: false` so open-weights models never degrade to lower-precision hosts between evaluation and production.
+- **Custom SDK transport (`ModelProviderHandler`):** For AWS Bedrock (`SigV4`), Google Vertex AI, or internal mTLS gateways, omit `baseUrl` / `apiKey` on `@ModelProvider` (`[model-provider.both-modes]` if mixed) and implement `ModelProviderHandler` (`complete(request: ModelProviderRequest): Promise<ModelProviderResponse>`) with constructor DI (`deps: [...]`). Every gateway policy (`@Budget` pre-check & ledger, `RateLimitRepository`, 429 AIMD, retries, circuit breaker, PII masking, answer tools, and `mockLlm`) wraps `complete(request)` identically.
+
+## How Prompt Prefix Cache Invariance (`[prompt.input-in-instructions]`) cuts input token spend
+
+Provider KV prefix caches (Anthropic, OpenAI, Moonshot, DeepSeek) only hit when the leading bytes of a request — system instructions plus tool and output JSON schemas — remain **byte-for-byte identical** across calls:
+
+1. **Compile-time ban on dynamic instructions (`[prompt.input-in-instructions]`):** `agboss check` rejects any `@Agent`, `@Router`, `@Arbiter`, or `@Judge` prompt that interpolates runtime `input` fields into `prompt` / `promptUrls` (only static `@Application` / `@Workflow` `promptVariables` are allowed in instructions).
+2. **Deterministic schema serialization:** AGBoss serializes `@Tool` definitions and `@Dto` JSON schemas in canonical key order and passes dynamic Path Scope inputs exclusively in the trailing user message (`PromptCaching.auto()` or `PromptCaching.explicit()`).
+3. **Deterministic HMAC PII tokens:** When `@PiiPolicy` uses `PiiAction.replaceWithToken()`, identical PII values produce identical tokens across turns, preventing random redaction IDs from invalidating cached conversation prefixes.

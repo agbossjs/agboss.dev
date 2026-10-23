@@ -1,6 +1,6 @@
 ---
 // Starlight Footer override: the default doc footer (edit link, last updated, pagination)
-// followed by a Spring-style sitemap that mirrors the main menu.
+// followed by a multi-column sitemap that mirrors the main menu.
 import EditLink from 'virtual:starlight/components/EditLink';
 import LastUpdated from 'virtual:starlight/components/LastUpdated';
 import Pagination from 'virtual:starlight/components/Pagination';
@@ -36,7 +36,7 @@ const updatedIso = new Date().toISOString().slice(0, 10);
 			<div class="agb-sitemap">
 				<div class="agb-sitemap-brand">
 					<a href="/" class="agb-sitemap-logo">AGBoss <span>Framework</span></a>
-					<p>Agent Graph Builder, Open-Source Software.<br /><a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a> licensed.</p>
+					<p>Agent Graph Builder Open Source System.<br /><a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a> licensed.</p>
 					<a class="agb-sitemap-roadmap" href="/roadmap/">See the roadmap →</a>
 				</div>
 				{
@@ -57,7 +57,7 @@ const updatedIso = new Date().toISOString().slice(0, 10);
 		)
 	}
 	<p class="agb-copy">
-		© {year} AGBoss · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a> · Maintained by <a href="https://github.com/pavelravvich" rel="author">Pavel Ravvich</a> · Updated <time datetime={updatedIso}>{updatedIso}</time> · <a href="/llms.txt">llms.txt</a> · <a href="/llms-full.txt">llms-full.txt</a> · Not affiliated with LangChain or the Spring project.
+		© {year} AGBoss · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a> · Maintained by <a href="https://github.com/pavelravvich" rel="author">Pavel Ravvich</a> · Updated <time datetime={updatedIso}>{updatedIso}</time> · <a href="/llms.txt">llms.txt</a> · <a href="/llms-full.txt">llms-full.txt</a> · Not affiliated with LangChain.
 	</p>
 </footer>
 

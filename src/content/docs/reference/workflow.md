@@ -5,45 +5,52 @@ description: Complete API reference for @Workflow in AGBoss — options, Path Sc
 
 The `@Workflow` decorator defines a typed state graph (`*.workflow.ts`) in AGBoss. Every workflow declares its `name`, `version`, and `flow` array of paths built with `start()`, `agent()`, `router()`, `action()`, `workflow()`, `route()`, and `caseOf()`, enforcing strictly one chained method call per line (`@stylistic/newline-per-chained-call`) and compile-time Path Scope verification.
 
-## What options does `@Workflow` accept?
-
-Every `@Workflow` class name ends with `Workflow` and its `name` option ends with `-workflow`:
-
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow` (e.g., `"offer-workflow"`). |
-| `version` | `string` | Yes | Behavior version of the workflow (`"1.0.0"`), checked when resuming paused executions across deploys. |
-| `flow` | `readonly FlowPath[]` | Yes | List of paths starting with `start()`, `agent()`, `router()`, `action()`, or `workflow()`. |
-| `maxSteps` | `number` | No | Maximum agent and router visits per execution; defaults to `(agents + routers) * 3`. |
-| `maxDepth` | `number` | No | Maximum nesting depth for child workflows and `ThisWorkflow` recursive calls (`RecursionDepthExceededError`). |
-| `maxConcurrentExecutions` | `number` | No | Maximum concurrent executions across the root workflow and all child/recursive subtrees (`10` by default). |
-| `defaults` | `WorkflowDefaults` | No | Workflow-level defaults for `models`, `router`, `guardrail`, `tools`, `history`, and `flow.maxPathDepth`. |
-| `providers` | `readonly Provider[]` | No | Workflow-scoped `@Injectable` services, `@A2AAgent` clients, or `provide(TOKEN, value)` bindings. |
-| `mcp` | `readonly Class[]` | No | `@McpServer` classes whose tools are used by agents in this workflow. |
-| `piiPolicies` | `readonly Class[]` | No | Additional `@PiiPolicy` classes applied to all agents and routers in this workflow. |
-| `guardrails` | `readonly Class<Guardrail>[]` | No | `@Guardrail` classes applied across all agents and tools in this workflow. |
-| `compaction` | `CompactionOptions` | No | Conversation history compaction policy (`{ every, keep, model }`). |
-| `compactionPrompt` | `string` | No | Custom summarization prompt used when compacting conversation turns. |
-| `promptVariables` | `Readonly<Record<string, string>>` | No | Static `{{variable}}` substitutions available to every prompt in the workflow. |
-
 ## Complete `@Workflow` example with all capabilities
 
-```ts title="src/workflows/offer-negotiation.workflow.ts" no-check: reference example
-import { StepFailedError, ThisWorkflow, VisitsLimitExceededError, Workflow, action, agent, anyOf, caseOf, route, router, start } from "agboss";
-import { Reasoning } from "agboss/models";
+```ts title="src/workflows/offer-negotiation.workflow.ts" file=src/workflows/offer-negotiation.workflow.ts
+import {
+  StepFailedError,
+  VisitsLimitExceededError,
+  Workflow,
+  action,
+  agent,
+  caseOf,
+  listOf,
+  oneOf,
+  route,
+  start,
+  toAction,
+} from "agboss";
+import { Reasoning, ReasoningEffort } from "agboss/models";
 import { seconds } from "agboss/units";
-import { OfferWorkflowStart } from "./workflow-starts/offer.workflow-start.js";
-import { OfferWorkflowFinish, OfferFailedWorkflowFinish } from "./workflow-finishes/offer.workflow-finish.js";
-import { TriageRouter } from "./routers/triage.router.js";
-import { DrafterAgent, EditorAgent, ReviewerAgent, SecurityAuditAgent, LegalAuditAgent } from "./agents/offer.agents.js";
-import { ComplianceCheckWorkflow } from "./workflows/compliance-check.workflow.js";
-import { SendOfferAction, NotifyRecruiterAction } from "./actions/offer.actions.js";
-import { AuditArbiter } from "./arbiters/audit.arbiter.js";
-import { CandidateInputDto, OfferDraftDto, DraftApprovedDto, ChangesRequestedDto, AuditVerdictDto, ComplianceReportDto } from "./dto/offer.dto.js";
-import { DirectoryMcpServer } from "./mcp/directory.server.js";
-import { OfferPiiPolicy } from "./policies/offer.pii-policy.js";
-import { AuditTrailGuardrail } from "./guardrails/audit-trail.guardrail.js";
-import { OfferFormattingService } from "./services/offer-formatting.service.js";
+import {
+  AuditArbiter,
+  AuditTrailGuardrail,
+  ComplianceCheckWorkflow,
+  DirectoryMcpServer,
+  DrafterAgent,
+  EditorAgent,
+  LegalAuditAgent,
+  NotifyRecruiterAction,
+  OfferCompaction,
+  OfferFailedWorkflowFinish,
+  OfferFormattingService,
+  OfferPiiPolicy,
+  OfferWorkflowFinish,
+  OfferWorkflowStart,
+  ReviewerAgent,
+  SecurityAuditAgent,
+  SendOfferAction,
+  TriageRouter,
+} from "../offer.components.js";
+import {
+  AuditVerdictDto,
+  CandidateInputDto,
+  ChangesRequestedDto,
+  ComplianceReportDto,
+  DraftApprovedDto,
+  OfferDraftDto,
+} from "../dto/offer-negotiation.dto.js";
 
 @Workflow({
   name: "offer-workflow",
@@ -55,31 +62,21 @@ import { OfferFormattingService } from "./services/offer-formatting.service.js";
   mcp: [DirectoryMcpServer],
   piiPolicies: [OfferPiiPolicy],
   guardrails: [AuditTrailGuardrail],
+  compaction: OfferCompaction,
+  uncompactedTurns: 8,
   promptVariables: {
     companyName: "Acme Corp",
   },
   defaults: {
     models: {
       temperature: 0.2,
-      reasoning: Reasoning.on({ effort: "low" }),
+      reasoning: Reasoning.on({ effort: ReasoningEffort.Low }),
     },
     router: {
       model: "typesafe/jev-1.13",
     },
     tools: {
       maxToolCalls: 6,
-    },
-    history: {
-      limit: 10,
-      summaries: 2,
-    },
-  },
-  compaction: {
-    every: 6,
-    keep: 4,
-    model: {
-      model: "moonshotai/kimi-k2.6",
-      temperature: 0,
     },
   },
   flow: [
@@ -96,24 +93,21 @@ import { OfferFormattingService } from "./services/offer-formatting.service.js";
     agent(ReviewerAgent)
       .onError(
         VisitsLimitExceededError,
-        toAction(NotifyRecruiterAction)
-          .toFinish(OfferFailedWorkflowFinish),
+        toAction(NotifyRecruiterAction),
       )
-      .returns(DraftApprovedDto, { about: OfferDraftDto })
-      .returns(ChangesRequestedDto, { about: OfferDraftDto })
+      .returns(oneOf(DraftApprovedDto, ChangesRequestedDto))
       .switch(
-        caseOf(DraftApprovedDto, { about: OfferDraftDto })
+        caseOf(DraftApprovedDto)
           .toWorkflow(ComplianceCheckWorkflow)
           .returns(ComplianceReportDto)
           .toParallelAgents(SecurityAuditAgent, LegalAuditAgent)
-          .returns(AuditVerdictDto)
           .acceptedBy(AuditArbiter)
           .joinQuorum({ min: 2, deadline: seconds(15) })
           .onJoinError(
             StepFailedError,
-            toAction(NotifyRecruiterAction)
-              .toFinish(OfferFailedWorkflowFinish),
+            toAction(NotifyRecruiterAction),
           )
+          .returns(listOf(AuditVerdictDto))
           .toAction(SendOfferAction)
           .toFinish(OfferWorkflowFinish),
         caseOf(ChangesRequestedDto, { about: OfferDraftDto })
@@ -121,15 +115,18 @@ import { OfferFormattingService } from "./services/offer-formatting.service.js";
           .returns(OfferDraftDto)
           .toAgent(ReviewerAgent),
       ),
+
+    action(NotifyRecruiterAction)
+      .toFinish(OfferFailedWorkflowFinish),
   ],
 })
 export class OfferWorkflow {}
 ```
 
-```ts title="src/dto/offer-negotiation.dto.ts" no-check: reference example
+```ts title="src/dto/offer-negotiation.dto.ts" file=src/dto/offer-negotiation.dto.ts
 import { Integer, Text } from "agboss/dto";
 
-export class CandidateBriefDto {
+export class CandidateInputDto {
   @Text() role!: string;
   @Text() region!: string;
 }
@@ -146,28 +143,316 @@ export class DraftApprovedDto {
 export class ChangesRequestedDto {
   @Text() critique!: string;
 }
+
+export class ComplianceReportDto {
+  @Text() status!: string;
+}
+
+export class AuditVerdictDto {
+  @Text() auditor!: string;
+}
 ```
 
-```ts title="test/offer-negotiation.workflow.test.ts" no-check: reference example
+<!--
+```ts file=src/offer.components.ts
+import {
+  Action,
+  Agent,
+  Arbiter,
+  Compaction,
+  CompactionStrategy,
+  DecidedBy,
+  Injectable,
+  OnAnswer,
+  OutputGuardrail,
+  PiiAction,
+  PiiKind,
+  PiiPolicy,
+  Router,
+  Workflow,
+  WorkflowFinish,
+  WorkflowStart,
+  listOf,
+  oneOf,
+  optional,
+  pii,
+  start,
+  type ActionHandler,
+  type InputOf,
+} from "agboss";
+import { McpServer, McpServerClient, type ServerTools } from "agboss/mcp";
+import {
+  AuditVerdictDto,
+  CandidateInputDto,
+  ChangesRequestedDto,
+  ComplianceReportDto,
+  DraftApprovedDto,
+  OfferDraftDto,
+} from "./dto/offer-negotiation.dto.js";
+
+@Injectable()
+export class OfferFormattingService {}
+
+const serverTools = {
+  lookup_dir: { input: CandidateInputDto, output: ComplianceReportDto },
+} as const satisfies ServerTools;
+
+@McpServer({
+  name: "directory-mcp",
+  transport: "stdio",
+  command: "npx",
+  args: ["dir-mcp"],
+  tools: serverTools,
+})
+export class DirectoryMcpServer extends McpServerClient<typeof serverTools> {}
+
+@PiiPolicy({
+  name: "offer-pii-policy",
+  description: "Masks emails in offer workflow",
+  rules: [pii(PiiKind.Email, PiiAction.replaceWithKind())],
+})
+export class OfferPiiPolicy {}
+
+@OutputGuardrail({
+  name: "audit-trail-guardrail",
+  description: "Checks audit trail compliance",
+  prompt: "Does the reply omit required disclaimers?",
+  model: "typesafe/jev-1.13",
+  threshold: 0.85,
+  refusal: "Blocked by audit trail policy.",
+})
+export class AuditTrailGuardrail {}
+
+@Compaction({
+  name: "offer-compaction",
+  description: "Window-only compaction",
+  strategy: CompactionStrategy.None,
+})
+export class OfferCompaction {}
+
+@WorkflowStart({ name: "offer-workflow-start", description: "Start", input: CandidateInputDto })
+export class OfferWorkflowStart {}
+
+@WorkflowFinish({ name: "offer-workflow-finish", description: "Finish", output: OfferDraftDto })
+export class OfferWorkflowFinish {}
+
+@WorkflowFinish({ name: "offer-failed-workflow-finish", description: "Failed", output: CandidateInputDto })
+export class OfferFailedWorkflowFinish {}
+
+@Agent({
+  name: "drafter-agent",
+  description: "Drafts offer",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Draft the offer for {{companyName}}.",
+  input: { candidate: CandidateInputDto },
+  output: OfferDraftDto,
+})
+export class DrafterAgent {}
+
+@Agent({
+  name: "editor-agent",
+  description: "Edits offer",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Revise the offer.",
+  input: { draft: OfferDraftDto, critique: ChangesRequestedDto },
+  output: OfferDraftDto,
+})
+export class EditorAgent {}
+
+@Agent({
+  name: "reviewer-agent",
+  description: "Reviews offer",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Review the offer.",
+  maxVisits: 3,
+  input: { draft: OfferDraftDto },
+  output: oneOf(DraftApprovedDto, ChangesRequestedDto),
+})
+export class ReviewerAgent {}
+
+@Agent({
+  name: "security-audit-agent",
+  description: "Security audit",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Security audit.",
+  input: { report: ComplianceReportDto },
+  output: AuditVerdictDto,
+})
+export class SecurityAuditAgent {}
+
+@Agent({
+  name: "legal-audit-agent",
+  description: "Legal audit",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Legal audit.",
+  input: { report: ComplianceReportDto },
+  output: AuditVerdictDto,
+})
+export class LegalAuditAgent {}
+
+@Router({
+  name: "triage-router",
+  description: "Triages candidate input",
+  decidedBy: DecidedBy.Model,
+  input: { candidate: CandidateInputDto },
+  prompt: "Triage the candidate request.",
+  routes: [
+    { target: DrafterAgent, prompt: "Valid candidate request" },
+    { target: OfferFailedWorkflowFinish, prompt: "Stop and send the answer: Invalid candidate request" },
+  ],
+})
+export class TriageRouter {}
+
+@Arbiter({
+  name: "audit-arbiter",
+  decidedBy: DecidedBy.Code,
+})
+export class AuditArbiter {
+  @OnAnswer(SecurityAuditAgent)
+  fromSecurityAudit(v: AuditVerdictDto): boolean { return v.auditor.length > 0; }
+  @OnAnswer(LegalAuditAgent)
+  fromLegalAudit(v: AuditVerdictDto): boolean { return v.auditor.length > 0; }
+}
+
+@Action({
+  name: "send-offer-action",
+  description: "Sends approved offer",
+  input: { draft: OfferDraftDto, verdicts: listOf(AuditVerdictDto) },
+})
+export class SendOfferAction implements ActionHandler<SendOfferAction> {
+  execute(_input: InputOf<SendOfferAction>): Promise<void> { return Promise.resolve(); }
+}
+
+@Action({
+  name: "notify-recruiter-action",
+  description: "Notifies recruiter on error",
+  input: { draft: optional(OfferDraftDto) },
+})
+export class NotifyRecruiterAction implements ActionHandler<NotifyRecruiterAction> {
+  execute(_input: InputOf<NotifyRecruiterAction>): Promise<void> { return Promise.resolve(); }
+}
+
+@WorkflowStart({ name: "compliance-check-workflow-start", description: "Start", input: OfferDraftDto })
+export class ComplianceCheckStart {}
+@WorkflowFinish({ name: "compliance-check-workflow-finish", description: "Finish", output: ComplianceReportDto })
+export class ComplianceCheckFinish {}
+@Agent({
+  name: "compliance-agent",
+  description: "Compliance check",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Check compliance.",
+  input: { draft: OfferDraftDto },
+  output: ComplianceReportDto,
+})
+export class ComplianceAgent {}
+
+@Workflow({
+  name: "compliance-check-workflow",
+  version: "1.0.0",
+  flow: [
+    start(ComplianceCheckStart)
+      .returns(OfferDraftDto)
+      .toAgent(ComplianceAgent)
+      .returns(ComplianceReportDto)
+      .toFinish(ComplianceCheckFinish),
+  ],
+})
+export class ComplianceCheckWorkflow {}
+```
+-->
+
+<!--
+```ts file=src/offer.application.ts
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
+import { usd, type Usd } from "agboss/units";
+import { OfferWorkflow } from "./workflows/offer-negotiation.workflow.js";
+
+@Budget({ name: "ow-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class OwAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(20); } }
+@Budget({ name: "ow-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class OwTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
+@Budget({ name: "ow-exec-budget", scope: BudgetScope.Execution })
+export class OwExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
+
+@Application({
+  name: "offer-application",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [OfferWorkflow],
+  budgets: [OwAppBudget, OwTenantBudget, OwExecBudget],
+})
+export class OfferApplication {}
+```
+-->
+
+```ts title="test/offer-negotiation.workflow.test.ts" file=test/offer-negotiation.workflow.test.ts
 import { expect } from "vitest";
-import { replyWith, testWith } from "agboss/testing";
+import { ExecutionStatus } from "agboss";
+import { replyWith, routeTo, testWith } from "agboss/testing";
 import { OfferApplication } from "../src/offer.application.js";
-import { OfferWriterAgent, OfferReviewerAgent } from "../src/agents/offer.agents.js";
-import { OfferDraftDto, DraftApprovedDto } from "../src/dto/offer-negotiation.dto.js";
+import {
+  ComplianceAgent,
+  DrafterAgent,
+  LegalAuditAgent,
+  OfferWorkflowStart,
+  ReviewerAgent,
+  SecurityAuditAgent,
+  TriageRouter,
+} from "../src/offer.components.js";
+import {
+  AuditVerdictDto,
+  ComplianceReportDto,
+  DraftApprovedDto,
+  OfferDraftDto,
+} from "../src/dto/offer-negotiation.dto.js";
 
 const test = testWith(OfferApplication);
 
-test("runs OfferNegotiationWorkflow through review loop to approval", async ({ app, mockLlm }) => {
-  mockLlm(OfferWriterAgent).thenReturn(
+test("runs OfferWorkflow through review loop and quorum to approval", async ({ app, mockLlm }) => {
+  mockLlm(TriageRouter).thenReturn(routeTo(DrafterAgent));
+  mockLlm(DrafterAgent).thenReturn(
     replyWith(OfferDraftDto, { summary: "Staff TS Engineer", baseUsd: 215_000 }),
   );
-  mockLlm(OfferReviewerAgent).thenReturn(
+  mockLlm(ReviewerAgent).thenReturn(
     replyWith(DraftApprovedDto, { signedBy: "comp-committee" }),
   );
+  mockLlm(ComplianceAgent).thenReturn(
+    replyWith(ComplianceReportDto, { status: "passed" }),
+  );
+  mockLlm(SecurityAuditAgent).thenReturn(
+    replyWith(AuditVerdictDto, { auditor: "sec-1" }),
+  );
+  mockLlm(LegalAuditAgent).thenReturn(
+    replyWith(AuditVerdictDto, { auditor: "legal-1" }),
+  );
   const res = await app.execute(OfferWorkflowStart, { role: "Staff TS", region: "EU" });
-  expect(res.isFinished()).toBe(true);
+  expect(res.status).toBe(ExecutionStatus.Finished);
 });
 ```
+
+## What options does `@Workflow` accept?
+
+Every `@Workflow` class name ends with `Workflow` and its `name` option ends with `-workflow`:
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow` (e.g., `"offer-workflow"`). |
+| `version` | `string` | Yes | Behavior version of the workflow (`"1.0.0"`), checked when resuming paused executions across deploys. |
+| `flow` | `readonly FlowPath[]` | Yes | List of paths starting with `start()`, `agent()`, `router()`, `action()`, or `workflow()`. |
+| `maxSteps` | `number` | No | Maximum agent and router visits per execution; defaults to `(agents + routers) * 3`. |
+| `maxDepth` | `number` | No | Maximum nesting depth for child workflows and `ThisWorkflow` recursive calls (soft stop omitting the recursion tool at `depth === maxDepth` for model launches; throws `DepthLimitExceededError` for deterministic launches). |
+| `maxConcurrentExecutions` | `number` | No | Maximum concurrent executions across the root workflow and all child/recursive subtrees (`10` by default). |
+| `defaults` | `WorkflowDefaults` | No | Workflow-level defaults for `models`, `router`, `guardrail`, `tools`, and `flow.maxPathDepth`. |
+| `providers` | `readonly Provider[]` | No | Workflow-scoped `@Injectable` services, `@A2AAgent` clients, or `provide(TOKEN, value)` bindings. |
+| `mcp` | `readonly Class[]` | No | `@McpServer` classes whose tools are used by agents in this workflow. |
+| `piiPolicies` | `readonly Class[]` | No | Additional `@PiiPolicy` classes applied to all agents and routers in this workflow. |
+| `guardrails` | `readonly Class[]` | No | [`@InputGuardrail` and `@OutputGuardrail`](/reference/guardrail/) classes applied across all agents and model routers in this workflow. |
+| `excludeGuardrails` | `readonly Class[]` | No | Inherited application guardrails exempted for this workflow. |
+| `toolInterceptors` | `readonly Class[]` | No | [`@ToolInterceptor`](/reference/tool-interceptor/) classes applied across all `@Tool` and `@McpTool` invocations in this workflow. |
+| `excludeToolInterceptors` | `readonly Class[]` | No | Inherited application `@ToolInterceptor` classes exempted for this workflow. |
+| `compaction` | `Class` | No | [`@Compaction`](/reference/compaction/) class summarizing conversation turns older than `uncompactedTurns`. |
+| `uncompactedTurns` | `number \| TurnLimit` | No | Number of recent finished turns shown in full to agents and model routers in this workflow (`5` by default, or `TurnLimit.ALL`). |
+| `promptVariables` | `Readonly<Record<string, string>>` | No | Static `{{variable}}` substitutions available to every prompt in the workflow. |
 
 ## What Flow DSL functions and related entities work with `@Workflow`?
 

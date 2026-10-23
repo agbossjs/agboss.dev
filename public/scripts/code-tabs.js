@@ -76,13 +76,6 @@
 			tablist.className = "ag-code-tablist";
 			tablist.setAttribute("role", "tablist");
 
-			tablist.addEventListener("wheel", function (e) {
-				if (tablist.scrollWidth > tablist.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-					e.preventDefault();
-					tablist.scrollLeft += e.deltaY;
-				}
-			}, { passive: false });
-
 			group[0].parentNode.insertBefore(wrapper, group[0]);
 			wrapper.appendChild(tablist);
 

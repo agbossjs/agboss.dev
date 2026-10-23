@@ -1,15 +1,15 @@
 ---
 title: Security, Guardrails & PII Policies
-description: Protect prompts, tool calls, and logs in AGBoss using @PiiPolicy rules, reversible replaceWithToken() pseudonymization, @Guardrail, and secret() masking.
+description: Protect prompts, tool calls, and logs in AGBoss using @PiiPolicy rules, KV-cache-friendly HMAC replaceWithToken() pseudonymization, @InputGuardrail, @OutputGuardrail, and secret() masking.
 ---
 
-When enterprise workflows process customer tickets, financial records, or medical notes, personal data and credentials must never leak into external LLM prompts or observability logs. AGBoss provides three defense-in-depth mechanisms: `@PiiPolicy` for declarative or custom PII masking and reversible pseudonymization at the model boundary, `@Guardrail` for tool/answer boundary hooks, and `secret()` for environment credential masking.
+When enterprise workflows process customer tickets, financial records, or medical notes, personal data and credentials must never leak into external LLM prompts or observability logs. AGBoss provides three defense-in-depth mechanisms: [`@PiiPolicy`](/reference/pii-policy/) for declarative or custom PII masking and reversible pseudonymization at the model boundary, [`@InputGuardrail` and `@OutputGuardrail`](/reference/guardrail/) for pre-model and post-model safety enforcement, and `secret()` for environment credential masking.
 
-## How `@PiiPolicy` masks and reveals personal data at the model boundary
+## How `@PiiPolicy` masks and reveals personal data at the model boundary (without breaking KV caches)
 
-A `@PiiPolicy` class (whose `name` must end with `-pii-policy`) can declare built-in `rules: [pii(Kind | Group, Action)]` or implement `PiiPolicyHandler.findMatches(text)` for custom project detectors. Masking happens at the model boundary: models only see masked tokens (such as `<email:7f3a91>`), while `PiiAction.replaceWithToken()` uses an HMAC with `pseudonymKey` so tools, actions, and finishes receive the restored real values:
+A `@PiiPolicy` class (whose `name` must end with `-pii-policy`) can declare built-in `rules: [pii(Kind | Group, Action)]` or implement `PiiPolicyHandler.findMatches(text)` for custom project detectors. Masking happens at the model boundary: models only see masked tokens, while `PiiAction.replaceWithToken()` computes a **deterministic HMAC pseudonym** with `pseudonymKey` so the exact same email or badge ID maps to the exact same token across every turn and step — preserving multi-turn LLM KV prefix cache hits while restoring real values before tools, actions, and finishes run:
 
-```ts title="src/policies/customer.pii-policy.ts"
+```ts title="src/policies/customer.pii-policy.ts" file=src/policies/customer.pii-policy.ts
 import { ExecutionContext, Injectable, InputGuardrail, OutputGuardrail, PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, secret, type GuardrailRefusal, type PiiMatch, type PiiPolicyHandler, type PiiRefusal } from "agboss";
 import { OneOf, Text } from "agboss/dto";
 
@@ -63,7 +63,7 @@ export class TicketDto {
   account!: string;
 }
 
-// 4. Input and output model guardrails with computed or fixed refusal
+// 4. Input and output guardrails (DecidedBy.Model and DecidedBy.Code)
 export class ClinicExecutionContext extends ExecutionContext {
   @OneOf({ values: ["en", "he"] })
   locale!: "en" | "he";
@@ -105,15 +105,84 @@ export class LegalAdviceGuardrail implements GuardrailRefusal {
 export class NoLegalAdviceGuardrail {}
 ```
 
-```ts title="test/customer.pii-policy.test.ts" no-check: context tab
+```ts title="test/customer.pii-policy.test.ts" file=test/customer.pii-policy.test.ts
 import { expect, it } from "vitest";
 import { testPii } from "agboss/testing";
 import { EmployeeIdPiiPolicy } from "../src/policies/customer.pii-policy.js";
 
-it("redacts EMP-XXXXXX employee badges before model calls", async () => {
-  const pii = testPii(EmployeeIdPiiPolicy);
-  const res = await pii.scan("Badge EMP-482910 requested access.");
-  expect(res.matches).toHaveLength(1);
+it("redacts EMP-42 employee badges before model calls and restores them on reveal", async () => {
+  const pii = testPii([EmployeeIdPiiPolicy]);
+  const { output: masked } = await pii.mask("Badge EMP-42 requested access.");
+  expect(masked).not.toContain("EMP-42");
+  expect(pii.reveal(masked)).toBe("Badge EMP-42 requested access.");
+});
+```
+
+## Deterministic Code Guardrails (`DecidedBy.Code`)
+
+When a safety rule is deterministic — such as a tenant-specific blocklist from a database, a regex/checksum check, or an external moderation microservice — declare `decidedBy: DecidedBy.Code` on [`@InputGuardrail` or `@OutputGuardrail`](/reference/guardrail/) and implement `GuardrailHandler.check(text)`. Code guardrails receive the PII-masked text, support full DI (`deps: [...]`), emit `GuardrailStartEvent` / `GuardrailEndEvent` with `$0.00` cost, and require no LLM call:
+
+```ts title="src/policies/tenant-blocklist.guardrail.ts" file=src/policies/tenant-blocklist.guardrail.ts
+import {
+  DecidedBy,
+  GuardrailVerdict,
+  Injectable,
+  OutputGuardrail,
+  TenantContext,
+  type GuardrailHandler,
+} from "agboss";
+import { OneOf } from "agboss/dto";
+
+export class ShopTenantContext extends TenantContext {
+  @OneOf({ values: ["toys", "tools"] })
+  shop!: "toys" | "tools";
+}
+
+@Injectable()
+export class BlocklistService {
+  containsBlockedTerms(shop: "toys" | "tools", text: string): Promise<boolean> {
+    const blocked = shop === "toys" ? ["knife"] : ["toy"];
+    return Promise.resolve(blocked.some((term) => text.toLowerCase().includes(term)));
+  }
+}
+
+@OutputGuardrail({
+  name: "tenant-blocklist-guardrail",
+  description: "Blocks replies containing terms forbidden for the active tenant",
+  decidedBy: DecidedBy.Code,
+  refusal: "The response contained restricted terms.",
+  deps: [ShopTenantContext, BlocklistService],
+})
+export class TenantBlocklistGuardrail implements GuardrailHandler {
+  constructor(
+    private readonly tenant: ShopTenantContext,
+    private readonly blocklist: BlocklistService,
+  ) {}
+
+  async check(text: string): Promise<GuardrailVerdict> {
+    const hasForbidden = await this.blocklist.containsBlockedTerms(this.tenant.shop, text);
+    return hasForbidden ? GuardrailVerdict.blocked() : GuardrailVerdict.passed();
+  }
+}
+```
+
+```ts title="test/tenant-blocklist.guardrail.test.ts" file=test/tenant-blocklist.guardrail.test.ts
+import { expect, it } from "vitest";
+import { testGuardrail } from "agboss/testing";
+import {
+  ShopTenantContext,
+  TenantBlocklistGuardrail,
+} from "../src/policies/tenant-blocklist.guardrail.js";
+
+it("blocks restricted tenant terms deterministically without a model stub", async () => {
+  const check = testGuardrail(TenantBlocklistGuardrail, {
+    tenantContext: ShopTenantContext,
+    tenant: { tenantId: "t-1", shop: "toys" },
+  });
+
+  const blocked = await check("We recommend a pocket knife.");
+  expect(blocked.output.isBlocked).toBe(true);
+  expect(blocked.output.refusal).toBe("The response contained restricted terms.");
 });
 ```
 
@@ -121,4 +190,4 @@ it("redacts EMP-XXXXXX employee badges before model calls", async () => {
 
 - **Hierarchical policy lists (`piiPolicies` & `excludePiiPolicies`):** Policies listed on `@Application`, `@Workflow`, `@Agent`, and `@Router` add up automatically. An agent can opt out of an inherited policy for its own model calls via `excludePiiPolicies`, while logs, traces, and `result.record` remain masked by the application and workflow policies.
 - **Cross-instance token consistency:** Set `@Application({ pseudonymKey: "piiPseudonymKey" })` pointing to a `Secret` field in your environment contract so every replica generates identical HMAC tokens for logs and traces.
-- **Unit testing with `testPii` and `testGuardrail`:** Validate `mask(text)` and `reveal(text)` offline with `testPii([CustomerPiiPolicy])` and verify guardrail hooks with `testGuardrail(NoInternalUrlsGuardrail)` from `agboss/testing`.
+- **Unit testing with `testPii` and `testGuardrail`:** Validate `mask(text)` and `reveal(text)` offline with `testPii([CustomerPiiPolicy])` and verify both `DecidedBy.Model` and `DecidedBy.Code` guardrails with `testGuardrail(TenantBlocklistGuardrail)` from `agboss/testing`.

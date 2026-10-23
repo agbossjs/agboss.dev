@@ -1,51 +1,39 @@
 ---
 title: "@McpExpose"
-description: Complete API reference for @McpExpose and createMcpService in AGBoss — exposing workflows and tools as an outbound Model Context Protocol (MCP) server.
+description: Complete API reference for @McpExpose and createMcpService in agboss/mcp — exposing AGBoss @WorkflowStart and @Tool classes as an MCP server.
 ---
 
-The `@McpExpose` decorator and `createMcpService(Application)` turn an AGBoss `@Application` or `@Workflow` into a standards-compliant **Model Context Protocol (MCP) server** (`mcp/*.expose.ts`). External MCP clients (Claude Desktop, Cursor, or another AGBoss service) can discover and call your exposed `@WorkflowStart` entry points and `@Tool` classes with full `@Budget`, `@PiiPolicy`, and `@Guardrail` enforcement.
-
-## What options does `@McpExpose` accept?
-
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | MCP server identifier advertised during protocol initialization (e.g., `"job-scout-mcp"`). |
-| `version` | `string` | Yes | Semantic version of the exposed MCP surface (e.g., `"1.0.0"`). |
-| `description` | `string` | Yes | Human- and LLM-readable summary of the exposed server capabilities. |
-| `starts` | `readonly Class[]` | No | [`@WorkflowStart`](/reference/workflow-start/) classes exposed as callable MCP tools. |
-| `tools` | `readonly Class[]` | No | [`@Tool`](/reference/tool/) classes exposed directly to MCP clients. |
+The `@McpExpose` decorator and `createMcpService(app, ConfigClass)` (`"agboss/mcp"`) turn an AGBoss `@Application` into a standards-compliant **Model Context Protocol (MCP) server**. External MCP clients (Codex, Cursor, Windsurf, Claude Code, or another AGBoss application) can discover and call your exposed [`@WorkflowStart`](/reference/workflow-start/) entry points and [`@Tool`](/reference/tool/) classes with full `@Budget`, `@PiiPolicy`, and `@InputGuardrail` / `@OutputGuardrail` enforcement.
 
 ## Complete `@McpExpose` and `createMcpService` example
 
-```ts title="src/mcp/job-scout.expose.ts" no-check: reference example
-import { createApp } from "agboss";
+```ts title="src/mcp/job-scout.expose.ts" file=src/mcp/job-scout.expose.ts
+import { Tool, WorkflowStart, createApp, type ToolHandler } from "agboss";
+import { Text, WorkflowStartTextDto } from "agboss/dto";
 import { McpExpose, createMcpService } from "agboss/mcp";
 import { JobScoutApplication } from "../job-scout.application.js";
-import { ChatWorkflowStart } from "../workflow-starts/chat.workflow-start.js";
-import { SearchJobsTool } from "../tools/search-jobs.tool.js";
 
-@McpExpose({
-  name: "job-scout-mcp",
-  version: "1.0.0",
-  description: "Exposes Job Scout workflow starts and search tools over MCP",
-  starts: [ChatWorkflowStart],
-  tools: [SearchJobsTool],
-})
-export class JobScoutMcpExpose {}
-
-export async function bootMcpSession() {
-  const app = await createApp(JobScoutApplication);
-  const mcp = createMcpService(app, JobScoutMcpExpose);
-  return mcp.openSession({
-    tenant: { tenantId: "acme", weight: 2 },
-    ownerId: "ide-user-7",
-  });
+export class JobQueryDto {
+  @Text({ prompt: "Role keywords" })
+  query!: string;
 }
-```
 
-```ts title="src/workflow-starts/chat.workflow-start.ts" no-check: reference example
-import { WorkflowStart } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
+export class JobResultsDto {
+  @Text({ prompt: "Formatted job matches" })
+  text!: string;
+}
+
+@Tool({
+  name: "search_jobs",
+  description: "Searches open engineering roles",
+  input: JobQueryDto,
+  output: JobResultsDto,
+})
+export class SearchJobsTool implements ToolHandler<JobQueryDto, JobResultsDto> {
+  run({ query }: JobQueryDto): Promise<JobResultsDto> {
+    return Promise.resolve({ text: `Matches for ${query}` });
+  }
+}
 
 @WorkflowStart({
   name: "chat-workflow-start",
@@ -53,21 +41,111 @@ import { WorkflowStartTextDto } from "agboss/dto";
   input: WorkflowStartTextDto,
 })
 export class ChatWorkflowStart {}
+
+@McpExpose({
+  name: "job-scout-mcp",
+  version: "1.0.0",
+  exports: [SearchJobsTool, ChatWorkflowStart],
+})
+export class JobScoutMcpExpose {}
+
+export async function serveMcpStdio() {
+  const app = await createApp(JobScoutApplication);
+  const service = createMcpService(app, JobScoutMcpExpose);
+  await service.connectStdio();
+}
 ```
 
-```ts title="test/job-scout.expose.test.ts" no-check: reference example
+<!--
+```ts file=src/job-scout.application.ts
+import {
+  Agent,
+  Application,
+  Budget,
+  BudgetPeriod,
+  BudgetScope,
+  EmptyEnvironment,
+  Workflow,
+  WorkflowFinish,
+  start,
+  type BudgetHandler,
+} from "agboss";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { usd, type Usd } from "agboss/units";
+import { ChatWorkflowStart, SearchJobsTool } from "./mcp/job-scout.expose.js";
+
+@WorkflowFinish({ name: "chat-workflow-finish", description: "Answer", output: WorkflowFinishTextDto })
+export class ChatWorkflowFinish {}
+
+@Agent({
+  name: "scout-agent",
+  description: "Scout",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Scout.",
+  tools: [SearchJobsTool],
+})
+export class ScoutAgent {}
+
+@Workflow({
+  name: "job-scout-workflow",
+  version: "1.0.0",
+  flow: [
+    start(ChatWorkflowStart)
+      .returns(WorkflowStartTextDto)
+      .toAgent(ScoutAgent)
+      .toFinish(ChatWorkflowFinish),
+  ],
+})
+export class JobScoutWorkflow {}
+
+@Budget({ name: "js-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class JsAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
+@Budget({ name: "js-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class JsTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
+@Budget({ name: "js-exec-budget", scope: BudgetScope.Execution })
+export class JsExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
+
+@Application({
+  name: "job-scout-application",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [JobScoutWorkflow],
+  budgets: [JsAppBudget, JsTenantBudget, JsExecBudget],
+})
+export class JobScoutApplication {}
+```
+-->
+
+```ts title="test/job-scout.expose.test.ts" file=test/job-scout.expose.test.ts
 import { expect } from "vitest";
-import { testWith } from "agboss/testing";
-import { createMcpService } from "agboss/mcp";
-import { JobScoutApplication } from "../src/job-scout.application.js";
-import { JobScoutMcpExpose } from "../src/mcp/job-scout.expose.js";
+import { ExecutionStatus } from "agboss";
+import { replyWith, testTool, testWith } from "agboss/testing";
+import { JobScoutApplication, ScoutAgent } from "../src/job-scout.application.js";
+import {
+  ChatWorkflowStart,
+  JobScoutMcpExpose,
+  SearchJobsTool,
+} from "../src/mcp/job-scout.expose.js";
 
 const test = testWith(JobScoutApplication);
 
-test("lists exposed @WorkflowStart and @Tool schemas in an MCP session", async ({ app }) => {
-  const mcp = createMcpService(app, JobScoutMcpExpose);
-  const session = mcp.openSession({ tenant: { tenantId: "acme" } });
-  const tools = await session.listTools();
-  expect(tools.map((t) => t.name)).toContain("search_jobs");
+test("executes the MCP-exposed tool and workflow start entry point", async ({ app, mockLlm }) => {
+  expect(JobScoutMcpExpose).toBeDefined();
+
+  const runSearchTool = testTool(SearchJobsTool);
+  const { output: toolOut } = await runSearchTool({ query: "Staff TypeScript" });
+  expect(toolOut.text).toContain("Staff TypeScript");
+
+  mockLlm(ScoutAgent).thenReturn(replyWith("Found 3 Staff TypeScript roles."));
+  const wfOut = await app.execute(ChatWorkflowStart, { text: "Find Staff TypeScript roles" });
+  expect(wfOut.status).toBe(ExecutionStatus.Finished);
 });
 ```
+
+## What options does `@McpExpose` accept?
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | **Yes** | MCP server identifier advertised during protocol initialization (e.g., `"job-scout-mcp"`). |
+| `version` | `string` | **Yes** | Semantic version of the exposed MCP surface (e.g., `"1.0.0"`). |
+| `exports` | `readonly Class[]` | **Yes** | Array of [`@Tool`](/reference/tool/) and [`@WorkflowStart`](/reference/workflow-start/) classes exposed as callable MCP tools. |

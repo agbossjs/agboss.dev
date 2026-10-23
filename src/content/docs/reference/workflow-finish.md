@@ -5,23 +5,19 @@ description: Complete API reference for the @WorkflowFinish decorator in AGBoss 
 
 The `@WorkflowFinish` decorator defines a terminal node (`workflow-finishes/*.workflow-finish.ts`) where a `@Workflow` path completes and returns a typed `output` DTO to the caller of `app.execute()` (or to a parent workflow calling `.toWorkflow(Child)`). A finish can be a **pass-through** (returning the latest `output` DTO already in Path Scope) or a **handled finish** implementing `FinishHandler<Self>` to assemble its `output` from multiple scoped DTOs and injected services.
 
-## What options does `@WorkflowFinish` accept?
-
-Every `@WorkflowFinish` class name ends with `WorkflowFinish` and its `name` option ends with `-workflow-finish`:
-
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow-finish` (e.g., `"offer-sent-workflow-finish"`). |
-| `description` | `string` | Yes | Description of this terminal outcome; also used by `agboss describe` and studio visualizations. |
-| `output` | `DtoClass` | Yes | The DTO class returned in `result.output` when execution ends at this finish node. |
-| `input` | `InputFields` | No | Map of DTOs read from Path Scope. When omitted, the finish is a pass-through; when set, the class must implement `FinishHandler<Self>`. |
-| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `Clock`, `@Injectable` services) injected into a handled finish. |
-
 ## Complete `@WorkflowFinish` examples (pass-through and `FinishHandler`)
 
-```ts title="src/workflow-finishes/offer-package.workflow-finish.ts" no-check: reference example
-import { Clock, ExecutionContext, WorkflowFinish, listOf, optional, type FinishHandler, type InputOf, type OutputOf } from "agboss";
-import { Boolean, Integer, Text, WorkflowFinishTextDto } from "agboss/dto";
+```ts title="src/workflow-finishes/offer-package.workflow-finish.ts" file=src/workflow-finishes/offer-package.workflow-finish.ts
+import {
+  Clock,
+  ExecutionContext,
+  WorkflowFinish,
+  listOf,
+  type FinishHandler,
+  type InputOf,
+  type OutputOf,
+} from "agboss";
+import { Integer, Text, WorkflowFinishTextDto } from "agboss/dto";
 
 export class OfferDraftDto {
   @Text({ prompt: "Final approved offer letter text" })
@@ -75,9 +71,10 @@ export class OfferSummaryWorkflowFinish implements FinishHandler<OfferSummaryWor
   finish(
     input: InputOf<OfferSummaryWorkflowFinish>,
   ): OutputOf<OfferSummaryWorkflowFinish> {
+    // Single-value inputs in InputOf<Self> are wrapped in Produced<Dto, Producer> ({ value, producer }):
     return {
       executionId: this.executionContext.executionId,
-      letterText: input.draft.letterText,
+      letterText: input.draft.value.letterText,
       signOffCount: input.verdicts.length,
       completedAt: this.clock.now().toISOString(),
     };
@@ -85,39 +82,122 @@ export class OfferSummaryWorkflowFinish implements FinishHandler<OfferSummaryWor
 }
 ```
 
-```ts title="src/workflows/offer-package.workflow.ts" no-check: reference example
-import { Workflow, start } from "agboss";
-import { OfferPackageWorkflowFinish, OfferDraftDto } from "../workflow-finishes/offer-package.workflow-finish.js";
+```ts title="src/workflows/offer-package.workflow.ts" file=src/workflows/offer-package.workflow.ts
+import { Agent, Workflow, WorkflowStart, listOf, start } from "agboss";
+import { WorkflowStartTextDto } from "agboss/dto";
+import {
+  AuditVerdictDto,
+  OfferDraftDto,
+  OfferSummaryWorkflowFinish,
+} from "../workflow-finishes/offer-package.workflow-finish.js";
+
+@WorkflowStart({
+  name: "offer-workflow-start",
+  description: "Starts offer workflow",
+  input: WorkflowStartTextDto,
+})
+export class OfferStart {}
+
+@Agent({
+  name: "offer-drafter-agent",
+  description: "Drafts offer letter",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Draft the offer letter.",
+  input: { req: WorkflowStartTextDto },
+  output: OfferDraftDto,
+})
+export class OfferDrafterAgent {}
+
+@Agent({
+  name: "offer-auditor-agent",
+  description: "Audits offer letter",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Audit the offer letter.",
+  input: { draft: OfferDraftDto },
+  output: listOf(AuditVerdictDto),
+})
+export class OfferAuditorAgent {}
 
 @Workflow({
   name: "offer-package-workflow",
   version: "1.0.0",
   flow: [
     start(OfferStart)
+      .returns(WorkflowStartTextDto)
       .toAgent(OfferDrafterAgent)
       .returns(OfferDraftDto)
-      .toFinish(OfferPackageWorkflowFinish),
+      .toAgent(OfferAuditorAgent)
+      .returns(listOf(AuditVerdictDto))
+      .toFinish(OfferSummaryWorkflowFinish),
   ],
 })
 export class OfferPackageWorkflow {}
 ```
 
-```ts title="test/offer-package.workflow-finish.test.ts" no-check: reference example
+<!--
+```ts file=src/offer.application.ts
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
+import { usd, type Usd } from "agboss/units";
+import { OfferPackageWorkflow } from "./workflows/offer-package.workflow.js";
+
+@Budget({ name: "wf-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class WfAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(20); } }
+@Budget({ name: "wf-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class WfTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
+@Budget({ name: "wf-exec-budget", scope: BudgetScope.Execution })
+export class WfExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
+
+@Application({
+  name: "offer-application",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [OfferPackageWorkflow],
+  budgets: [WfAppBudget, WfTenantBudget, WfExecBudget],
+})
+export class OfferApplication {}
+```
+-->
+
+```ts title="test/offer-package.workflow-finish.test.ts" file=test/offer-package.workflow-finish.test.ts
 import { expect } from "vitest";
+import { ExecutionStatus } from "agboss";
 import { replyWith, testWith } from "agboss/testing";
 import { OfferApplication } from "../src/offer.application.js";
-import { OfferDraftDto } from "../src/workflow-finishes/offer-package.workflow-finish.js";
+import {
+  AuditVerdictDto,
+  OfferDraftDto,
+} from "../src/workflow-finishes/offer-package.workflow-finish.js";
+import {
+  OfferAuditorAgent,
+  OfferDrafterAgent,
+  OfferStart,
+} from "../src/workflows/offer-package.workflow.js";
 
 const test = testWith(OfferApplication);
 
-test("assemblers final OfferPackageDto in OfferPackageWorkflowFinish", async ({ app, mockLlm }) => {
+test("assembles final OfferSummaryDto in OfferSummaryWorkflowFinish", async ({ app, mockLlm }) => {
   mockLlm(OfferDrafterAgent).thenReturn(
-    replyWith(OfferDraftDto, { title: "Staff Engineer", salaryUsd: 225_000 }),
+    replyWith(OfferDraftDto, { letterText: "Welcome to Acme as Staff Engineer!" }),
+  );
+  mockLlm(OfferAuditorAgent).thenReturn(
+    replyWith(AuditVerdictDto, [{ auditor: "comp-committee" }]),
   );
   const res = await app.execute(OfferStart, { text: "Prepare Staff Engineer offer" });
-  expect(res.isFinished()).toBe(true);
+  expect(res.status).toBe(ExecutionStatus.Finished);
 });
 ```
+
+## What options does `@WorkflowFinish` accept?
+
+Every `@WorkflowFinish` class name ends with `WorkflowFinish` and its `name` option ends with `-workflow-finish`:
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow-finish` (e.g., `"offer-sent-workflow-finish"`). |
+| `description` | `string` | Yes | Description of this terminal outcome; also used by `agboss describe` and studio visualizations. |
+| `output` | `DtoClass` | Yes | The DTO class returned in `result.output` when execution ends at this finish node. |
+| `input` | `InputFields` | No | Map of DTOs read from Path Scope. When omitted, the finish is a pass-through; when set, the class must implement `FinishHandler<Self>`. |
+| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `Clock`, `@Injectable` services) injected into a handled finish. |
 
 ## What related entities work with `@WorkflowFinish`?
 

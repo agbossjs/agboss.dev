@@ -5,36 +5,36 @@ description: Complete API reference for the @Budget decorator in AGBoss — Appl
 
 The `@Budget` decorator (`config/budget.config.ts`) defines a FinOps spend ceiling registered in `@Application({ budgets })`. Budgets are checked before the first step of an execution and reconciled after every model call and `SpendRecorder.record()` entry across three hierarchical scopes: **`BudgetScope.Application`**, **`BudgetScope.Tenant`**, and **`BudgetScope.Execution`**.
 
-## What options does `@Budget` accept?
-
-Every `@Budget` class implements `BudgetHandler` (`maxSpend(): Usd | Promise<Usd>`) and its `name` ends with `-budget`:
-
-| Option | Applies To | Type | Required | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `name` | All scopes | `string` | Yes | Unique kebab-case identifier ending with `-budget` (e.g., `"tenant-daily-budget"`). |
-| `scope` | All scopes | `BudgetScope` | Yes | `BudgetScope.Application`, `BudgetScope.Tenant`, or `BudgetScope.Execution`. |
-| `period` | `Application` & `Tenant` | `BudgetPeriod` | Yes | UTC accounting window: `BudgetPeriod.Day`, `BudgetPeriod.Week`, or `BudgetPeriod.Month`. Forbidden on `BudgetScope.Execution`. |
-| `workflow` | `Execution` | `Class` | No | Optional `@Workflow` class this execution cap applies to; omit to set the default cap for all root executions. |
-| `deps` | All scopes | `readonly Token[]` | No | Constructor dependencies (`AppEnvironment`, `TenantContext`, `ExecutionContext`, or `@Injectable` billing services). |
-
 ## Complete `@Budget` example across all 3 scopes
 
-```ts title="src/budgets/support.budgets.ts" no-check: reference example
-import { Budget, BudgetPeriod, BudgetScope, ExecutionContext, type BudgetHandler } from "agboss";
+```ts title="src/budgets/support.budgets.ts" file=src/budgets/support.budgets.ts
+import {
+  Budget,
+  BudgetPeriod,
+  BudgetScope,
+  EmptyEnvironment,
+  ExecutionContext,
+  TenantContext,
+  type BudgetHandler,
+} from "agboss";
+import { Text } from "agboss/dto";
 import { usd, type Usd } from "agboss/units";
-import { AppEnvironment } from "../environments/app.environment.js";
-import { SupportTenantContext } from "../config/context.config.js";
-import { DeepResearchWorkflow } from "../workflows/deep-research.workflow.js";
+import { DeepResearchWorkflow } from "../workflows/support.workflow.js";
+
+export class SupportTenantContext extends TenantContext {
+  @Text()
+  planTier!: string;
+}
 
 // 1. Application-wide daily cap:
 @Budget({
   name: "application-daily-budget",
   scope: BudgetScope.Application,
   period: BudgetPeriod.Day,
-  deps: [AppEnvironment],
+  deps: [EmptyEnvironment],
 })
 export class ApplicationDailyBudget implements BudgetHandler {
-  constructor(private readonly env: AppEnvironment) {}
+  constructor(private readonly _env: EmptyEnvironment) {}
 
   maxSpend(): Usd {
     return usd(100);
@@ -66,6 +66,7 @@ export class DefaultExecutionBudget implements BudgetHandler {
   constructor(private readonly executionContext: ExecutionContext) {}
 
   maxSpend(): Usd {
+    void this.executionContext.executionId;
     return usd(0.15);
   }
 }
@@ -82,37 +83,112 @@ export class DeepResearchExecutionBudget implements BudgetHandler {
 }
 ```
 
-```ts title="src/support.application.ts" no-check: reference example
-import { Application, SqliteCostLedgerRepository } from "agboss";
-import { AppDailyBudget, TenantMonthlyBudget, ExecutionRunBudget } from "./budgets/support.budgets.js";
-import { SupportWorkflow } from "./workflows/support.workflow.js";
+```ts title="src/support.application.ts" file=src/support.application.ts
+import { Application, EmptyEnvironment, SqliteCostLedgerRepository } from "agboss";
+import {
+  ApplicationDailyBudget,
+  DeepResearchExecutionBudget,
+  DefaultExecutionBudget,
+  SupportTenantContext,
+  TenantDailyBudget,
+} from "./budgets/support.budgets.js";
+import { DeepResearchWorkflow, SupportWorkflow } from "./workflows/support.workflow.js";
 
 @Application({
   name: "support-application",
   version: "1.0.0",
-  workflows: [SupportWorkflow],
+  environment: EmptyEnvironment,
+  tenantContext: SupportTenantContext,
+  workflows: [SupportWorkflow, DeepResearchWorkflow],
   providers: [SqliteCostLedgerRepository],
-  budgets: [AppDailyBudget, TenantMonthlyBudget, ExecutionRunBudget],
+  budgets: [
+    ApplicationDailyBudget,
+    TenantDailyBudget,
+    DefaultExecutionBudget,
+    DeepResearchExecutionBudget,
+  ],
 })
 export class SupportApplication {}
 ```
 
-```ts title="test/budget-cap.test.ts" no-check: reference example
+<!--
+```ts file=src/workflows/support.workflow.ts
+import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+
+@WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
+export class SupportStart {}
+
+@WorkflowStart({ name: "research-workflow-start", description: "Research start", input: WorkflowStartTextDto })
+export class ResearchStart {}
+
+@WorkflowFinish({ name: "support-workflow-finish", description: "Finish", output: WorkflowFinishTextDto })
+export class SupportFinish {}
+
+@Agent({ name: "support-agent", description: "Support", model: "moonshotai/kimi-k2.6", prompt: "Help." })
+export class SupportAgent {}
+
+@Workflow({
+  name: "support-workflow",
+  version: "1.0.0",
+  flow: [
+    start(SupportStart)
+      .returns(WorkflowStartTextDto)
+      .toAgent(SupportAgent)
+      .toFinish(SupportFinish),
+  ],
+})
+export class SupportWorkflow {}
+
+@Workflow({
+  name: "deep-research-workflow",
+  version: "1.0.0",
+  flow: [
+    start(ResearchStart)
+      .returns(WorkflowStartTextDto)
+      .toAgent(SupportAgent)
+      .toFinish(SupportFinish),
+  ],
+})
+export class DeepResearchWorkflow {}
+```
+-->
+
+```ts title="test/budget-cap.test.ts" file=test/budget-cap.test.ts
 import { expect } from "vitest";
+import { BudgetExceededError } from "agboss";
 import { replyWith, testWith } from "agboss/testing";
 import { usd } from "agboss/units";
 import { SupportApplication } from "../src/support.application.js";
+import { SupportAgent, SupportStart } from "../src/workflows/support.workflow.js";
 
 const test = testWith(SupportApplication);
 
-test("halts execution when simulated spend exceeds ExecutionRunBudget", async ({ app, mockLlm }) => {
+test("halts execution when simulated spend exceeds DefaultExecutionBudget", async ({ app, mockLlm }) => {
   mockLlm(SupportAgent).thenReturn(
-    replyWith(SupportReplyDto, { text: "Expensive turn" }, { cost: usd(1.25) }),
+    replyWith("Expensive turn", { cost: usd(1.25) }),
   );
-  const res = await app.execute(SupportStart, { text: "Analyze all logs" });
-  expect(res.isFailed()).toBe(true);
+  await expect(
+    app.execute(
+      SupportStart,
+      { text: "Analyze all logs" },
+      { tenant: { tenantId: "acme", weight: 1, planTier: "pro" } },
+    ),
+  ).rejects.toThrow(BudgetExceededError);
 });
 ```
+
+## What options does `@Budget` accept?
+
+Every `@Budget` class implements `BudgetHandler` (`maxSpend(): Usd | Promise<Usd>`) and its `name` ends with `-budget`:
+
+| Option | Applies To | Type | Required | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `name` | All scopes | `string` | Yes | Unique kebab-case identifier ending with `-budget` (e.g., `"tenant-daily-budget"`). |
+| `scope` | All scopes | `BudgetScope` | Yes | `BudgetScope.Application`, `BudgetScope.Tenant`, or `BudgetScope.Execution`. |
+| `period` | `Application` & `Tenant` | `BudgetPeriod` | Yes | UTC accounting window: `BudgetPeriod.Day`, `BudgetPeriod.Week`, or `BudgetPeriod.Month`. Forbidden on `BudgetScope.Execution`. |
+| `workflow` | `Execution` | `Class` | No | Optional `@Workflow` class this execution cap applies to; omit to set the default cap for all root executions. |
+| `deps` | All scopes | `readonly Token[]` | No | Constructor dependencies (`AppEnvironment`, `TenantContext`, `ExecutionContext`, or `@Injectable` billing services). |
 
 ## What related entities work with `@Budget`?
 

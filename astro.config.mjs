@@ -58,7 +58,7 @@ export default defineConfig({
 		starlight({
 			title: 'AGBoss',
 			description:
-				'Strictly typed TypeScript framework for mission-critical multi-agent systems and autonomous digital & Physical AI missions on LangGraph — transactional sagas (compensateWith / committedBy), compile-time Path Scope DSL, FinOps budgets, two-phase pauses with withdraw, multi-instance work-stealing leases, and deterministic testing.',
+				'AGBoss (Agent Graph Builder Open Source System) is a strictly typed TypeScript framework, static compiler (agboss check), and production runtime for multi-agent systems with hundreds of nodes on LangGraph, with HarnessDSL (HDSL) — its built-in declarative graph grammar and verification specification enforcing 7 distributed-systems principles and AGENTS.md coding skills.',
 			logo: {
 				light: './src/assets/agboss-mark-light.svg',
 				dark: './src/assets/agboss-mark-dark.svg',
@@ -77,7 +77,7 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://agboss.dev/og-image.png' } },
 				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
 				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
-				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss — Spring-style TypeScript Framework for LangGraph AI Agents' } },
+				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss (Agent Graph Builder Open Source System) — Static Graph Compiler & Runtime for LangGraph with HarnessDSL' } },
 				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://agboss.dev/og-image.png' } },
 			],
@@ -96,12 +96,15 @@ export default defineConfig({
 				{
 					label: 'Core Concepts',
 					items: [
+						{ label: '7 Architectural Principles', slug: 'concepts/architecture' },
+						{ label: 'AI Coding Skills (AGENTS.md)', slug: 'concepts/ai-coding-skills' },
+						{ label: 'Progressive Crystallization', slug: 'concepts/progressive-crystallization' },
 						{ label: 'Application & Lifecycle', slug: 'concepts/application' },
 						{ label: 'Digital & Physical Missions', slug: 'concepts/mission-orchestration' },
-						{ label: 'Decorators & Naming', slug: 'concepts/decorators' },
-						{ label: 'Workflow DSL', slug: 'concepts/workflow' },
-						{ label: 'Path Scope & Provenance', slug: 'concepts/path-scope' },
-						{ label: 'Dependency Injection', slug: 'concepts/dependency-injection' },
+						{ label: 'Decorators & Role Segregation', slug: 'concepts/decorators' },
+						{ label: 'Workflow DSL & Topology', slug: 'concepts/workflow' },
+						{ label: 'Path Scope (SSA) & Provenance', slug: 'concepts/path-scope' },
+						{ label: 'DI & Custom Overrides', slug: 'concepts/dependency-injection' },
 						{ label: 'Contexts & Authorization', slug: 'concepts/contexts' },
 						{ label: 'Environments, Secrets & Units', slug: 'concepts/environments' },
 					],
@@ -110,16 +113,16 @@ export default defineConfig({
 					label: 'Production Guides',
 					items: [
 						{ label: 'Parallel, Quorums & Child Workflows', slug: 'guides/parallel-quorums-and-child-workflows' },
-						{ label: 'Memory & Compaction', slug: 'guides/memory-and-compaction' },
-						{ label: 'Channels & Pauses', slug: 'guides/channels-and-pauses' },
+						{ label: 'Channels, Pauses & Webhooks', slug: 'guides/channels-and-pauses' },
+						{ label: 'Multi-Instance, Leases & SQLite', slug: 'guides/persistence-and-recovery' },
+						{ label: 'Testing & 10 Unit Runners', slug: 'guides/testing-agents' },
+						{ label: 'Evals, Golden Sets & Profiles', slug: 'guides/evaluation-and-profiles' },
 						{ label: 'Error Handling & Rollback', slug: 'guides/error-handling-and-rollback' },
 						{ label: 'FinOps & Model Providers', slug: 'guides/finops-and-providers' },
 						{ label: 'PII Policies & Guardrails', slug: 'guides/security-and-pii' },
-						{ label: 'Persistence, Leases & Recovery', slug: 'guides/persistence-and-recovery' },
-						{ label: 'Testing & Unit Runners', slug: 'guides/testing-agents' },
+						{ label: 'Memory & Compaction', slug: 'guides/memory-and-compaction' },
 						{ label: 'Observability & Tracing', slug: 'guides/observability-and-tracing' },
-						{ label: 'Profiles & Evaluation', slug: 'guides/evaluation-and-profiles' },
-						{ label: 'MCP, RAG, A2A & AI Skills', slug: 'guides/mcp-rag-and-a2a' },
+						{ label: 'MCP, RAG & A2A Protocols', slug: 'guides/mcp-rag-and-a2a' },
 					],
 				},
 				{
@@ -129,6 +132,7 @@ export default defineConfig({
 						{ label: '@Workflow', slug: 'reference/workflow' },
 						{ label: '@WorkflowStart', slug: 'reference/workflow-start' },
 						{ label: '@WorkflowFinish', slug: 'reference/workflow-finish' },
+						{ label: '@HealthCheck', slug: 'reference/health-check' },
 					],
 				},
 				{
@@ -139,6 +143,7 @@ export default defineConfig({
 						{ label: '@Router', slug: 'reference/router' },
 						{ label: '@Arbiter', slug: 'reference/arbiter' },
 						{ label: '@OnAnswer', slug: 'reference/on-answer' },
+						{ label: '@Compaction', slug: 'reference/compaction' },
 					],
 				},
 				{
@@ -146,6 +151,7 @@ export default defineConfig({
 					items: [
 						{ label: '@Tool', slug: 'reference/tool' },
 						{ label: '@BindTool', slug: 'reference/bind-tool' },
+						{ label: '@ToolInterceptor', slug: 'reference/tool-interceptor' },
 						{ label: '@Judge', slug: 'reference/judge' },
 						{ label: '@Injectable', slug: 'reference/injectable' },
 						{ label: 'DTO Field Decorators', slug: 'reference/dto' },
@@ -157,9 +163,10 @@ export default defineConfig({
 						{ label: '@ModelProvider', slug: 'reference/model-provider' },
 						{ label: '@Budget', slug: 'reference/budget' },
 						{ label: '@PiiPolicy', slug: 'reference/pii-policy' },
-						{ label: '@Guardrail', slug: 'reference/guardrail' },
+						{ label: '@InputGuardrail & @OutputGuardrail', slug: 'reference/guardrail' },
 						{ label: '@ChannelRole', slug: 'reference/channel-role' },
 						{ label: '@Channel', slug: 'reference/channel' },
+						{ label: '@ReplyInterpreter', slug: 'reference/reply-interpreter' },
 					],
 				},
 				{
@@ -191,21 +198,21 @@ export default defineConfig({
 			},
 			plugins: [
 				starlightLlmsTxt({
-					projectName: 'AGBoss',
+					projectName: 'AGBoss (Agent Graph Builder Open Source System)',
 					description:
-						'Strictly typed TypeScript framework for mission-critical multi-agent workflows, enterprise backend automation, and high-level Physical AI / Robotics mission planning (System-2 orchestrator) on LangGraph — @Application assembly root, compile-time Path Scope Flow DSL, transactional sagas with compensateWith / committedBy and automatic LIFO unwinding, constructor dependency injection by class inheritance, @ModelProvider rate limits and tenant-fair queues, @Budget FinOps caps with instant sibling abort, @PiiPolicy boundary token masking with cross-pod piiTokens persistence, @ChannelRole two-phase pauses with ChannelHandler.withdraw, durable multi-instance SQLite work-stealing leases with maxInstanceConcurrency backpressure, agboss describe --json revision snapshots, and deterministic testing via testWith(App) and 8 isolated unit runners.',
+						'AGBoss (Agent Graph Builder Open Source System) is the TypeScript framework, static graph compiler (agboss check), and production runtime for multi-agent systems scaling to hundreds of nodes and System-2 Physical AI orchestration on LangGraph (npm i agboss), and HarnessDSL (HDSL) is the declarative graph grammar and verification specification inside AGBoss (analogous to JSX in React or PSL in Prisma — defining how *.workflow.ts flow chains and contract decorators express narrow @Dto handoffs, Path Scope, in-degree = 1 vs >= 2 canonical topology, { about } staleness tracking, quorums, and compensateWith / committedBy sagas). Together they enforce 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & 4-Stage Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, leases, K8s probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join from DecidedBy.Model to DecidedBy.Code).',
 					details:
-						'AGBoss layers strict software engineering architecture on top of LangGraph in TypeScript for both long-running digital missions (FinTech, SecOps, enterprise operations) and System-2 Physical AI / robotics mission orchestration above real-time hardware control loops. Workflows are written with one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by class decorators, and durations/money use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`).',
+						'AGBoss (Agent Graph Builder Open Source System) is engineered for Senior, Staff, Principal, and CTO engineers who decompose complex domains into specialized agent graphs using AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code). Instead of allowing coding agents to generate an untyped mutable God State Object with tangled side effects and broken KV caches, AGBoss and its built-in HarnessDSL (HDSL) grammar enforce distributed-systems invariants at compile time via `agboss check` (emitting `.agboss/types.d.ts`) and guide coding agents via auto-synced `AGENTS.md` + 12 skill reference modules (`references/01..12`) and `agboss/eslint`. In HarnessDSL, workflows use strictly one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
 					customSets: [
 						{
-							label: 'Core Concepts & Flow DSL',
+							label: 'Core Concepts & HarnessDSL (HDSL)',
 							paths: ['getting-started/**', 'concepts/**'],
-							description: 'Application assembly, Path Scope Flow DSL, decorators, and dependency injection.',
+							description: 'Application assembly, HarnessDSL (HDSL) Path Scope grammar, decorators, and dependency injection.',
 						},
 						{
 							label: 'Production, FinOps, Security & Testing Guides',
 							paths: ['guides/**'],
-							description: 'Testing with testWith and 8 unit runners, error handling and rollback, channels and two-phase pauses, FinOps budgets, PII policies, SQLite durability, Langfuse tracing, profiles, MCP, RAG, and AI coding skills.',
+							description: 'Testing with testWith and 10 unit runners, @EvalSuite and pass@k / pass^k, error handling and rollback, channels and two-phase pauses, FinOps budgets, PII policies, SQLite durability, Langfuse tracing, MCP, RAG, A2A mesh, and AI coding skills.',
 						},
 						{
 							label: 'API Reference, CLI & Changelog',

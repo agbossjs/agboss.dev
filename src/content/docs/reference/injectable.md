@@ -3,26 +3,31 @@ title: "@Injectable"
 description: Complete API reference for @Injectable in AGBoss — constructor dependency injection, OnInit/OnStart/OnStop/OnDestroy lifecycle hooks, and DI overrides.
 ---
 
-The `@Injectable` decorator marks a TypeScript class (`services/*.service.ts` or `observers/*.observer.ts`) as a managed singleton in the AGBoss dependency injection container. Injectable classes receive their constructor dependencies via `deps: [...]`, participate in the four application lifecycle phases (`OnInit`, `OnStart`, `OnStop`, `OnDestroy`), can implement `ExecutionObserver` hooks (`OnExecutionEnd`, `OnToolEnd`, `OnSpend`, `OnValuesOutdated`), and are replaced in tests by class inheritance via `override(BaseService, FakeService)`.
-
-## What options does `@Injectable` accept?
-
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `deps` | `readonly Token[]` | No | Ordered list of constructor dependency tokens (`AppEnvironment`, `ExecutionContext`, `TenantContext`, `ApplicationContext`, `Clock`, `Logger`, `ROUTER_FACTORY`, or other `@Injectable` classes) verified against constructor parameters by TypeScript. |
+The `@Injectable` decorator marks a TypeScript class (`services/*.service.ts` or `observers/*.observer.ts`) as a managed singleton in the AGBoss dependency injection container. Injectable classes receive their constructor dependencies via `deps: [...]`, participate in the four application lifecycle phases (`OnInit`, `OnStart`, `OnStop`, `OnDestroy`), can implement `ExecutionObserver` hooks (`OnExecutionEnd`, `OnToolEnd`, `OnModelEnd`, `OnValuesOutdated`), and are replaced in tests by class inheritance via `override(BaseService, FakeService)`.
 
 ## Complete `@Injectable` example with lifecycle hooks and DI
 
-```ts title="src/services/job-index.service.ts" no-check: reference example
-import { ApplicationContext, Clock, ExecutionContext, Injectable, Logger, OnDestroy, OnInit, OnStart, OnStop } from "agboss";
-import { AppEnvironment } from "../environments/app.environment.js";
+```ts title="src/services/job-index.service.ts" file=src/services/job-index.service.ts
+import {
+  ApplicationContext,
+  Clock,
+  EmptyEnvironment,
+  ExecutionContext,
+  Injectable,
+  LogLevel,
+  Logger,
+  type OnDestroy,
+  type OnInit,
+  type OnStart,
+  type OnStop,
+} from "agboss";
 
 @Injectable({
-  deps: [AppEnvironment, ApplicationContext, ExecutionContext, Clock, Logger],
+  deps: [EmptyEnvironment, ApplicationContext, ExecutionContext, Clock, Logger],
 })
 export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
   constructor(
-    private readonly env: AppEnvironment,
+    private readonly _env: EmptyEnvironment,
     private readonly appContext: ApplicationContext,
     private readonly executionContext: ExecutionContext,
     private readonly clock: Clock,
@@ -30,33 +35,62 @@ export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
   ) {}
 
   async onInit(): Promise<void> {
-    this.logger.info(`Initializing index on host ${this.appContext.hostId}`);
+    this.logger.write({
+      level: LogLevel.Info,
+      code: "job-index.init",
+      message: `Initializing index on host ${this.appContext.host.hostname}`,
+      time: this.clock.now(),
+    });
   }
 
   async onStart(): Promise<void> {
-    this.logger.info(`Ready to accept traffic at ${this.clock.now().toISOString()}`);
+    this.logger.write({
+      level: LogLevel.Info,
+      code: "job-index.ready",
+      message: `Ready to accept traffic at ${this.clock.now().toISOString()}`,
+      time: this.clock.now(),
+    });
   }
 
   async searchByTenant(query: string): Promise<string[]> {
     const idempotencyKey = this.executionContext.step.idempotencyKey;
-    this.logger.debug(`Searching for "${query}" (${idempotencyKey})`);
-    return [`Senior TypeScript Engineer — ${query}`];
+    return [`Senior TypeScript Engineer — ${query} (${idempotencyKey})`];
   }
 
   async onStop(): Promise<void> {
-    this.logger.info("Draining in-flight index queries before lease release");
+    this.logger.write({
+      level: LogLevel.Info,
+      code: "job-index.stop",
+      message: "Draining in-flight index queries before lease release",
+      time: this.clock.now(),
+    });
   }
 
   async onDestroy(): Promise<void> {
-    this.logger.info("Closing underlying index file descriptors");
+    this.logger.write({
+      level: LogLevel.Info,
+      code: "job-index.destroy",
+      message: "Closing underlying index file descriptors",
+      time: this.clock.now(),
+    });
   }
 }
 ```
 
-```ts title="src/tools/search-jobs.tool.ts" no-check: reference example
+```ts title="src/tools/search-jobs.tool.ts" file=src/tools/search-jobs.tool.ts
 import { Tool, type ToolHandler } from "agboss";
+import { ListOf, Text } from "agboss/dto";
 import { JobIndexService } from "../services/job-index.service.js";
-import { JobSearchInputDto, JobSearchOutputDto } from "../dto/job-search.dto.js";
+
+export class JobSearchInputDto {
+  @Text({ prompt: "Role search query" })
+  query!: string;
+}
+
+export class JobSearchOutputDto {
+  @ListOf(Text, { prompt: "Matching roles" })
+  jobs!: string[];
+}
 
 @Tool({
   name: "search_jobs",
@@ -69,33 +103,52 @@ export class SearchJobsTool implements ToolHandler<JobSearchInputDto, JobSearchO
   constructor(private readonly index: JobIndexService) {}
 
   async run(input: JobSearchInputDto): Promise<JobSearchOutputDto> {
-    return { jobs: await this.index.query(input.query) };
+    return { jobs: await this.index.searchByTenant(input.query) };
   }
 }
 ```
 
-## What related entities work with `@Injectable`?
+```ts title="src/job-scout.application.ts" file=src/job-scout.application.ts
+import {
+  Application,
+  Budget,
+  BudgetPeriod,
+  BudgetScope,
+  EmptyEnvironment,
+  type BudgetHandler,
+} from "agboss";
+import { usd, type Usd } from "agboss/units";
+import { JobIndexService } from "./services/job-index.service.js";
+import { JobScoutWorkflow } from "./workflows/job-scout.workflow.js";
 
-| Related Entity | Import Path | Purpose |
-| :--- | :--- | :--- |
-| `OnInit`, `OnStart`, `OnStop`, `OnDestroy` | `"agboss"` | Four deterministic container lifecycle hooks executed during `createApp()` startup and `app.close()` shutdown on every container element. |
-| `ExecutionContext`, `TenantContext`, `ApplicationContext` | `"agboss"` | Built-in context classes injectable into any service constructor (`ExecutionContext` reads current step metadata via `AsyncLocalStorage`). |
-| `Clock` & `Logger` | `"agboss"` | Built-in time and PII-redacted structured logging singletons (`Clock` is replaced by `VirtualClock` in `testWith()`). |
-| `InjectionToken<T>` & `provide(TOKEN, value)` | `"agboss"` | Binds non-class configuration values or factory tokens (`ROUTER_FACTORY`) in `@Workflow({ providers })`. |
-| `override(BaseClass, SubClass)` & `mockOf(ServiceClass)` | `"agboss/testing"` | Replaces a service with a subclass or spy in `testWith()`, `testTool()`, `testAction()`, or `testRouter()`. |
+@Budget({ name: "js-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
+export class JsAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(20); } }
+@Budget({ name: "js-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
+export class JsTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
+@Budget({ name: "js-exec-budget", scope: BudgetScope.Execution })
+export class JsExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
 
-### Overriding and spying on an `@Injectable` service in tests
+@Application({
+  name: "job-scout-application",
+  version: "1.0.0",
+  environment: EmptyEnvironment,
+  workflows: [JobScoutWorkflow],
+  providers: [JobIndexService],
+  budgets: [JsAppBudget, JsTenantBudget, JsExecBudget],
+})
+export class JobScoutApplication {}
+```
 
-```ts title="test/job-index.service.test.ts" no-check: reference example
+```ts title="test/job-index.service.test.ts" file=test/job-index.service.test.ts
 import { expect } from "vitest";
 import { override, testWith } from "agboss/testing";
-import { JobScoutApplication } from "../job-scout.application.js";
-import { JobIndexService } from "./job-index.service.js";
-import { ChatWorkflowStart } from "../workflow-starts/chat.workflow-start.js";
+import { JobScoutApplication } from "../src/job-scout.application.js";
+import { JobIndexService } from "../src/services/job-index.service.js";
+import { ChatWorkflowStart } from "../src/workflows/job-scout.workflow.js";
 
 class FakeJobIndexService extends JobIndexService {
-  override async searchByTenant(): Promise<string[]> {
-    return ["Stubbed Staff Engineer Role"];
+  override searchByTenant(): Promise<string[]> {
+    return Promise.resolve(["Stubbed Staff Engineer Role"]);
   }
 }
 
@@ -109,14 +162,53 @@ test("uses FakeJobIndexService and spies on calls via mockOf", async ({ app, moc
 });
 ```
 
-```ts title="src/job-scout.application.ts" no-check: reference example
-import { Application } from "agboss";
-import { JobScoutWorkflow } from "./workflows/job-scout.workflow.js";
+<!--
+```ts file=src/workflows/job-scout.workflow.ts
+import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { SearchJobsTool } from "../tools/search-jobs.tool.js";
 
-@Application({
-  name: "job-scout-application",
-  version: "1.0.0",
-  workflows: [JobScoutWorkflow],
+@WorkflowStart({ name: "chat-workflow-start", description: "Start", input: WorkflowStartTextDto })
+export class ChatWorkflowStart {}
+
+@WorkflowFinish({ name: "chat-workflow-finish", description: "Finish", output: WorkflowFinishTextDto })
+export class ChatWorkflowFinish {}
+
+@Agent({
+  name: "scout-agent",
+  description: "Searches jobs",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Search jobs using search_jobs.",
+  tools: [SearchJobsTool],
 })
-export class JobScoutApplication {}
+export class ScoutAgent {}
+
+@Workflow({
+  name: "job-scout-workflow",
+  version: "1.0.0",
+  flow: [
+    start(ChatWorkflowStart)
+      .returns(WorkflowStartTextDto)
+      .toAgent(ScoutAgent)
+      .toFinish(ChatWorkflowFinish),
+  ],
+})
+export class JobScoutWorkflow {}
 ```
+-->
+
+## What options does `@Injectable` accept?
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `deps` | `readonly Token[]` | No | Ordered list of constructor dependency tokens (`AppEnvironment`, `ExecutionContext`, `TenantContext`, `ApplicationContext`, `Clock`, `Logger`, `ROUTER_FACTORY`, or other `@Injectable` classes) verified against constructor parameters by TypeScript. |
+
+## What related entities work with `@Injectable`?
+
+| Related Entity | Import Path | Purpose |
+| :--- | :--- | :--- |
+| `OnInit`, `OnStart`, `OnStop`, `OnDestroy` | `"agboss"` | Four deterministic container lifecycle hooks executed during `createApp()` startup and `app.close()` shutdown on every container element. |
+| `ExecutionContext`, `TenantContext`, `ApplicationContext` | `"agboss"` | Built-in context classes injectable into any service constructor (`ExecutionContext` reads current step metadata via `AsyncLocalStorage`). |
+| `Clock` & `Logger` | `"agboss"` | Built-in time and PII-redacted structured logging singletons (`Clock` is replaced by `VirtualClock` in `testWith()`). |
+| `InjectionToken<T>` & `provide(TOKEN, value)` | `"agboss"` | Binds non-class configuration values or factory tokens (`ROUTER_FACTORY`) in `@Workflow({ providers })`. |
+| `override(BaseClass, SubClass)` & `mockOf(ServiceClass)` | `"agboss/testing"` | Replaces a service with a subclass or spy in `testWith()`, `testTool()`, `testAction()`, or `testRouter()`. |

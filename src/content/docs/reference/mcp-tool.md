@@ -1,31 +1,27 @@
 ---
 title: "@McpTool"
-description: Complete API reference for the @McpTool decorator in AGBoss — binding external Model Context Protocol server tools with typed DTO schemas and guardrails.
+description: Complete API reference for the @McpTool decorator in agboss/mcp — wrapping external Model Context Protocol server tools with typed DTO schemas, DI, and channels.
 ---
 
-The `@McpTool` decorator binds a single tool from an `@McpServer` as a typed, guardrail-protected AGBoss tool class (`mcp/*.mcp.ts`). At startup or `agboss check`, AGBoss verifies that the remote MCP tool's JSON Schema is compatible with your declared `input` and `output` DTO classes.
-
-## What options does `@McpTool` accept?
-
-| Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | Unique snake_case tool identifier exposed to `@Agent({ tools })` (e.g., `"create_pull_request"`). |
-| `description` | `string` | Yes | Instructions telling the LLM when and how to call this MCP tool. |
-| `server` | `Class` | Yes | The [`@McpServer`](/reference/mcp/) class that hosts this tool. |
-| `toolName` | `string` | No | Remote tool name on the MCP server when it differs from `name`. |
-| `input` | `DtoClass` | Yes | DTO class validating arguments before sending them over MCP. |
-| `output` | `DtoClass` | No | DTO class validating the structured MCP tool result. |
-| `timeout` | `Milliseconds` | No | Per-call timeout (`seconds(15)`) enforced via `AbortSignal`. |
-| `approvalChannel` | `Class` | No | [`@ChannelRole`](/reference/channel-role/) or [`@Channel`](/reference/channel/) requiring human approval before invoking the MCP tool. |
+The `@McpTool` decorator (`"agboss/mcp"`) wraps an external [`@McpServer`](/reference/mcp/) tool inside a typed AGBoss `ToolHandler<In, Out>` class. Because an `@McpTool` is a first-class class with constructor dependency injection (`deps`), it can inject its `@McpServer` client, `ExecutionContext`, `SpendRecorder`, or custom services, and can require human approval via `channel: MyChannelRole`.
 
 ## Complete `@McpTool` example
 
-```ts title="src/mcp/create-pull-request.mcp.ts" no-check: reference example
-import { McpTool } from "agboss/mcp";
+```ts title="src/mcp/create-pull-request.mcp.ts" file=src/mcp/create-pull-request.mcp.ts
+import {
+  ChannelRole,
+  ChannelOf,
+  PauseAnswerer,
+  type ToolHandler,
+} from "agboss";
 import { Integer, Text, Url } from "agboss/dto";
+import {
+  McpServer,
+  McpServerClient,
+  McpTool,
+  type ServerTools,
+} from "agboss/mcp";
 import { seconds } from "agboss/units";
-import { GithubMcpServer } from "./github.server.js";
-import { ReleaseApprovalChannelRole } from "../channels/release-approval.channel-role.js";
 
 export class CreatePrInputDto {
   @Text({ prompt: "Repository in owner/name format" })
@@ -42,54 +38,99 @@ export class CreatePrInputDto {
 }
 
 export class CreatePrOutputDto {
-  @Integer()
+  @Integer({ prompt: "PR number" })
   number!: number;
 
-  @Url()
+  @Url({ prompt: "PR HTML URL" })
   htmlUrl!: string;
 }
+
+const githubTools = {
+  create_pull_request: {
+    input: CreatePrInputDto,
+    output: CreatePrOutputDto,
+  },
+} as const satisfies ServerTools;
+
+@McpServer({
+  name: "github-mcp-server",
+  transport: "stdio",
+  command: "npx",
+  args: ["-y", "@modelcontextprotocol/server-github"],
+  tools: githubTools,
+})
+export class GithubMcpServer extends McpServerClient<typeof githubTools> {}
+
+@ChannelRole({
+  name: "release-approval-channel",
+  description: "Approves opening release pull requests",
+  approves: CreatePrInputDto,
+  answeredBy: PauseAnswerer.Channel,
+})
+export abstract class ReleaseApprovalChannel
+  extends ChannelOf<ReleaseApprovalChannel> {}
 
 @McpTool({
   name: "create_pull_request",
   description: "Opens a GitHub pull request via the GitHub MCP server after human approval",
   server: GithubMcpServer,
-  toolName: "create_pull_request",
   input: CreatePrInputDto,
   output: CreatePrOutputDto,
   timeout: seconds(20),
-  approvalChannel: ReleaseApprovalChannelRole,
+  channel: ReleaseApprovalChannel,
+  deps: [GithubMcpServer],
 })
-export class CreatePullRequestMcpTool {}
+export class CreatePullRequestMcpTool
+  implements ToolHandler<CreatePrInputDto, CreatePrOutputDto>
+{
+  constructor(private readonly github: GithubMcpServer) {}
+
+  run(input: CreatePrInputDto): Promise<CreatePrOutputDto> {
+    return this.github.call("create_pull_request", input);
+  }
+}
 ```
 
-```ts title="src/mcp/github.server.ts" no-check: reference example
-import { McpServer } from "agboss/mcp";
-import { seconds } from "agboss/units";
+```ts title="test/create-pull-request.mcp.test.ts" file=test/create-pull-request.mcp.test.ts
+import { expect, it } from "vitest";
+import { mcpServerStub } from "agboss/testing";
+import {
+  CreatePullRequestMcpTool,
+  GithubMcpServer,
+} from "../src/mcp/create-pull-request.mcp.js";
 
-@McpServer({
-  name: "github-mcp-server",
-  description: "Official GitHub MCP server over stdio",
-  command: "npx",
-  args: ["-y", "@modelcontextprotocol/server-github"],
-  timeout: seconds(15),
-})
-export class GithubMcpServer {}
-```
-
-```ts title="test/create-pull-request.mcp.test.ts" no-check: reference example
-import { expect } from "vitest";
-import { mockTool, testWith } from "agboss/testing";
-import { ReleaseApplication } from "../src/release.application.js";
-import { CreatePullRequestMcpTool } from "../src/mcp/create-pull-request.mcp.js";
-
-const test = testWith(ReleaseApplication);
-
-test("stubs @McpTool deterministically with mockTool() without spawning stdio servers", async ({ app }) => {
-  mockTool(CreatePullRequestMcpTool).thenReturn({
-    number: 42,
-    htmlUrl: "https://github.com/agbossjs/agboss/pull/42",
+it("unit-tests @McpTool offline using mcpServerStub", async () => {
+  const github = mcpServerStub(GithubMcpServer, {
+    create_pull_request: () =>
+      Promise.resolve({
+        number: 42,
+        htmlUrl: "https://github.com/agbossjs/agboss/pull/42",
+      }),
   });
-  const res = await app.execute(ReleaseStart, { branch: "feat/quorum" });
-  expect(res.isFinished()).toBe(true);
+
+  const tool = new CreatePullRequestMcpTool(github);
+  const output = await tool.run({
+    repo: "agbossjs/agboss",
+    title: "feat: quorum priority groups",
+    head: "feat/quorum",
+    base: "main",
+  });
+  expect(output.number).toBe(42);
 });
 ```
+
+## What options does `@McpTool` accept?
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | **Yes** | Unique snake_case tool identifier exposed to `@Agent({ tools })` (e.g., `"create_pull_request"`). |
+| `description` | `string` | **Yes** | Instructions telling the LLM when and how to call this MCP tool. |
+| `server` | `Class` | **Yes** | The [`@McpServer`](/reference/mcp/) class that backs this tool (`extends McpServerClient<typeof tools>`). |
+| `input` | `DtoClass` | **Yes** | DTO class validating arguments before `run(input)` executes. |
+| `output` | `DtoClass` | **Yes** | DTO class validating the structured output returned by `run(input)`. |
+| `deps` | `readonly Token[]` | No | Constructor dependencies (typically `[MyMcpServer]` plus optional `ExecutionContext` or services). |
+| `channel` | `Class` | No | [`@ChannelRole`](/reference/channel-role/) or [`@Channel`](/reference/channel/) requiring human approval before invoking the MCP tool. |
+| `toolInterceptors` | `readonly Class[]` | No | [`@ToolInterceptor`](/reference/tool-interceptor/) classes attached directly to this MCP tool (`BeforeToolCall` / `AfterToolCall`). |
+| `excludeToolInterceptors` | `readonly Class[]` | No | Inherited application, workflow, or agent `@ToolInterceptor` classes exempted for this MCP tool. |
+| `timeout` | `Milliseconds` | No | Per-call timeout (`seconds(20)`); defaults to `seconds(30)`. |
+| `maxResultSize` | `Bytes` | No | Maximum UTF-8 result size (`kilobytes(256)`) shown to the model before truncation. |

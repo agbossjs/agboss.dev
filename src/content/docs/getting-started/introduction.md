@@ -1,32 +1,35 @@
 ---
 title: Introduction
-description: Learn what AGBoss is, why it exists, and how it brings dependency injection, static graph checks, and FinOps to LangGraph agents in TypeScript.
+description: Learn what AGBoss (Agent Graph Builder Open Source System) and HarnessDSL are, why they exist, and how their 7 distributed-systems invariants, compile-time Path Scope, and built-in AI coding skills keep LangGraph systems scaling to hundreds of nodes deterministic in TypeScript.
 ---
 
-AGBoss — short for **A**gent **G**raph **B**uilder, **O**pen-**S**ource **S**oftware — is a TypeScript application framework for building, testing, and operating [LangGraph](https://www.langchain.com/langgraph) agent workflows in production Node.js services. Think of it as Angular or NestJS for multi-agent systems: agents, tools, routers, MCP servers, and knowledge bases are decorated classes wired by a `@Workflow` module and assembled into a single `@Application` container.
+**AGBoss** — short for **A**gent **G**raph **B**uilder **O**pen **S**ource **S**ystem — is the TypeScript framework, static graph compiler (`agboss check`), and production runtime for building, testing, and operating [LangGraph](https://www.langchain.com/langgraph) multi-agent systems (`npm i agboss`). Inside AGBoss, **HarnessDSL (`HDSL`)** is the built-in declarative graph grammar and verification specification (analogous to JSX in React or PSL in Prisma) — defining how `*.workflow.ts` `flow` chains and contract decorators express narrow `@Dto` contracts, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` topology rules, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas.
+
+It is engineered for **Senior, Staff, and Principal engineers and CTOs** who build multi-agent graphs — from a few steps to hundreds of nodes — alongside **AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code)**. Instead of unconstrained state bags and untyped graph edges that degrade as coding agents iterate, AGBoss and HarnessDSL enforce [7 distributed-systems invariants](/concepts/architecture/) at compile time via `agboss check`.
 
 ## Why build on AGBoss instead of raw graph primitives?
 
-Building a prototype agent takes an afternoon, but running multi-agent workflows in production introduces architectural challenges that raw prompt chains do not solve out of the box:
+Building a 3-node prototype takes an afternoon, but scaling to a production graph with hundreds of nodes maintained by coding agents introduces failure modes that raw orchestration libraries do not prevent:
 
-- **Explicit path-based flow DSL:** The `@Workflow` `flow` array declares paths as readable sentences (`start(ChatWorkflowStart)` → `.returns(WorkflowStartTextDto)` → `.toRouter(MainRouter)` → `.chooseOne(...)`), with one chained method call per line.
-- **Compile-time DTO contracts:** Step inputs and outputs are TypeScript DTO classes (`@Text`, `@ListOf`, `oneOf`, `optional` from `agboss/dto`) checked by `npx agboss check --application src/job-scout.application.ts`.
-- **Single `@Application` assembly root:** Typed environment contracts (`AppEnvironment`, `secret()`, `env()`, `env.optional()`), shared `@ModelProvider` pools (`agboss/models`), `@Budget` spend limits, `@PiiPolicy` masking, `@Channel` pause transports, and observers are wired in one place.
-- **Deterministic testing (`agboss/testing`):** Boot the real application container with `testWith(Application)`, script model turns with `mockLlm` / `replyWith` / `routeTo` / `decideWith`, advance time on `VirtualClock`, and test single components with eight unit runners (`testTool`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testPii`, `testGuardrail`).
-- **Operational resilience:** Built-in `@Budget` ceilings across execution, tenant, and application scopes, provider rate-limiting with `QueueBalancingStrategy`, SQLite WAL state repositories, and 30-second execution leases with automatic crash recovery.
+- **Computational Role Segregation:** Distinct decorators ([`@Agent`](/reference/agent/), [`@Router`](/reference/router/), [`@Arbiter`](/reference/arbiter/), [`@Action`](/reference/action/), [`@Tool`](/reference/tool/)) prevent coding agents from creating monolithic "god nodes" that mix LLM calls, routing branches, consensus rules, and database writes.
+- **Canonical Topology Isomorphism & Path Scope SSA Dataflow:** The `@Workflow` `flow` array declares paths with strictly one chained method call per line (`start(ChatWorkflowStart)` &rarr; `.returns(WorkflowStartTextDto)` &rarr; `.toRouter(MainRouter)` &rarr; `.chooseOne(...)`). `npx agboss check` runs static dominance analysis, generates `.agboss/types.d.ts` with narrowed `Produced<Dto, Producer>` types, and rejects missing (`[input.missing-on-path]`) or stale loop artifacts (`[input.outdated-on-path]`).
+- **Prompt Prefix Cache Invariance & Boundary PII:** Static system prompt verification (`[prompt.input-in-instructions]`) and deterministic HMAC pseudonymization ([`PiiAction.replaceWithToken()`](/reference/pii-policy/)) preserve LLM KV-cache hit rates across turns while transparently restoring real values inside `@Tool` calls.
+- **Single `@Application` Assembly Root & 4-Stage Scaling:** Typed environment contracts (`AppEnvironment`, `secret()`, `env()`, `env.optional()`), shared [`@ModelProvider`](/reference/model-provider/) pools, mandatory [`@Budget`](/reference/budget/) ceilings, [`@ChannelRole`](/reference/channel-role/) pauses, [`@HealthCheck`](/reference/health-check/) probes, and 7 `Sqlite*` WAL storage repositories are wired in one place.
+- **Deterministic Offline Testing (`agboss/testing`):** Boot the real application container across multiple virtual instances with `testWith(Application, { instances: 2, concurrency: TestConcurrency.inOrder([...]) })`, advance time on `VirtualClock`, and test any component in isolation with 8 unit runners (`testTool`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testPii`, `testGuardrail`).
+- **Built-in AI Coding Skills & Progressive Crystallization:** Every project ships with committed `AGENTS.md` rules and offline-synced [`skills/agboss/`](/concepts/ai-coding-skills/) references, plus `agboss describe --json` (`configHash`, `promptHash`, `schemaHash`) for [crystallizing](/concepts/progressive-crystallization/) settled LLM paths into deterministic TypeScript.
 
 ## How AGBoss is organized
 
 | Layer | Public Entry | Key Primitives |
 | :--- | :--- | :--- |
-| **Application & Flow** | `agboss` | `@Application`, `createApp`, `@Workflow`, `@WorkflowStart`, `@WorkflowFinish`, `start`, `route`, `caseOf` |
-| **Components & DI** | `agboss` | `@Agent`, `@Action`, `@Router`, `@Arbiter`, `@Tool`, `@Injectable`, `ExecutionContext`, `Clock`, `Logger` |
-| **Data Contracts & Units** | `agboss/dto`, `agboss/units` | `@Text`, `@ListOf`, `oneOf`, `listOf`, `optional`, `usd()`, `seconds()`, `minutes()` |
-| **Models & Integrations** | `agboss/models`, `agboss/mcp`, `agboss/rag` | `@ModelProvider`, `RateLimitPolicy`, `@McpServer`, `@McpTool`, `@McpExpose`, `@Rag` |
+| **Application & Flow** | `agboss` | `@Application`, `createApp`, `@Workflow`, `@WorkflowStart`, `@WorkflowFinish`, `start`, `route`, `caseOf`, `ThisWorkflow` |
+| **Components & DI** | `agboss` | `@Agent`, `@Action`, `@Router`, `@Arbiter`, `@Tool`, `@Judge`, `@InputGuardrail`, `@OutputGuardrail`, `@Compaction`, `@Injectable`, `ExecutionContext`, `ApplicationContext`, `Clock`, `Logger` |
+| **Data Contracts & Units** | `agboss/dto`, `agboss/units` | `@Text`, `@Integer`, `@Decimal`, `@Flag`, `@OneOf`, `@ListOf`, `@Nested`, `oneOf`, `listOf`, `optional`, `historyOf`, `usd()`, `seconds()`, `minutes()`, `hours()` |
+| **Models & Integrations** | `agboss/models`, `agboss/mcp`, `agboss/rag`, `agboss/a2a` | `@ModelProvider`, `RateLimitPolicy`, `PromptCaching`, `@McpServer`, `@McpTool`, `@McpExpose`, `@Rag`, `SqliteFtsConnector`, `@A2aAgent` |
 | **Testing Harness** | `agboss/testing` | `testWith`, `TestConcurrency`, `VirtualClock`, `testTool`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testPii`, `testGuardrail` |
 
 ## Where to go next
 
-1. [Install the AGBoss CLI and runtime](/getting-started/installation/) in a new or existing TypeScript project.
-2. Follow the [Quick start](/getting-started/quick-start/) to build and run your first typed workflow and `@Application`.
-3. Explore the [Job Scout example](/examples/job-scout/) to see a complete multi-agent system with decision routing, MCP tools, RAG, and scripted tests.
+1. Read [Distributed-Systems Architecture (7 Core Invariants)](/concepts/architecture/) for the technical design behind AGBoss.
+2. [Install the AGBoss CLI and runtime](/getting-started/installation/) and follow the [Quick start](/getting-started/quick-start/) to run your first workflow.
+3. Explore [AI-Assisted Engineering & Skills](/concepts/ai-coding-skills/) and the [Job Scout example](/examples/job-scout/).

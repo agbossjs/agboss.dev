@@ -1,141 +1,182 @@
 ---
-title: "@Guardrail"
-description: Complete API reference for the @Guardrail decorator in AGBoss — beforeToolCall, afterToolCall, onChannelDecision, beforeAgentAnswer, and testGuardrail().
+title: "@InputGuardrail & @OutputGuardrail"
+description: Complete API reference for @InputGuardrail, @OutputGuardrail, DecidedBy.Model vs DecidedBy.Code, GuardrailHandler, GuardrailVerdict, GuardrailRefusal, and testGuardrail() in AGBoss.
 ---
 
-The `@Guardrail` decorator (`guardrails/*.guardrail.ts`) defines a programmable policy interceptor that inspects and validates tool calls, channel approval decisions, and agent answers at runtime. Guardrails can be attached at the `@Workflow`, `@Agent`, or `@Tool` level, receive constructor dependencies via `deps: [...]`, and can either mutate tool arguments (`{ overrideArguments }`) or throw to block execution.
+`@InputGuardrail` and `@OutputGuardrail` (`"agboss"`) define boundary safety checks on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), and [`@Router`](/reference/router/). Unlike [`@Judge`](/reference/judge/) (which retries an agent with feedback), a guardrail **blocks** execution immediately (`GuardFailedError`) when a message or reply violates the guardrail.
 
-## What options and lifecycle hooks does `@Guardrail` support?
+Both `@InputGuardrail` and `@OutputGuardrail` support two execution modes via `decidedBy`:
+- **`DecidedBy.Model` (default):** Evaluates a yes/no `prompt` against `model` (such as `"typesafe/jev-1.13"`) and blocks when $P(\text{yes}) \ge \text{threshold}$.
+- **`DecidedBy.Code`:** Runs a deterministic `check(text: string): Promise<GuardrailVerdict> | GuardrailVerdict` method on your `GuardrailHandler` class with full DI (`deps: [...]`) at `$0.00` LLM cost and `0` tokens (`model`, `prompt`, `promptUrls`, and `threshold` are forbidden).
 
-| Option / Hook | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | Yes | Unique kebab-case identifier for the guardrail (`"sql-read-only-guardrail"`). |
-| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `TenantContext`, `@Injectable` services). |
-| `beforeToolCall?(ctx)` | `(ctx: GuardrailContext) => Promise<void \| { overrideArguments?: unknown }>` | No | Runs before a tool executes; can throw to block the call or return `{ overrideArguments }` to sanitize inputs. |
-| `afterToolCall?(ctx)` | `(ctx: GuardrailContext) => Promise<void>` | No | Runs after a tool returns; can inspect results and throw to abort if sensitive or invalid data was returned. |
-| `onChannelDecision?(decision, ctx)` | `(decision: unknown, ctx: GuardrailContext) => Promise<void \| { overrideArguments?: unknown }>` | No | Runs when a human channel decision arrives before the paused tool runs. |
-| `beforeAgentAnswer?(ctx)` | `(ctx: GuardrailContext) => Promise<void>` | No | Runs on the agent's final reply (`ctx.replyWith`) before the node completes. |
+## Complete `@InputGuardrail` and `@OutputGuardrail` example
 
-## Complete `@Guardrail` example with all hooks
+```ts title="src/guardrails/clinic.guardrails.ts" file=src/guardrails/clinic.guardrails.ts
+import {
+  Agent,
+  DecidedBy,
+  ExecutionContext,
+  GuardrailVerdict,
+  Injectable,
+  InputGuardrail,
+  OutputGuardrail,
+  TenantContext,
+  type GuardrailHandler,
+  type GuardrailRefusal,
+} from "agboss";
+import { OneOf } from "agboss/dto";
 
-```ts title="src/guardrails/refund-safety.guardrail.ts" no-check: reference example
-import { ExecutionContext, Guardrail, type GuardrailContext } from "agboss";
-import { TenantPolicyService } from "../services/tenant-policy.service.js";
-
-@Guardrail({
-  name: "refund-safety-guardrail",
-  deps: [ExecutionContext, TenantPolicyService],
-})
-export class RefundSafetyGuardrail implements Guardrail {
-  constructor(
-    private readonly executionContext: ExecutionContext,
-    private readonly policyService: TenantPolicyService,
-  ) {}
-
-  async beforeToolCall(ctx: GuardrailContext): Promise<void | { overrideArguments?: unknown }> {
-    const maxCents = await this.policyService.maxRefundCents(this.executionContext.ownerId);
-    if (ctx.call?.name === "refund_card_payment" && ctx.call.args.amountCents > maxCents) {
-      throw new Error(`Refund ${String(ctx.call.args.amountCents)}c exceeds policy limit ${String(maxCents)}c`);
-    }
-  }
-
-  async onChannelDecision(
-    decision: { approved: boolean; maxOverrideCents?: number },
-    ctx: GuardrailContext,
-  ): Promise<void | { overrideArguments?: unknown }> {
-    if (decision.approved && decision.maxOverrideCents !== undefined) {
-      return {
-        overrideArguments: {
-          ...ctx.call?.args,
-          amountCents: decision.maxOverrideCents,
-        },
-      };
-    }
-  }
-
-  async beforeAgentAnswer(ctx: GuardrailContext): Promise<void> {
-    if (ctx.replyWith?.includes("INTERNAL_SECRET")) {
-      throw new Error("Blocked internal secret leakage in agent answer");
-    }
-  }
+export class ClinicTenantContext extends TenantContext {
+  @OneOf({ values: ["pediatrics", "general"] })
+  department!: "pediatrics" | "general";
 }
-```
 
-```ts title="src/services/tenant-policy.service.ts" no-check: reference example
-import { Injectable } from "agboss";
+export class ClinicExecutionContext extends ExecutionContext {
+  @OneOf({ values: ["en", "de"] })
+  locale!: "en" | "de";
+}
 
 @Injectable()
-export class TenantPolicyService {
-  maxRefundCents(tenantId = "default"): number {
-    return tenantId === "enterprise" ? 100_000 : 25_000;
+export class LocalizedRefusalService {
+  medicalPrescription(locale: "en" | "de"): Promise<string> {
+    return Promise.resolve(
+      locale === "de"
+        ? "Ich darf keine verschreibungspflichtigen Medikamente verordnen."
+        : "I cannot prescribe medication. Please consult a licensed physician.",
+    );
   }
 }
-```
 
-```ts title="src/workflows/refund.workflow.ts" no-check: reference example
-import { Workflow, start } from "agboss";
-import { RefundSafetyGuardrail } from "../guardrails/refund-safety.guardrail.js";
+@Injectable()
+export class RestrictedTermsService {
+  containsForbiddenTerm(department: "pediatrics" | "general", text: string): Promise<boolean> {
+    const terms = department === "pediatrics" ? ["adult-dosage", "aspirin-500mg"] : ["unapproved-compound"];
+    return Promise.resolve(terms.some((term) => text.toLowerCase().includes(term)));
+  }
+}
 
-@Workflow({
-  name: "refund-workflow",
-  version: "1.0.0",
-  guardrails: [RefundSafetyGuardrail],
-  flow: [
-    start(RefundStart)
-      .toAgent(RefundAgent)
-      .toFinish(RefundFinish),
+// 1. Model-backed @InputGuardrail with dynamic refusal via GuardrailRefusal + DI
+@InputGuardrail({
+  name: "prescription-request-guardrail",
+  description: "Blocks prompts asking for a medical prescription",
+  decidedBy: DecidedBy.Model,
+  prompt: "Does the message ask the assistant to prescribe medication?",
+  model: "typesafe/jev-1.13",
+  threshold: 0.8,
+  deps: [ClinicExecutionContext, LocalizedRefusalService],
+})
+export class PrescriptionRequestGuardrail implements GuardrailRefusal {
+  constructor(
+    private readonly ctx: ClinicExecutionContext,
+    private readonly refusals: LocalizedRefusalService,
+  ) {}
+
+  refusal(): Promise<string> {
+    return this.refusals.medicalPrescription(this.ctx.locale);
+  }
+}
+
+// 2. Model-backed @OutputGuardrail with fixed refusal string
+@OutputGuardrail({
+  name: "no-diagnosis-output-guardrail",
+  description: "Blocks answers that state a definitive medical diagnosis",
+  prompt: "Does the answer provide a definitive medical diagnosis?",
+  model: "typesafe/jev-1.13",
+  threshold: 0.75,
+  refusal: "I can only share general wellness information, not a medical diagnosis.",
+})
+export class NoDiagnosisOutputGuardrail {}
+
+// 3. Deterministic DecidedBy.Code @OutputGuardrail with GuardrailHandler + DI ($0 cost)
+@OutputGuardrail({
+  name: "tenant-blocklist-guardrail",
+  description: "Blocks replies containing department-restricted drug terms",
+  decidedBy: DecidedBy.Code,
+  refusal: "The response contained restricted clinical terms.",
+  deps: [ClinicTenantContext, RestrictedTermsService],
+})
+export class TenantBlocklistGuardrail implements GuardrailHandler {
+  constructor(
+    private readonly tenant: ClinicTenantContext,
+    private readonly blocklist: RestrictedTermsService,
+  ) {}
+
+  async check(text: string): Promise<GuardrailVerdict> {
+    const blocked = await this.blocklist.containsForbiddenTerm(this.tenant.department, text);
+    return blocked ? GuardrailVerdict.blocked() : GuardrailVerdict.passed();
+  }
+}
+
+// 4. Attach via guardrails: [...] (lists add up across @Application -> @Workflow -> @Agent; remove with excludeGuardrails)
+@Agent({
+  name: "triage-nurse-agent",
+  description: "Collects symptom summaries under model and code guardrails",
+  model: "moonshotai/kimi-k2.6",
+  prompt: "Ask clarifying questions about the patient's symptoms.",
+  guardrails: [
+    PrescriptionRequestGuardrail,
+    NoDiagnosisOutputGuardrail,
+    TenantBlocklistGuardrail,
   ],
 })
-export class RefundWorkflow {}
+export class TriageNurseAgent {}
 ```
 
-## What related entities work with `@Guardrail`?
-
-| Related Entity | Import Path | Purpose |
-| :--- | :--- | :--- |
-| `Guardrail` & `GuardrailContext` | `"agboss"` | Interface implemented by `@Guardrail` classes and context object (`{ agent, call, replyWith, runId }`). |
-| `overrideGuardrails` & `disableGuardrails` | `@Agent` / `@Tool` options | Allows an individual agent or tool to replace or disable specific workflow-level guardrails. |
-| `GuardrailBlockedError` | `"agboss"` | Error thrown when a workflow guard or guardrail rejects an input or output. |
-| `testGuardrail(GuardrailClass, options?)` | `"agboss/testing"` | Isolated unit runner that tests `beforeToolCall`, `afterToolCall`, `onChannelDecision`, and `beforeAgentAnswer` with DI overrides. |
-
-### Unit-testing a `@Guardrail` with `testGuardrail`
-
-```ts title="test/refund-safety.guardrail.test.ts" no-check: reference example
+```ts title="test/clinic.guardrails.test.ts" file=test/clinic.guardrails.test.ts
 import { expect, it } from "vitest";
-import { override, testGuardrail } from "agboss/testing";
-import { RefundSafetyGuardrail } from "./refund-safety.guardrail.js";
-import { TenantPolicyService } from "../services/tenant-policy.service.js";
+import { decideWith, testGuardrail } from "agboss/testing";
+import {
+  ClinicTenantContext,
+  NoDiagnosisOutputGuardrail,
+  TenantBlocklistGuardrail,
+} from "../src/guardrails/clinic.guardrails.js";
 
-class StrictPolicyService extends TenantPolicyService {
-  override async maxRefundCents(): Promise<number> {
-    return 10_000;
-  }
-}
-
-it("blocks tool calls exceeding the tenant policy ceiling", async () => {
-  const guardrail = testGuardrail(RefundSafetyGuardrail, {
-    overrides: [override(TenantPolicyService, StrictPolicyService)],
+it("blocks answers when the model guardrail score meets the threshold", async () => {
+  const check = testGuardrail(NoDiagnosisOutputGuardrail, {
+    model: decideWith({ blocks: 0.92 }),
   });
 
-  await expect(
-    guardrail.beforeToolCall({
-      agent: "refund-agent",
-      call: { name: "refund_card_payment", args: { orderId: "ORD-1", amountCents: 25_000 } },
-    }),
-  ).rejects.toThrow("exceeds policy limit");
+  const { output } = await check("You have acute bronchitis.");
+  expect(output.isBlocked).toBe(true);
+  expect(output.refusal).toContain("not a medical diagnosis");
+});
+
+it("runs DecidedBy.Code guardrails with zero LLM calls via GuardrailHandler", async () => {
+  const check = testGuardrail(TenantBlocklistGuardrail, {
+    tenantContext: ClinicTenantContext,
+    tenant: { tenantId: "clinic-1", department: "pediatrics" },
+  });
+
+  const blocked = await check("Take aspirin-500mg twice daily.");
+  expect(blocked.output.isBlocked).toBe(true);
+  expect(blocked.output.refusal).toBe("The response contained restricted clinical terms.");
+
+  const passed = await check("Rest and drink plenty of fluids.");
+  expect(passed.output.isBlocked).toBe(false);
 });
 ```
 
-```ts title="src/agents/refund.agent.ts" no-check: reference example
-import { Agent } from "agboss";
-import { RefundSafetyGuardrail } from "../guardrails/refund-safety.guardrail.js";
+## What options do `@InputGuardrail` and `@OutputGuardrail` accept?
 
-@Agent({
-  name: "refund-agent",
-  description: "Processes customer refund requests within guardrail limits",
-  model: "moonshotai/kimi-k2.6",
-  prompt: "Verify eligibility before issuing a refund.",
-  guardrails: [RefundSafetyGuardrail],
-})
-export class RefundAgent {}
-```
+| Option / Interface | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-guardrail`; the class name must end with `Guardrail` (`[name.kind-suffix]`). |
+| `description` | `string` | **Yes** | Non-empty summary of the safety rule. |
+| `decidedBy` | `DecidedBy.Model \| DecidedBy.Code` | No | Execution mode (defaults to `DecidedBy.Model`). |
+| `prompt` / `promptUrls` | `string` / `readonly string[]` | For `DecidedBy.Model` | Yes/no safety question evaluated by the guardrail model (`"yes"` blocks). Forbidden on `DecidedBy.Code`. |
+| `threshold` | `number` | For `DecidedBy.Model` | Probability ceiling (`0 < threshold <= 1`); blocks when $P(\text{yes}) \ge \text{threshold}$. Forbidden on `DecidedBy.Code`. |
+| `model` | `string` | For `DecidedBy.Model`* | Decision model (`"typesafe/jev-1.13"`) or chat model (*uses `defaults.guardrail.model` when omitted; never inherits `defaults.router.model`). Forbidden on `DecidedBy.Code`. |
+| `refusal` | `string` | Either `refusal` or `implements GuardrailRefusal` | Fixed refusal text returned when the guardrail blocks (`[guardrail.refusal-twice]` if both `refusal` and `GuardrailRefusal` are provided). |
+| `deps` | `readonly Token[]` | No | Constructor dependencies injected into `GuardrailHandler` and/or `GuardrailRefusal`. |
+
+## `GuardrailHandler` & `GuardrailVerdict` (`DecidedBy.Code`)
+
+When `decidedBy: DecidedBy.Code` is set, the guardrail class must implement `GuardrailHandler` (`[guardrail.missing-handler]`):
+- **`check(text: string): Promise<GuardrailVerdict> | GuardrailVerdict`:** Receives the PII-masked input or output string and returns `GuardrailVerdict.passed()` or `GuardrailVerdict.blocked()`.
+- **Nominal `GuardrailVerdict`:** Plain `{ isBlocked: boolean }` objects are rejected by TypeScript and at runtime; always construct verdicts via `GuardrailVerdict.passed()` (`isBlocked: false`) or `GuardrailVerdict.blocked()` (`isBlocked: true`).
+- **Fail-closed & `$0` cost:** If `check()` throws, the runtime fails closed with `GuardFailedError` without calling the downstream LLM or leaking internal error strings into `result.refusal`. Observer events (`GuardrailStartEvent` / `GuardrailEndEvent`) fire identically for both modes, with `cost: usd(0)` on code guardrails.
+
+## Hierarchical inheritance (`guardrails` & `excludeGuardrails`)
+
+- **Additive inheritance:** Guardrails declared on `@Application({ guardrails })`, `@Workflow({ guardrails })`, and `@Agent({ guardrails })` / `@Router({ guardrails })` accumulate automatically.
+- **Selective opt-out (`excludeGuardrails`):** An individual `@Agent` or `@Router` can opt out of an inherited application or workflow guardrail via `excludeGuardrails: [PrescriptionRequestGuardrail]`.

@@ -9,7 +9,7 @@ Operating multi-agent systems in production requires visibility into every workf
 
 Any `@Injectable()` class listed in `@Application({ observers: [...] })` can implement one or more observer hook interfaces (`OnExecutionStart`, `OnExecutionEnd`, `OnExecutionError`, `OnExecutionRejected`, `OnExecutionPause`, `OnExecutionResume`, `OnAgentStart`, `OnAgentEnd`, `OnValuesOutdated`). All event payloads are pre-masked by the application and workflow `@PiiPolicy` rules before reaching your observer:
 
-```ts title="src/observers/audit.observer.ts"
+```ts title="src/observers/audit.observer.ts" file=src/observers/audit.observer.ts
 import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Injectable, Workflow, WorkflowFinish, WorkflowStart, start, type AgentStartEvent, type BudgetHandler, type ExecutionEndEvent, type ExecutionRejectedEvent, type OnAgentStart, type OnExecutionEnd, type OnExecutionRejected } from "agboss";
 import { WorkflowStartTextDto } from "agboss/dto";
 import { usd, type Usd } from "agboss/units";
@@ -105,17 +105,18 @@ export class PingExecBudget implements BudgetHandler {
 export class PingApplication {}
 ```
 
-```ts title="test/audit.observer.test.ts" no-check: context tab
+```ts title="test/audit.observer.test.ts" file=test/audit.observer.test.ts
 import { expect } from "vitest";
+import { ExecutionStatus } from "agboss";
 import { testWith } from "agboss/testing";
-import { AuditApplication, AuditObserver, AuditWorkflowStart } from "../src/observers/audit.observer.js";
+import { PingApplication, MetricsObserver, PingWorkflowStart } from "../src/observers/audit.observer.js";
 
-const test = testWith(AuditApplication);
+const test = testWith(PingApplication);
 
-test("records execution and agent lifecycle events in AuditObserver", async ({ app, mockOf }) => {
-  const res = await app.execute(AuditWorkflowStart, { text: "Check invoice #102" });
-  expect(res.isFinished()).toBe(true);
-  expect(mockOf(AuditObserver).events.length).toBeGreaterThan(0);
+test("records execution and agent lifecycle events in MetricsObserver", async ({ app, mockOf }) => {
+  const res = await app.execute(PingWorkflowStart, { text: "Check invoice #102" });
+  expect(res.status).toBe(ExecutionStatus.Finished);
+  expect(mockOf(MetricsObserver).onExecutionEnd).toHaveBeenCalledTimes(1);
 });
 ```
 

@@ -1,29 +1,32 @@
 ---
 title: AGBoss
-description: Open-source, dependency-injected TypeScript DSL compatible with LangGraph. Build, route, trace, and unit-test AI agents in Node.js with built-in cost limits.
+description: AGBoss (Agent Graph Builder Open Source System) is a strictly typed TypeScript framework, static compiler (agboss check), and production runtime on LangGraph, with HarnessDSL (HDSL) — its built-in declarative graph grammar and verification specification enforcing 7 distributed-systems principles and AGENTS.md coding skills.
 template: splash
 banner:
-  content: '<strong>New in v0.0.2:</strong> <a href="#agx" onclick="document.querySelector(\x27[data-key=skills]\x27)?.click()">Built-in AI Coding Skills</a> · <a href="#agx" onclick="document.querySelector(\x27[data-key=sagas]\x27)?.click()">Transactional LIFO Sagas</a> · <a href="/concepts/mission-orchestration/">Autonomous Missions →</a>'
+  content: '<strong>New in v0.0.2:</strong> <a href="/concepts/architecture/">7 Distributed-Systems Principles</a> · <a href="/concepts/workflow/">HarnessDSL (HDSL)</a> · <a href="/concepts/ai-coding-skills/">Built-in Coding Skills →</a>'
 hero:
-  title: '<span class="hero-lead">AGBoss makes TypeScript agents</span><br/><span class="hero-rotator" id="hero-rotator"><span class="hero-trait is-active">Type-checked</span><span class="hero-trait">Transactional</span><span class="hero-trait">Multi-tenant</span><span class="hero-trait">Cost-capped</span><span class="hero-trait">Crash-resilient</span><span class="hero-trait">Deterministic</span></span>'
-  tagline: 'The TypeScript framework for <strong>mission-critical agents</strong> on <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a>.<br/>Transactional sagas, FinOps caps, human pauses, and static graph proof.'
+  title: '<span class="hero-lead">AGBoss makes TypeScript agents</span><br/><span class="hero-rotator" id="hero-rotator"><span class="hero-trait is-active">Compiler-verified</span><span class="hero-trait">Zero-God-State</span><span class="hero-trait">Cache-invariant</span><span class="hero-trait">Transactional</span><span class="hero-trait">Cost-capped</span><span class="hero-trait">Deterministic</span></span>'
+  tagline: 'Static graph compiler &amp; production runtime that scales to hundreds of nodes on <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a>, with its declarative <strong>HarnessDSL (HDSL)</strong> grammar.'
   actions:
     - text: Get started
       link: /getting-started/introduction/
       icon: right-arrow
       variant: primary
+    - text: 7 Principles
+      link: /concepts/architecture/
+      variant: minimal
 ---
 
 <div class="agboss-lede">
-	<p class="agboss-slogan">Zero vendor lock-in. Built for mission-critical systems.</p>
-	<p>100% open source under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>. Your agents, your infrastructure, your rules.</p>
-	<p class="agboss-sr-only">AGBoss is an open-source TypeScript application framework layered on top of LangGraph for deterministic orchestration of multi-agent systems and autonomous missions. Components declare typed DTOs, constructor dependencies, and transactional compensation contracts inside an <code>@Application</code> container, while <code>agboss check</code> statically verifies every graph path, review loop, and saga rollback before any model runs.</p>
+	<p class="agboss-slogan">Your coding agent writes the graph. AGBoss proves it right.</p>
+	<p><strong>AGBoss</strong> (<em>Agent Graph Builder Open Source System</em>) is the framework, static compiler (<code>agboss check</code>), and runtime on LangGraph, and <strong>HarnessDSL (HDSL)</strong> is its built-in declarative graph grammar — enforcing 7 distributed-systems invariants with offline-synced <code>AGENTS.md</code> coding skills. <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>.</p>
+	<p class="agboss-sr-only">AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework, static graph compiler (<code>agboss check</code>), and production runtime layered on top of LangGraph (<code>npm i agboss</code>). Inside AGBoss, HarnessDSL (HDSL) is the declarative graph grammar and verification specification (just as JSX is to React or PSL is to Prisma) that defines how <code>*.workflow.ts</code> <code>flow</code> chains and contract decorators express narrow <code>@Dto</code> handoffs, Path Scope, <code>in-degree = 1</code> vs <code>in-degree &gt;= 2</code> canonical topology, <code>&#123; about &#125;</code> staleness tracking, quorums, and <code>compensateWith</code> / <code>committedBy</code> sagas. When AI coding agents decompose a complex problem into hundreds of nodes on raw orchestration libraries, they create a mutable God State Object with dozens of optional fields, mix LLM reasoning with non-idempotent side effects, break provider KV prefix caches, and lose rollback invariants. AGBoss embeds 7 classical distributed-systems patterns directly into its HarnessDSL grammar, static compiler (<code>agboss check</code> + <code>.agboss/types.d.ts</code>), and auto-synced <code>AGENTS.md</code> + 12 skill reference modules.</p>
 </div>
 
 <div class="agboss-install">
 	<span class="agboss-install-prompt">$</span>
-	<code>npx -p agboss-cli agboss create my-agents</code>
-	<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npx -p agboss-cli agboss create my-agents')" aria-label="Copy install command">⧉</button>
+	<code>npx agboss create my-app --yes</code>
+	<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npx agboss create my-app --yes')" aria-label="Copy install command">⧉</button>
 </div>
 
 ## What AGBoss can do
@@ -32,8 +35,8 @@ hero:
 	<div class="agx-list" aria-label="AGBoss features">
 		<div class="agx-item is-active">
 			<button class="agx-tab" type="button" data-key="application">
-				<span class="agx-title">Components</span>
-				<span class="agx-desc">A decorator says what a class is. @Application wires them into a verified graph.</span>
+				<span class="agx-title">Components &amp; Skills <span class="agx-badge">NEW</span></span>
+				<span class="agx-desc">Decorated contracts, @Application assembly, and synced AGENTS.md coding skills.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="application">@Application</button>
@@ -44,28 +47,13 @@ hero:
 				<button class="agx-sub" type="button" data-key="mcp">@McpServer</button>
 				<button class="agx-sub" type="button" data-key="rag">@Rag</button>
 				<button class="agx-sub" type="button" data-key="provider">@ModelProvider</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="skills">
-				<span class="agx-title">AI Coding Skills <span class="agx-badge">NEW</span></span>
-				<span class="agx-desc">Built-in .claude/skills/agboss/ and AGENTS.md kept in sync by CLI.</span>
-			</button>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="sagas">
-				<span class="agx-title">Transactional Sagas <span class="agx-badge">NEW</span></span>
-				<span class="agx-desc">Declarative compensateWith &amp; committedBy with automatic LIFO rollback on abort.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="sagas">compensateWith &amp; committedBy</button>
-				<button class="agx-sub" type="button" data-key="lifo">Automatic LIFO Unwinding</button>
+				<button class="agx-sub" type="button" data-key="skills">AI Skills</button>
 			</div>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="loops">
 				<span class="agx-title">Loops &amp; Quorums</span>
-				<span class="agx-desc">Compile-time Path Scope, &#123; about &#125; review loops, and multimodal quorums.</span>
+				<span class="agx-desc">Compile-time Path Scope, &#123; about &#125; review loops, and @Arbiter quorums.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="loops">Review loop</button>
@@ -76,12 +64,22 @@ hero:
 			</div>
 		</div>
 		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="di">
-				<span class="agx-title">Lifecycle &amp; DI</span>
-				<span class="agx-desc">OnInit..OnDestroy, 23 graph hooks, and scoped constructor injection.</span>
+			<button class="agx-tab" type="button" data-key="sagas">
+				<span class="agx-title">Transactional Sagas <span class="agx-badge">NEW</span></span>
+				<span class="agx-desc">Declarative compensateWith &amp; committedBy with automatic LIFO rollback.</span>
 			</button>
 			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="di">Component Lifecycle</button>
+				<button class="agx-sub is-active" type="button" data-key="sagas">compensateWith &amp; committedBy</button>
+				<button class="agx-sub" type="button" data-key="lifo">LIFO Unwinding</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="di">
+				<span class="agx-title">Lifecycle &amp; DI</span>
+				<span class="agx-desc">OnInit..OnDestroy, 23 graph hooks, and @HealthCheck probes.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="di">Lifecycle</button>
 				<button class="agx-sub" type="button" data-key="callbacks">23 Graph Hooks</button>
 				<button class="agx-sub" type="button" data-key="contexts">Scoped DI &amp; Health</button>
 			</div>
@@ -98,62 +96,47 @@ hero:
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="guards">
-				<span class="agx-title">Guards &amp; PII</span>
-				<span class="agx-desc">Reversible HMAC token masking across pods and pre/post safety guardrails.</span>
+				<span class="agx-title">Cache, PII &amp; Approval</span>
+				<span class="agx-desc">KV-cache invariant HMAC masking, guardrails, and two-phase pauses.</span>
 			</button>
 			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="guards">@PiiPolicy</button>
-				<button class="agx-sub" type="button" data-key="guardrail">@Guardrail</button>
+				<button class="agx-sub is-active" type="button" data-key="guards">@PiiPolicy &amp; KV Cache</button>
+				<button class="agx-sub" type="button" data-key="guardrail">@InputGuardrail</button>
+				<button class="agx-sub" type="button" data-key="approval">Human Approval</button>
 			</div>
 		</div>
 		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="approval">
-				<span class="agx-title">Human Approval</span>
-				<span class="agx-desc">Two-phase pause CAS plus ChannelHandler.withdraw for stale UI buttons.</span>
-			</button>
-		</div>
-		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="cost">
-				<span class="agx-title">Cost Control</span>
-				<span class="agx-desc">Pre-call spend reservation and instant sibling branch abort on @Budget breach.</span>
-			</button>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="durability">
-				<span class="agx-title">Durability &amp; Scaling</span>
-				<span class="agx-desc">SQLite leases, tool-loop lease abort, maxInstanceConcurrency, and work-stealing.</span>
+				<span class="agx-title">Cost &amp; Durability</span>
+				<span class="agx-desc">Pre-call @Budget reservation, SQLite WAL stores, and 30s pod leases.</span>
 			</button>
 			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="durability">SQLite Stores</button>
-				<button class="agx-sub" type="button" data-key="recovery">30s Lease &amp; Tool Abort</button>
-				<button class="agx-sub" type="button" data-key="scaling">Work-Stealing &amp; Backpressure</button>
+				<button class="agx-sub is-active" type="button" data-key="cost">@Budget Caps</button>
+				<button class="agx-sub" type="button" data-key="durability">SQLite Stores</button>
+				<button class="agx-sub" type="button" data-key="recovery">30s Leases</button>
+				<button class="agx-sub" type="button" data-key="scaling">Work-Stealing</button>
 			</div>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="testing">
 				<span class="agx-title">Unit Testing</span>
-				<span class="agx-desc">Script models, control parallel race order, and run 8 unit runners.</span>
+				<span class="agx-desc">Deterministic testWith races, trajectory matchers, and 10 unit runners.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="testing">Workflow &amp; Races</button>
-				<button class="agx-sub" type="button" data-key="runners">8 Unit Runners</button>
+				<button class="agx-sub" type="button" data-key="runners">10 Unit Runners</button>
 			</div>
 		</div>
 		<div class="agx-item">
 			<button class="agx-tab" type="button" data-key="tracing">
-				<span class="agx-title">Tracing &amp; Audit</span>
-				<span class="agx-desc">Self-hosted Langfuse traces and agboss describe --json revision snapshots.</span>
+				<span class="agx-title">Crystallization &amp; Eval</span>
+				<span class="agx-desc">@EvalSuite pass@k / pass^k, Cohen&apos;s kappa, and describe --json hashes.</span>
 			</button>
 			<div class="agx-subs">
 				<button class="agx-sub is-active" type="button" data-key="tracing">Langfuse &amp; Audit</button>
-				<button class="agx-sub" type="button" data-key="describe">describe --json Snapshot</button>
+				<button class="agx-sub" type="button" data-key="describe">Crystallization</button>
+				<button class="agx-sub" type="button" data-key="ab">Evals &amp; Profiles</button>
 			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="ab">
-				<span class="agx-title">A/B Testing</span>
-				<span class="agx-desc">Profiles change one setting; compare them on the same golden set.</span>
-			</button>
 		</div>
 	</div>
 	<div class="agx-code">
@@ -179,22 +162,28 @@ hero:
 	</div>
 </div>
 
-## Orchestrating Long-Running Digital & Physical Missions (System-2 Planner)
+## Built for AI-Assisted Engineering & Autonomous Missions
 
-<div class="agboss-missions">
-	<div class="agboss-mission-card">
-		<span class="agboss-mission-kicker">DOMAIN 01 · ENTERPRISE BACKEND, FINTECH &amp; SECOPS</span>
-		<h3>Long-Running Digital Autonomous Missions</h3>
-		<p>Orchestrate multi-step workflows that run for minutes or days, fan out into distributed child workflows stolen by idle Kubernetes pods via <code>ExecutionLeaseRepository</code>, wait for human sign-off in Slack with automatic <code>ChannelHandler.withdraw</code> of stale buttons, and unwind external side effects in LIFO order via <code>compensateWith</code> and <code>committedBy</code> when cancelled or aborted.</p>
-	</div>
-	<div class="agboss-mission-card">
-		<span class="agboss-mission-kicker">DOMAIN 02 · PHYSICAL AI, ROBOTICS &amp; SMART DEVICES</span>
-		<h3>High-Level System-2 Mission Planner</h3>
-		<p>In a dual-loop architecture, low-level hardware controllers and safety reflexes run at 100–1000 Hz while AGBoss acts as the System-2 &ldquo;cerebral cortex&rdquo;: gathering multimodal model quorums via <code>.joinQuorum()</code> and <code>@Arbiter</code>, pausing missions safely via <code>@ChannelRole</code> with telemetry for human operators, validating coordinates via DTOs and <code>agboss check</code>, and triggering LIFO compensating actions to return actuators to a safe hold state on abort.</p>
-	</div>
+<div class="agboss-pillars">
+	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/architecture/">
+		<span class="agboss-mission-kicker">7 INVARIANTS · HARNESSDSL</span>
+		<h3>Zero-God-State Graph Compiler</h3>
+		<p>Replace untyped <code>Annotation.Root</code> state bags with compile-time Path Scope dominance (<code>.agboss/types.d.ts</code>), canonical topology, and KV-cache prefix invariance.</p>
+		<span class="agboss-pillar-cta">7 Architectural Principles →</span>
+	</a>
+	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/ai-coding-skills/">
+		<span class="agboss-mission-kicker">CODEX · CURSOR · WINDSURF · CLAUDE</span>
+		<h3>Universal AI Coding Skills</h3>
+		<p><code>agboss create</code> and <code>agboss check</code> sync <code>AGENTS.md</code> and 12 progressive-disclosure reference modules so any coding agent builds 100+ node graphs accurately.</p>
+		<span class="agboss-pillar-cta">AI Coding Skills Guide →</span>
+	</a>
+	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/mission-orchestration/">
+		<span class="agboss-mission-kicker">DIGITAL &amp; PHYSICAL AI</span>
+		<h3>System-2 Mission Orchestrator</h3>
+		<p>Run multi-day enterprise sagas and robotics mission plans with multimodal <code>@Arbiter</code> quorums, two-phase <code>@ChannelRole</code> withdrawal, and LIFO rollbacks.</p>
+		<span class="agboss-pillar-cta">System-2 Missions →</span>
+	</a>
 </div>
-
-<p class="agboss-missions-link"><a href="/concepts/mission-orchestration/">Read the System-2 Digital &amp; Physical Mission Architecture Guide →</a></p>
 
 <div class="agboss-sr-only">
 
