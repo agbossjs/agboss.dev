@@ -998,7 +998,7 @@ starlight-toc a {
 	color: var(--sl-color-black);
 }
 
-/* Primary CTA turns white on hover */
+/* Primary CTA turns white on hover; secondary CTA has a crisp outline */
 .sl-link-button.primary {
 	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
@@ -1006,6 +1006,15 @@ starlight-toc a {
 	background: var(--sl-color-gray-2);
 	border-color: var(--sl-color-gray-2);
 	color: var(--sl-color-black);
+}
+.sl-link-button.secondary {
+	border-color: color-mix(in srgb, var(--sl-color-gray-3) 65%, var(--sl-color-hairline));
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.sl-link-button.secondary:hover {
+	border-color: var(--sl-color-text-accent);
+	color: var(--sl-color-text-accent);
+	background: color-mix(in srgb, var(--sl-color-accent-low) 35%, transparent);
 }
 
 /* Social icons: quiet grey, white on hover (no accent blue) */
