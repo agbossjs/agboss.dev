@@ -32,7 +32,7 @@ The entire AGBoss framework (`agboss`), CLI (`agboss-cli`), documentation verifi
 
 | Component | Package / Location | License | Purpose |
 | --- | --- | --- | --- |
-| Core Framework | `agboss` | Apache-2.0 | Decorators, Flow DSL, DI container, FinOps, PII, SQLite stores, `agboss/testing`, offline skills (`skills/agboss/`) |
+| Core Framework | `agboss` | Apache-2.0 | Decorators, HarnessDSL (`HDSL`) flow syntax, DI container, FinOps, PII, SQLite stores, `agboss/testing`, offline skills (`skills/agboss/`) |
 | Command-Line Interface | `agboss-cli` | Apache-2.0 | `agboss create`, `generate`, `check`, `describe`, `chat`, `run`, `eval`, `replay`, `golden`, `compare` |
 | Reference Examples | `examples/job-scout`, `examples/flow-patterns` | Apache-2.0 | End-to-end multi-agent workflows and flow pattern blueprints |
 | Documentation Site | [agboss.dev](https://agboss.dev) | Apache-2.0 | Compiler-checked guides, API reference, `/llms.txt`, and `/llms-full.txt` |

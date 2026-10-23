@@ -3,7 +3,7 @@ title: Quick start
 description: Build, statically verify with agboss check, run, and unit-test your first multi-agent workflow and @Application container in TypeScript.
 ---
 
-Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `agboss/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.
+Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `agboss/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose **HarnessDSL (`HDSL`)** `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.
 
 ## How to build and run your first workflow
 
@@ -130,4 +130,4 @@ Once your workflow and application are defined, use the `agboss` CLI to validate
 2. **Inspect the assembled topology:** Run `npx agboss describe --application src/support.workflow.ts` to print every path, node producer, model provider resolution, and worst-case step count.
 3. **Run interactively in the terminal:** Run `npx agboss chat --application src/support.workflow.ts` to chat with the workflow and inspect per-turn spend.
 
-Next, learn how the [`@Application` root](/concepts/application/), [Component Decorators](/concepts/decorators/), and [Workflow DSL](/concepts/workflow/) work in detail.
+Next, learn how the [`@Application` root](/concepts/application/), [Component Decorators](/concepts/decorators/), and [Workflow HDSL (`HarnessDSL`)](/concepts/workflow/) work in detail.

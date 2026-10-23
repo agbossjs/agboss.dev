@@ -3,7 +3,7 @@ title: Installation
 description: Install the AGBoss TypeScript framework and CLI in Node.js 22+ to scaffold projects with built-in AI coding skills, typecheck Path Scope graphs, and run LangGraph workflows.
 ---
 
-Installing AGBoss gives you the core TypeScript decorator runtime (`agboss`), focused sub-entries (`agboss/dto`, `agboss/units`, `agboss/models`, `agboss/testing`, `agboss/mcp`, `agboss/rag`, `agboss/a2a`), offline coding-agent skills (`node_modules/agboss/skills/agboss/`), and the `agboss-cli` command-line tool (`agboss` / `agb`). Importing `agboss` has zero side effects: tracing, MCP, and SQLite load only when an application uses them.
+Installing AGBoss gives you the core TypeScript decorator runtime (`agboss`), focused sub-entries (`agboss/dto`, `agboss/units`, `agboss/models`, `agboss/testing`, `agboss/eval`, `agboss/mcp`, `agboss/rag`, `agboss/a2a`, `agboss/eslint`), offline coding-agent skills (`node_modules/agboss/skills/agboss/`), and the `agboss-cli` command-line tool (`agboss` / `agb`). Importing `agboss` has zero side effects: tracing, MCP, and SQLite load only when an application uses them.
 
 ## How to create a new project with the CLI
 
@@ -24,9 +24,29 @@ What `agboss create` sets up out of the box:
 
 - **Typed workflow skeleton:** `@WorkflowStart`, `@Router` (`MainRouter`), `@Agent` classes with `*.prompt.md` files, `@WorkflowFinish`, and `@Application`.
 - **Environment contracts:** `environments/app.environment.ts` alongside `dev`, `staging`, `prod`, and `test` environment files.
-- **Built-in AI coding skills (`AGENTS.md`):** Committed root `AGENTS.md` (read by Codex, Cursor, Windsurf, Copilot, Gemini CLI, Aider) and one-line `CLAUDE.md` (`@AGENTS.md`) created once for your team's rules, plus gitignored `.claude/skills/agboss/` (`SKILL.md` + 12 reference modules) synced offline from `node_modules/agboss/skills/agboss/`.
+- **Built-in AI coding skills (`AGENTS.md`):** Committed root `AGENTS.md` (read by Codex, Cursor, Windsurf, Copilot, Gemini CLI, Aider) and one-line `CLAUDE.md` (`@AGENTS.md`) created once for your team's rules, plus gitignored `.claude/skills/agboss/` (`SKILL.md` + 13 reference modules, including `13-migrating-from-langgraph.md`) synced offline from `node_modules/agboss/skills/agboss/`.
 - **Generated Path Scope types (`.agboss/types.d.ts`):** `npm run types` (`agboss check`) runs automatically on `postinstall` (`"postinstall": "npm run types"`) to write `.agboss/types.d.ts` and sync `.claude/skills/agboss/`.
-- **Pre-configured ESLint flat config (`eslint.config.mjs` via `agboss/eslint`):** Enforces `agboss/no-component-state` (stateless singleton components), `agboss/no-direct-time` (using injected `Clock` instead of `Date.now()` / `setTimeout`), and `@stylistic/newline-per-chained-call` (one chained method call per line in `*.workflow.ts`) via `npm run lint`.
+- **Pre-configured ESLint flat config (`eslint.config.mjs` via `agboss/eslint`):** Enforces `agboss/no-component-state` (stateless singleton components), `agboss/no-direct-time` (using injected `Clock` instead of `Date.now()` / `setTimeout`), and `FLOW_CHAIN_RULE` (`@stylistic/newline-per-chained-call` — one chained method call per line in `*.workflow.ts`) via `npm run lint`:
+
+```ts title="eslint.config.ts"
+import { agbossPlugin, FLOW_CHAIN_RULE } from "agboss/eslint";
+
+export default [
+  {
+    plugins: { agboss: agbossPlugin },
+    rules: {
+      "agboss/no-component-state": "error",
+      "agboss/no-direct-time": "error",
+    },
+  },
+  {
+    files: ["**/*.workflow.ts"],
+    rules: {
+      ...FLOW_CHAIN_RULE,
+    },
+  },
+];
+```
 - **Three-tier Vitest configuration:** Separate `unit` (`*.test.ts`), `integration` (`*.integration.test.ts`), and `suites` (`*.suite.test.ts`) projects.
 
 ## How to add AGBoss to an existing Node.js project

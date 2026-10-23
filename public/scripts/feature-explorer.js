@@ -2095,7 +2095,7 @@
 			"skills": {
 					"file": "AGENTS.md",
 					"problem": "Without framework guardrails, coding agents generate mutable God State objects, raw numbers, and broken graph edges.",
-					"solution": "<code>AGENTS.md</code> and 12 synced skill reference modules guide any coding agent (Codex, Cursor, Windsurf, Copilot, Claude Code) while <code>agboss check</code> verifies the graph.",
+					"solution": "<code>AGENTS.md</code> and 13 synced skill reference modules guide any coding agent (Codex, Cursor, Windsurf, Copilot, Claude Code) while <code>agboss check</code> verifies the graph.",
 					"code": [
 							"# AGBoss Project Rules for Coding Agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code)",
 							"",
@@ -2104,7 +2104,7 @@
 							"- Run `npm run types` (`agboss check`) to regenerate `.agboss/types.d.ts` before `npm run typecheck`.",
 							"- Progressive-disclosure reference modules (synced offline from `node_modules/agboss/skills/agboss/`):",
 							"#   ├── SKILL.md                                     (quick-start rules & index)",
-							"#   └── references/01..12.md                         (composition, Flow DSL, DI, MCP/A2A, channels, FinOps, PII, tracing, K8s, testing, CLI, recipes)"
+							"#   └── references/01..13.md                         (composition, Flow DSL, DI, MCP/A2A, channels, FinOps, PII, tracing, K8s, testing, CLI, recipes, LangGraph migration)"
 					],
 					"files": [
 							{
@@ -2118,12 +2118,13 @@
 											"#       ├── SKILL.md                                     (quick-start rules & index)",
 											"#       ├── .agboss-skills.json                          (synced package version stamp)",
 											"#       └── references/",
-											"#             ├── 01-composition-and-architecture.md   ├── 07-guardrails-pii-and-security.md",
-											"#             ├── 02-flow-dsl-all-combinations.md      ├── 08-observability-and-tracing.md",
-											"#             ├── 03-components-di-and-lifecycle.md    ├── 09-persistence-k8s-and-deploy.md",
-											"#             ├── 04-mcp-and-a2a.md                    ├── 10-testing-vcr-and-evals.md",
-											"#             ├── 05-channels-and-human-in-the-loop.md ├── 11-cli-studio-and-error-catalog.md",
-											"#             └── 06-finops-providers-and-queues.md    └── 12-end-to-end-recipes.md"
+											"#             ├── 01-composition-and-architecture.md   ├── 08-observability-and-tracing.md",
+											"#             ├── 02-flow-dsl-all-combinations.md      ├── 09-persistence-k8s-and-deploy.md",
+											"#             ├── 03-components-di-and-lifecycle.md    ├── 10-testing-vcr-and-evals.md",
+											"#             ├── 04-mcp-and-a2a.md                    ├── 11-cli-studio-and-error-catalog.md",
+											"#             ├── 05-channels-and-human-in-the-loop.md ├── 12-end-to-end-recipes.md",
+											"#             ├── 06-finops-providers-and-queues.md    └── 13-migrating-from-langgraph.md",
+											"#             └── 07-guardrails-pii-and-security.md"
 									]
 							},
 							{

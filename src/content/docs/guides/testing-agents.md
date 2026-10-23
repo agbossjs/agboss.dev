@@ -181,32 +181,128 @@ When testing a single component's logic — such as a PII policy, a tool interce
 
 | Unit Runner | Target Component | What It Validates |
 | :--- | :--- | :--- |
-| `testTool(ToolClass, opts?)` | [`@Tool`](/reference/tool/) | Input/output DTO validation, `deps` injection, timeouts, and `run(input)` result |
-| `testToolInterceptor(InterceptorClass, opts?)` | [`@ToolInterceptor`](/reference/tool-interceptor/) | `before(call)` (`ToolCallDecision`) and `after(call)` output transformation with DI `overrides` |
+| `testTool(ToolClass, opts?)` | [`@Tool`](/reference/tool/) | Input/output DTO validation, `deps` injection, timeouts (`clock.advance`), and `run(input)` result |
+| `testToolInterceptor(InterceptorClass, opts?)` | [`@ToolInterceptor`](/reference/tool-interceptor/) | `beforeToolCall(ToolClass, input)` (`ToolCallDecision`) and `afterToolCall(ToolClass, input, output)` DTO-validated transformation |
 | `testAction(ActionClass, opts?)` | [`@Action`](/reference/action/) | Deterministic step logic, `SpendRecorder` entries, and `execute(input)` output |
-| `testRouter(RouterClass, opts?)` | [`@Router`](/reference/router/) | Model or code route selection (`DecidedBy.Model` / `DecidedBy.Code`) |
-| `testArbiter(ArbiterClass, opts?)` | [`@Arbiter`](/reference/arbiter/) | Quorum answer acceptance across `@OnAnswer(Agent)` or model criteria |
+| `testRouter(RouterClass, opts?)` | [`@Router`](/reference/router/) | Model or code route selection (`DecidedBy.Model` with `routeTo` / `DecidedBy.Code`) |
+| `testArbiter(ArbiterClass, opts?)` | [`@Arbiter`](/reference/arbiter/) | Quorum answer acceptance across `@OnAnswer(Agent)` or `decideWith` model criteria |
 | `testRag(RagClass, opts?)` | [`@Rag`](/reference/rag/) | `retrieve(query, { topK, signal })` results and reported `rag:<name>` spend |
 | `testJudge(JudgeClass, opts?)` | [`@Judge`](/reference/judge/) | Quality gate `judge({ reply, task, attempt, toolCalls })` with `decideWith`, `replyWith`, or `DecidedBy.Code` |
-| `testCompaction(CompactionClass, opts?)` | [`@Compaction`](/reference/compaction/) | `CompactionStrategy.SummaryQueue`, `SingleSummary`, or `Custom` (`CompactionHandler.compact(input)`) |
+| `testCompaction(CompactionClass, opts?)` | [`@Compaction`](/reference/compaction/) | Single-step memory compaction (`CompactionInput` $\to$ `{ summaries, requests }`) across `SummaryQueue`, `SingleSummary`, or `CompactionStrategy.Custom`, verifying that critical constraints are passed and preserved |
 | `testPii(Policies, opts?)` | [`@PiiPolicy`](/reference/pii-policy/) | Assembly rule checks, `mask(text)` token generation, and `reveal(text)` restoration |
-| `testGuardrail(GuardrailClass, opts?)` | [`@InputGuardrail` / `@OutputGuardrail`](/reference/guardrail/) | Pre-model and post-model safety refusal checks (`DecidedBy.Model` with `decideWith` or `DecidedBy.Code`) |
+| `testGuardrail(GuardrailClass, opts?)` | [`@InputGuardrail` / `@OutputGuardrail`](/reference/guardrail/) | Pre-model and post-model safety refusal checks (`DecidedBy.Model` with `decideWith` or `DecidedBy.Code` with `GuardrailHandler`) |
 
 ---
 
-## Tool-Call Trajectories (`ToolCallRecord`) & Trajectory Matchers
+## Tool-Call Trajectories (`ToolCallRecord`), Order-Independent Matchers & Silent Failure Detection
 
-Every `ExecutionOutput` (`result.toolCalls`) and `ExecutionRecord` (`result.record.toolCalls`) includes the ordered list of `ToolCallRecord` entries (`{ tool, callId, input, output, isError, isResultTruncated }`) produced during the execution. In Vitest tests, `agboss/testing` registers first-class trajectory matchers and schema-violation fault injectors:
+### Why you should never test a rigid sequence of tool calls
 
-- **`expect(result).toHaveCalledTools([GetOrderTool, CheckPolicyTool])`:** Asserts the ordered sequence of tools invoked by the execution.
-- **`expect(result).not.toHaveCalledTools([DeleteOrderTool])`:** Asserts that a forbidden tool was never called on any step.
-- **`expect(result).toHaveToolCallMatching(GetOrderTool, { orderId: "ORD-42" })`:** Asserts that at least one call to `GetOrderTool` matched the partial input or predicate `(input, output) => boolean`.
-- **`failWith(ModelFailure.InvalidOutput)` & `failWith(ModelFailure.InvalidToolArguments)`:** Simulates truncated JSON or schema-violating tool arguments from an LLM so you can test retry and `.onError()` recovery paths deterministically.
+In an agentic tool loop, an LLM often has two or more independent lookup tools (for example, `GetOrderTool` and `CheckPolicyTool`). Whether the model calls `GetOrderTool` before `CheckPolicyTool`, calls `CheckPolicyTool` first, or calls both in the same turn is an irrelevant execution detail. Asserting `calls[0] === "get_order" && calls[1] === "check_policy"` creates brittle tests that break whenever a model update reorders independent lookups.
+
+Instead, AGBoss verifies **trajectory invariants** over sets and argument predicates:
+
+- **`expect(result).toHaveCalledTools([GetOrderTool, CheckPolicyTool])`:** Verifies the **required tool set** — every listed tool was called at least once, regardless of call order.
+- **`expect(result).not.toHaveCalledTools([DeleteOrderTool])`:** Verifies the **forbidden tool set** — none of the listed tools were invoked at any point in the execution.
+- **`expect(result).toHaveToolCallMatching(GetOrderTool, (input) => input.orderId === "555")`:** Verifies **argument invariants** (accepts either a predicate `(input) => boolean` or a partial object `{ orderId: "555" }`).
+- **`StepRecord.toolCalls` & `JudgeInput.toolCalls` (`ReadonlyArray<ToolCallRecord>`):** Every `ExecutionOutput`, `StepRecord`, and `JudgeInput<TReply>` carries the full `readonly toolCalls: readonly ToolCallRecord[]` trajectory (narrowable by tool via `toolCallsOf(GetOrderTool, input.toolCalls)`). This allows a `@Judge` to catch **"silent failures"** inside the agent loop — such as an agent calling `GetOrderTool` on another customer's order (`orderId: "999"`), reading their private data into context, and then answering the current customer (`orderId: "555"`) politely.
+
+---
+
+## Chaos & Invalid-Turn Scripting (`callToolWithInvalidArguments`, `replyWithInvalidAnswer`, `ModelFailure`)
+
+Real language models occasionally emit malformed JSON, truncated tool arguments, schema-violating answers, or HTTP `429` / timeout failures. `agboss/testing` lets you script these exact faults in `Loop 1` (`$0`) to prove your harness self-corrects:
+
+- **`callToolWithInvalidArguments(ToolClass, invalidFields)`:** Scripts a tool call whose arguments violate the tool's input `@Dto` (`ToolCallStatus.InvalidArguments`), verifying that the agent loop feeds the validation error back to the model and succeeds on the next turn.
+- **`callToolWithTruncatedArguments(ToolClass, partialArgs)`:** Simulates a tool call cut off mid-stream (`maxOutputTokens` truncation) so you can verify retry recovery.
+- **`replyWithInvalidAnswer(DtoClass, invalidFields)`:** Scripts an invalid structured final answer, incrementing `step.validationAttempts` on the `StepRecord` and throwing `AgentAnswerInvalidError` once retries are exhausted.
+- **`failWith(ModelFailure.RateLimited)` / `Timeout` / `ServerError` / `NetworkError`:** Simulates transport-level provider failures to test retry backoff on `VirtualClock` and `.onError()` workflow recovery edges.
+- **`a2aServer({ start, callerResolver })`:** Boots an in-process loopback HTTP server for your `@Application` inside `testWith` so you can test `A2AClient` calls, `A2ACallerResolver` `401`/`403` rejections (`A2ACallerRejectedError`), and signed `MeshEnvelope` propagation without opening external sockets.
+
+<!-- snippet-context
+import { DecidedBy, Judge, JudgeVerdict, Tool, ToolCallStatus, toolCallsOf, type JudgeHandler, type JudgeInput, type ToolHandler } from "agboss";
+import { Text } from "agboss/dto";
+export class OrderIdDto {
+  @Text({ prompt: "Order ID" })
+  orderId!: string;
+}
+@Tool({ name: "get-order-tool", description: "Gets order", input: OrderIdDto, output: OrderIdDto })
+export class GetOrderTool implements ToolHandler<OrderIdDto, OrderIdDto> {
+  run(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
+}
+@Tool({ name: "check-policy-tool", description: "Checks policy", input: OrderIdDto, output: OrderIdDto })
+export class CheckPolicyTool implements ToolHandler<OrderIdDto, OrderIdDto> {
+  run(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
+}
+@Tool({ name: "delete-order-tool", description: "Deletes order", input: OrderIdDto, output: OrderIdDto })
+export class DeleteOrderTool implements ToolHandler<OrderIdDto, OrderIdDto> {
+  run(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
+}
+declare class SupportTestApp {}
+declare class OrderSupportStart {}
+declare class OrderSupportAgent {}
+declare const orderStartInput: never;
+-->
+```ts title="test/trajectory-and-chaos.test.ts"
+import { expect } from "vitest";
+import {
+  callTool,
+  callToolWithInvalidArguments,
+  replyWith,
+  replyWithInvalidAnswer,
+  testWith,
+} from "agboss/testing";
+
+// Code @Judge inspecting JudgeInput.toolCalls to catch silent cross-order reads:
+@Judge({
+  name: "no-cross-order-read-judge",
+  description: "Fails if the agent inspected any order other than 555 during its tool loop",
+  decidedBy: DecidedBy.Code,
+  reply: OrderIdDto,
+})
+export class NoCrossOrderReadJudge implements JudgeHandler<OrderIdDto> {
+  judge(input: JudgeInput<OrderIdDto>): Promise<JudgeVerdict> {
+    const orderCalls = toolCallsOf(GetOrderTool, input.toolCalls);
+    const leaked = orderCalls.some(
+      (call) => call.status === ToolCallStatus.Succeeded && call.input.orderId !== "555",
+    );
+    return Promise.resolve(
+      leaked
+        ? JudgeVerdict.failed({ reason: "Agent read an unauthorized order ID during tool loop." })
+        : JudgeVerdict.passed(),
+    );
+  }
+}
+
+const test = testWith(SupportTestApp);
+
+test("verifies trajectory invariants and self-correction after invalid tool args & answer", async ({
+  app,
+  mockLlm,
+}) => {
+  mockLlm(OrderSupportAgent).thenReturn(
+    callToolWithInvalidArguments(GetOrderTool, { orderId: 12345 }),
+    callTool(CheckPolicyTool, { orderId: "555" }),
+    callTool(GetOrderTool, { orderId: "555" }),
+    replyWithInvalidAnswer(OrderIdDto, { orderId: null }),
+    replyWith(OrderIdDto, { orderId: "555" }),
+  );
+
+  const result = await app.execute(OrderSupportStart, orderStartInput);
+
+  expect(result).toHaveCalledTools([GetOrderTool, CheckPolicyTool]);
+  expect(result).not.toHaveCalledTools([DeleteOrderTool]);
+  expect(result).toHaveToolCallMatching(GetOrderTool, (input) => input.orderId === "555");
+});
+```
 
 ---
 
 ## Recorded VCR Cassettes & Stale-Cassette Guard (`[vcr.stale-cassette]`)
 
-Between scripted unit tests and live evaluation sits **VCR recording**: `testWith(Application, { vcr: { cassetteName: "onboarding" } })` records real model calls once to `__snapshots__/onboarding.cassette.json` (`VcrMode.Auto` locally) and replays them deterministically in milliseconds in CI (`VcrMode.Replay`).
+Between scripted unit tests and live evaluation sits **VCR recording**: `testWith(Application, { vcr: { cassetteName: "onboarding", mode: process.env.CI ? VCRMode.REPLAY : VCRMode.AUTO } })` records real model calls once to `__snapshots__/onboarding.cassette.json` and replays them deterministically in milliseconds in CI (`VCRMode.REPLAY`).
 
-Each recorded cassette entry embeds the step's **`promptHash`** and **`schemaHash`**. If an engineer or coding agent edits an `@Agent`'s prompt or changes a `@Dto` / `@Tool` schema without re-recording the cassette, `VcrMode.Replay` (and `$ agboss check --cassettes tests/cassettes`) fails immediately with **`[vcr.stale-cassette]`** instead of silently passing against an outdated prompt snapshot.
+Each recorded cassette (version 2) embeds the component's **`promptHash`** and **`schemaHash`**. If an engineer or coding agent edits an `@Agent`'s prompt or changes a `@Dto` / `@Tool` schema:
+
+1. **`npx agboss check --cassettes` (in Loop 0) and `VCRMode.REPLAY` (in Loop 1)** fail immediately with `StaleCassetteError` (**`[vcr.stale-cassette]`**, reporting `CassetteChange.Prompt`, `Schema`, or `Removed`) instead of silently passing against an outdated prompt snapshot.
+2. **Surgical re-recording (`VCRMode.RECORD_STALE`):** Run `AGBOSS_VCR_MODE=RECORD_STALE npm test` to replay all unchanged steps from the cassette while re-recording **only** the components whose `promptHash` or `schemaHash` changed, then trigger [Loop 2 (`agboss eval run`)](/guides/evaluation-and-profiles/) to verify the updated behavior.

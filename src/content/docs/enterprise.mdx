@@ -1,12 +1,12 @@
 ---
 title: AGBoss for the enterprise
-description: Planned enterprise support for AGBoss — LTS release lines, Day-0 security patches, automated upgrades, and compliance governance.
+description: Planned enterprise support and AGBoss Mesh Hub (Enterprise Control Plane) — Global Agent Mesh Graph, Cross-Service Execution Trees, Blast Radius & Federation, Progressive Crystallization Radar, Distributed Child Work-Stealing, LTS release lines, and Day-0 security patches.
 template: splash
 ---
 
 <div class="agp not-content">
 
-<p class="agp-lead"><span class="agp-pill">Coming</span>&nbsp; Enterprise support for engineering organizations running AGBoss in regulated and mission-critical production environments: long-term support release lines, Day-0 security patches, automated workflow upgrade tooling, and audit-ready compliance governance.</p>
+<p class="agp-lead"><span class="agp-pill">Coming</span>&nbsp; Enterprise support and the <strong>AGBoss Mesh Hub (Enterprise Control Plane)</strong> for engineering organizations running AGBoss in regulated and mission-critical production environments: fleet-wide mesh observability, cross-service execution trees, progressive crystallization analytics, LTS release lines, and Day-0 security patches.</p>
 
 <div class="agp-actions">
 <a class="agp-btn" href="https://www.linkedin.com/company/agbossjs" target="_blank" rel="noopener">Follow for updates →</a>
@@ -14,13 +14,60 @@ template: splash
 </div>
 
 <div class="agp-grid">
+<div class="agp-card"><span class="agp-kicker">Mesh Hub</span><h3>Enterprise Control Plane</h3><p>Fleet-wide topology map, cross-service execution trees across <code>rootExecutionId</code>, and progressive crystallization heatmaps.</p></div>
 <div class="agp-card"><span class="agp-kicker">Day 0</span><h3>Immediate security patches</h3><p>Receive validated security patches the day a vulnerability is disclosed across AGBoss or upstream dependencies.</p></div>
-<div class="agp-card"><span class="agp-kicker">Verified</span><h3>Regression-tested releases</h3><p>Every patch is verified against the exact release line your production services run.</p></div>
-<div class="agp-card"><span class="agp-kicker">Extended</span><h3>Predictable lifecycle windows</h3><p>Stay on a stable release line with guaranteed backports after the standard community window closes.</p></div>
+<div class="agp-card"><span class="agp-kicker">Extended</span><h3>Predictable LTS lifecycles</h3><p>Stay on a regression-tested release line with guaranteed backports after the standard community window closes.</p></div>
 </div>
 
+<section class="agp-section" id="mesh-hub">
+<h2 class="agp-h2">What is the AGBoss Mesh Hub (Enterprise Control Plane)?</h2>
+<div class="agp-features">
+
+<div class="agp-feature" id="global-mesh-graph">
+<div class="agp-feature-icon">◈</div>
+<div>
+<h3>Global Agent Mesh Graph</h3>
+<p>Interactive fleet map of every <code>@Application</code> service across your organization built from <code>agboss describe --json</code> and signed <code>MeshEnvelope</code> traffic, showing live RPS, p95 latency, <code>pass^k</code> reliability, and USD spend per node.</p>
+</div>
+</div>
+
+<div class="agp-feature" id="execution-trees">
+<div class="agp-feature-icon">⑂</div>
+<div>
+<h3>Cross-Service Execution Trees</h3>
+<p>Unified distributed execution tree keyed by <code>rootExecutionId</code> across <code>Service A → A2A → Service B → MCP → Service C</code>, visualizing human approval pauses, tool retries, budget caps, and LIFO saga rollbacks in one timeline.</p>
+</div>
+</div>
+
+<div class="agp-feature" id="blast-radius">
+<div class="agp-feature-icon">⊕</div>
+<div>
+<h3>Blast Radius &amp; Federation</h3>
+<p>Pre-merge contract impact analysis powered by <code>agboss check --federation</code> that previews every downstream A2A and MCP consumer affected when a <code>@Dto</code> schema or <code>promptHash</code> changes.</p>
+</div>
+</div>
+
+<div class="agp-feature" id="crystallization-radar">
+<div class="agp-feature-icon">⚡</div>
+<div>
+<h3>Progressive Crystallization Radar</h3>
+<p>Automated heatmap flagging <code>DecidedBy.Model</code> steps and low-<code>pass^k</code> tool loops where the LLM is overpaying for deterministic routing or formatting — with one-click PR generation to crystallize them into <code>DecidedBy.Code</code> or <code>@ToolInterceptor</code>.</p>
+</div>
+</div>
+
+<div class="agp-feature" id="work-stealing">
+<div class="agp-feature-icon">⇄</div>
+<div>
+<h3>Distributed Child Work-Stealing</h3>
+<p><code>ChildPlacement.AnyInstance</code> scheduling for horizontal fan-out of <code>.toParallelWorkflows()</code> across a Kubernetes cluster via atomic <code>ClaimPendingChild</code> queue handoffs.</p>
+</div>
+</div>
+
+</div>
+</section>
+
 <section class="agp-section">
-<h2 class="agp-h2">What is planned for enterprise teams?</h2>
+<h2 class="agp-h2">What enterprise support &amp; SLA guarantees are planned?</h2>
 <div class="agp-features">
 
 <div class="agp-feature" id="lts">

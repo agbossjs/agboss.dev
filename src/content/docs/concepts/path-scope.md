@@ -1,9 +1,9 @@
 ---
 title: Path Scope & Provenance
-description: How AGBoss tracks Static Single Assignment (SSA) DTO slots, narrowed Produced<T, P> producer types in .agboss/types.d.ts, and review loop provenance with about and historyOf.
+description: How AGBoss and HarnessDSL (HDSL) track Static Single Assignment (SSA) DTO slots, narrowed Produced<T, P> producer types in .agboss/types.d.ts, and review loop provenance with about and historyOf.
 ---
 
-Every path in an AGBoss `@Workflow` carries a compile-time and runtime **Path Scope**: the Static Single Assignment (SSA) set of DTO values guaranteed to have been produced along that path so far. Components declare what they read by DTO class (`input: { draft: OfferDraftDto }`) and what they produce (`output: OfferDraftDto`), while the workflow writes each transition explicitly with `.returns(OfferDraftDto)` so `agboss check` and TypeScript verify every read before a single model call runs.
+Every path in an AGBoss `@Workflow` written in **HarnessDSL (`HDSL`)** carries a compile-time and runtime **Path Scope**: the Static Single Assignment (SSA) set of DTO values guaranteed to have been produced along that path so far. Components declare what they read by DTO class (`input: { draft: OfferDraftDto }`) and what they produce (`output: OfferDraftDto`), while the workflow writes each transition explicitly with `.returns(OfferDraftDto)` so `agboss check` and TypeScript verify every read before a single model call runs.
 
 ## How slots, writes, and narrowed `Produced<T, P>` reads work
 

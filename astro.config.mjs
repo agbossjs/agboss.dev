@@ -102,7 +102,7 @@ export default defineConfig({
 						{ label: 'Application & Lifecycle', slug: 'concepts/application' },
 						{ label: 'Digital & Physical Missions', slug: 'concepts/mission-orchestration' },
 						{ label: 'Decorators & Role Segregation', slug: 'concepts/decorators' },
-						{ label: 'Workflow DSL & Topology', slug: 'concepts/workflow' },
+						{ label: 'Workflow HDSL & Topology', slug: 'concepts/workflow' },
 						{ label: 'Path Scope (SSA) & Provenance', slug: 'concepts/path-scope' },
 						{ label: 'DI & Custom Overrides', slug: 'concepts/dependency-injection' },
 						{ label: 'Contexts & Authorization', slug: 'concepts/contexts' },
@@ -208,7 +208,7 @@ export default defineConfig({
 					description:
 						'AGBoss (Agent Graph Builder Open Source System) is the TypeScript framework, static graph compiler (agboss check), and production runtime for multi-agent systems scaling to hundreds of nodes and System-2 Physical AI orchestration on LangGraph (npm i agboss), and HarnessDSL (HDSL) is the declarative graph grammar and verification specification inside AGBoss (analogous to JSX in React or PSL in Prisma — defining how *.workflow.ts flow chains and contract decorators express narrow @Dto handoffs, Path Scope, in-degree = 1 vs >= 2 canonical topology, { about } staleness tracking, quorums, and compensateWith / committedBy sagas). Together they enforce 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & 4-Stage Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, leases, K8s probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join from DecidedBy.Model to DecidedBy.Code).',
 					details:
-						'AGBoss (Agent Graph Builder Open Source System) is engineered for Senior, Staff, Principal, and CTO engineers who decompose complex domains into specialized agent graphs using AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code). Instead of allowing coding agents to generate an untyped mutable God State Object with tangled side effects and broken KV caches, AGBoss and its built-in HarnessDSL (HDSL) grammar enforce distributed-systems invariants at compile time via `agboss check` (emitting `.agboss/types.d.ts`) and guide coding agents via auto-synced `AGENTS.md` + 12 skill reference modules (`references/01..12`) and `agboss/eslint`. In HarnessDSL, workflows use strictly one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
+						'AGBoss (Agent Graph Builder Open Source System) is engineered for Senior, Staff, Principal, and CTO engineers who decompose complex domains into specialized agent graphs using AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code). Instead of allowing coding agents to generate an untyped mutable God State Object with tangled side effects and broken KV caches, AGBoss and its built-in HarnessDSL (HDSL) grammar enforce distributed-systems invariants at compile time via `agboss check` (emitting `.agboss/types.d.ts`) and guide coding agents via auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`) and `agboss/eslint`. In HarnessDSL, workflows use strictly one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
 					customSets: [
 						{
 							label: 'Core Concepts & HarnessDSL (HDSL)',
@@ -223,7 +223,7 @@ export default defineConfig({
 						{
 							label: 'API Reference, CLI & Changelog',
 							paths: ['reference/**', 'cli', 'changelog'],
-							description: 'Complete decorator contracts, Flow DSL methods, standard DTOs, agboss CLI commands, and release changelog.',
+							description: 'Complete decorator contracts, HarnessDSL (HDSL) flow methods, standard DTOs, agboss CLI commands, and release changelog.',
 						},
 						{
 							label: 'Examples',

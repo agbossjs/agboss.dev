@@ -9,72 +9,6 @@ A `@ToolInterceptor` class implements `BeforeToolCall`, `AfterToolCall`, or both
 
 ## Complete `@ToolInterceptor` example
 
-<!--
-```ts file=src/interceptors/tool-interceptor-ambient.d.ts
-import type { Class } from "agboss";
-
-declare module "agboss" {
-  export interface ToolCallContext<TInput = unknown> {
-    readonly tool: Class;
-    readonly toolName: string;
-    readonly callId: string;
-    readonly input: Readonly<TInput>;
-  }
-
-  export interface ToolCallResultContext<TInput = unknown, TOutput = unknown>
-    extends ToolCallContext<TInput> {
-    readonly output: TOutput;
-  }
-
-  export class ToolCallDecision {
-    readonly kind!: "allow" | "replyToModel" | "block";
-    readonly message?: string;
-    readonly reason?: string;
-    static allow(): ToolCallDecision;
-    static replyToModel(options: { message: string }): ToolCallDecision;
-    static block(options: { reason: string }): ToolCallDecision;
-  }
-
-  export interface BeforeToolCall<TInput = unknown> {
-    beforeToolCall(call: ToolCallContext<TInput>): Promise<ToolCallDecision> | ToolCallDecision;
-  }
-
-  export interface AfterToolCall<TInput = unknown, TOutput = unknown> {
-    afterToolCall(call: ToolCallResultContext<TInput, TOutput>): Promise<TOutput> | TOutput;
-  }
-
-  export interface ToolInterceptorOptions {
-    readonly name: string;
-    readonly description: string;
-    readonly deps?: readonly unknown[];
-  }
-
-  export function ToolInterceptor(options: ToolInterceptorOptions): ClassDecorator;
-}
-
-declare module "agboss/testing" {
-  import type { ToolCallDecision } from "agboss";
-  export interface TestToolInterceptorRunner {
-    before(call: { tool: unknown; input: unknown; callId?: string }): Promise<ToolCallDecision>;
-    after<TOutput = unknown>(call: {
-      tool: unknown;
-      input: unknown;
-      output: TOutput;
-      callId?: string;
-    }): Promise<TOutput>;
-  }
-  export function testToolInterceptor(
-    interceptor: unknown,
-    options?: {
-      tenantContext?: readonly [unknown, Record<string, unknown>];
-      executionContext?: readonly [unknown, Record<string, unknown>];
-      providers?: readonly unknown[];
-      overrides?: readonly unknown[];
-    },
-  ): TestToolInterceptorRunner;
-}
-```
--->
 ```ts title="src/interceptors/tenant-order.tool-interceptor.ts" file=src/interceptors/tenant-order.tool-interceptor.ts
 import {
   Injectable,
@@ -114,7 +48,7 @@ export class OrderAclService {
 }
 
 @Tool({
-  name: "get_order",
+  name: "get-order-tool",
   description: "Loads an order record by ID",
   input: OrderInputDto,
   output: OrderRecordDto,
@@ -134,30 +68,33 @@ export class GetOrderTool implements ToolHandler<OrderInputDto, OrderRecordDto> 
   description: "Verifies order ownership before running a tool and strips internal notes after",
   deps: [TenantContext, OrderAclService],
 })
-export class TenantOrderToolInterceptor
-  implements BeforeToolCall<OrderInputDto>, AfterToolCall<OrderInputDto, OrderRecordDto>
-{
+export class TenantOrderToolInterceptor implements BeforeToolCall, AfterToolCall {
   constructor(
     private readonly tenantContext: TenantContext,
     private readonly orderAcl: OrderAclService,
   ) {}
 
-  async beforeToolCall(call: ToolCallContext<OrderInputDto>): Promise<ToolCallDecision> {
-    const allowed = await this.orderAcl.belongsToTenant(
-      this.tenantContext.tenantId,
-      call.input.orderId,
-    );
+  async beforeToolCall(call: ToolCallContext): Promise<ToolCallDecision> {
+    const orderId =
+      typeof call.input === "object" &&
+      call.input !== null &&
+      "orderId" in call.input &&
+      typeof call.input.orderId === "string"
+        ? call.input.orderId
+        : "";
+    const allowed = await this.orderAcl.belongsToTenant(this.tenantContext.tenantId, orderId);
     if (!allowed) {
       return ToolCallDecision.replyToModel({
-        message: `Order ${call.input.orderId} does not belong to tenant ${this.tenantContext.tenantId}. Ask the user to confirm their order ID.`,
+        message: `Order ${orderId} does not belong to tenant ${this.tenantContext.tenantId}. Ask the user to confirm their order ID.`,
       });
     }
     return ToolCallDecision.allow();
   }
 
-  afterToolCall(call: ToolCallResultContext<OrderInputDto, OrderRecordDto>): OrderRecordDto {
+  afterToolCall(call: ToolCallResultContext): OrderRecordDto {
+    const record = call.output as OrderRecordDto;
     return {
-      ...call.output,
+      ...record,
       internalNote: "[REDACTED]",
     };
   }
@@ -166,38 +103,38 @@ export class TenantOrderToolInterceptor
 
 ```ts title="test/tenant-order.tool-interceptor.test.ts" file=test/tenant-order.tool-interceptor.test.ts
 import { expect, it } from "vitest";
-import { TenantContext } from "agboss";
+import { ToolCallDecision } from "agboss";
 import { testToolInterceptor } from "agboss/testing";
 import {
   GetOrderTool,
-  OrderAclService,
   TenantOrderToolInterceptor,
 } from "../src/interceptors/tenant-order.tool-interceptor.js";
 
 it("replies to the model when an order belongs to another tenant and scrubs internalNote on allow", async () => {
   const interceptor = testToolInterceptor(TenantOrderToolInterceptor, {
-    tenantContext: [TenantContext, { id: "acme" }],
-    providers: [OrderAclService],
+    tenant: { tenantId: "acme" },
   });
 
-  const denied = await interceptor.before({
-    tool: GetOrderTool,
-    input: { orderId: "OTHER-99" },
+  const { output: denied } = await interceptor.beforeToolCall(GetOrderTool, {
+    orderId: "OTHER-99",
   });
-  expect(denied.kind).toBe("replyToModel");
-  expect(denied.message).toContain("does not belong to tenant acme");
+  expect(denied).toEqual(
+    ToolCallDecision.replyToModel({
+      message:
+        "Order OTHER-99 does not belong to tenant acme. Ask the user to confirm their order ID.",
+    }),
+  );
 
-  const allowed = await interceptor.before({
-    tool: GetOrderTool,
-    input: { orderId: "ACME-42" },
+  const { output: allowed } = await interceptor.beforeToolCall(GetOrderTool, {
+    orderId: "ACME-42",
   });
-  expect(allowed.kind).toBe("allow");
+  expect(allowed).toEqual(ToolCallDecision.allow());
 
-  const redacted = await interceptor.after({
-    tool: GetOrderTool,
-    input: { orderId: "ACME-42" },
-    output: { orderId: "ACME-42", amountCents: 12_500, internalNote: "VIP margin tier A" },
-  });
+  const { output: redacted } = await interceptor.afterToolCall(
+    GetOrderTool,
+    { orderId: "ACME-42" },
+    { orderId: "ACME-42", amountCents: 12_500, internalNote: "VIP margin tier A" },
+  );
   expect(redacted.internalNote).toBe("[REDACTED]");
 });
 ```

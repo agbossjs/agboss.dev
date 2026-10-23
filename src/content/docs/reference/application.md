@@ -323,9 +323,8 @@ Every `@Application` class name ends with `Application` and its `name` option en
 | `piiPolicies` | `readonly Class[]` | No | Application-wide `@PiiPolicy` classes applied to every agent, router, log entry, and trace. |
 | `guardrails` | `readonly Class[]` | No | Application-wide `@InputGuardrail` and `@OutputGuardrail` classes applied to every agent and model router. |
 | `toolInterceptors` | `readonly Class[]` | No | Application-wide [`@ToolInterceptor`](/reference/tool-interceptor/) classes applied to every `@Tool` and `@McpTool` call. |
-| `exposes` | `readonly Class[]` | No | [`@McpExpose`](/reference/mcp-expose/) and [`@A2AExpose`](/reference/a2a-agent/) boundary contracts exported by this application and included in `agboss describe --json`. |
-| `maxMeshHops` | `number` | No | Maximum cross-service A2A/MCP federation hops allowed (`6` by default; throws `HopsLimitExceededError` when exceeded). |
-| `mesh` | `MeshConfig` | No | Agent Mesh Envelope signing and verification settings (`{ signingKey, peers, idempotencyRetention }`) for multi-service A2A/MCP deployments. |
+| `maxMeshHops` | `number` | No | Maximum cross-service A2A/MCP federation hops allowed (`8` by default; throws `HopsLimitExceededError` when exceeded). |
+| `mesh` | `MeshOptions` | No | Agent Mesh Envelope signing and verification settings (`{ signingKey, peers, idempotencyRetention }`) for multi-service A2A/MCP deployments. |
 | `compaction` | `Class` | No | Default [`@Compaction`](/reference/compaction/) class summarizing turns older than `uncompactedTurns`. |
 | `uncompactedTurns` | `number \| TurnLimit` | No | Default number of recent turns shown in full to every agent and model router (`5` by default, or `TurnLimit.ALL`). |
 | `pseudonymKey` | `string` | No | Name of a `Secret` field on the `environment` class used for HMAC token pseudonymization across all pods. |

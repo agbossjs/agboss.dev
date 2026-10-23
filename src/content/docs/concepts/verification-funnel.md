@@ -18,6 +18,7 @@ import {
   Budget,
   BudgetPeriod,
   BudgetScope,
+  DecidedBy,
   Decision,
   EmptyEnvironment,
   Judge,
@@ -55,7 +56,7 @@ export class RefundReplyDto {
 }
 
 @Tool({
-  name: "issue_refund",
+  name: "issue-refund-tool",
   description: "Issues a refund for an order",
   input: RefundToolInputDto,
   output: RefundReplyDto,
@@ -68,11 +69,11 @@ export class IssueRefundTool implements ToolHandler<RefundToolInputDto, RefundRe
   }
 }
 
-// Cascade Step 1 ($0, 0ms): Deterministic code @Judge runs BEFORE any paid LLM judge
+// Cascade Step 1 ($0, 0ms): Deterministic DecidedBy.Code @Judge runs BEFORE any paid LLM judge
 @Judge({
   name: "citation-format-judge",
   description: "Verifies deterministically that confirmation contains an [ORD-...] citation",
-  model: "typesafe/jev-1.13",
+  decidedBy: DecidedBy.Code,
   reply: RefundReplyDto,
 })
 export class CitationFormatJudge implements JudgeHandler<RefundReplyDto> {
@@ -265,18 +266,19 @@ flowchart TD
 - **The Freshness Lock to Loop 2 (`[vcr.stale-cassette]`):**
   Every VCR cassette embeds the `promptHash` and `schemaHash` of the steps it recorded. As long as you only refactor TypeScript services, `@Action` nodes, or DI wiring, your entire test suite runs for `$0` on cassettes. The moment you change a single word in a prompt or a field on a `@Dto`, `[vcr.stale-cassette]` trips — signaling that the fixture is stale and Loop 2 must run against a live model.
 
-### Loop 2: Live-Model PR Smoke Gate (`$ agboss eval run --runs 5 --baseline`)
+### Loop 2: Live-Model PR Smoke Gate (`npx agboss eval run --runs 5 --baseline`)
 
 - **When:** On Pull Requests (triggered automatically when `promptHash`, `schemaHash`, or tool bindings change).
+- **Why `temperature: 0` still requires `--runs 5` (`pass@k` vs `pass^k`):** Modern GPU inference servers use dynamic continuous batching across concurrent requests, and `BF16` / `FP8` matrix reductions are non-associative. As a result, the exact same prompt at `temperature: 0` can take different tool-call trajectories across runs — making single-run (`K=1`) evaluations statistically unreliable. AGBoss measures both **`pass@k`** (passed at least once in $k$ runs — *capability*) and **`pass^k`** (passed all $k$ of $k$ runs — *production reliability*).
 - **How Loop 2 maximizes accuracy while minimizing token spend:**
   1. **Fail-Fast Cascade inside every trial (`$0 -> $$$`, `EvalCascade.StopAtFirstFailure`):**
-     - **Step 1 (`$0`, `0ms`):** Verify deterministic trajectory invariants first — were `requiredTools` called, were `forbiddenTools` avoided (`toHaveCalledTools`), did tool arguments satisfy `toolInvariant` predicates, and did the run stay within its `@Budget`?
-     - **Step 2 (`$0`, `0ms`):** Run deterministic code `@Judge` classes (`CitationFormatJudge`, `FairDecisionJudge`).
+     - **Step 1 (`$0`, `0ms`):** Verify deterministic trajectory invariants (`checkTrajectory()`) first — were `required` tools called (`toolCall`), were `forbidden` tools avoided, did tool arguments satisfy `toolInvariant` predicates, and did the run stay within its `@Budget`?
+     - **Step 2 (`$0`, `0ms`):** Run deterministic `DecidedBy.Code` `@Judge` classes (`CitationFormatJudge`, `FairDecisionJudge`).
      - **Step 3 (`$`):** Only if Steps 1 and 2 pass does AGBoss invoke the calibrated LLM `@Judge`, passing it the full `toolCalls` trajectory and final `reply`.
   2. **Multi-trial reliability (`pass^k`) vs cached `--baseline` (no double spend):**
      - Critical smoke cases (up to 10 cases) run $K = 5$ trials each (`--runs 5`), while cases directly touched by the PR run $10\text{–}20$ trials.
      - Instead of running every eval twice on every PR (once on `main`, once on the PR branch), `--baseline` compares each case's `pass^k` against the cached baseline JSON artifact from the latest nightly `main` run.
-     - If a case had `5/5` (`pass^5 = 1.00`) on `main` and drops in the PR, CI fails with exit code `5` (`--fail-on-regression`). If a case already had `0 < pass^k < 1` on `main`, it is automatically quarantined as **`flaky-on-baseline`** so baseline noise never blocks unrelated PRs.
+     - If a case had `5/5` (`pass^5 = 1.00`) on `main` and drops in the PR, CI fails with exit code `5` (`--fail-on-regression`). If a case already had `0 < pass^k < 1` on `main`, it is automatically quarantined as **`flaky-on-baseline`** (`CaseComparison.FlakyOnBaseline`) so baseline noise never blocks unrelated PRs.
   3. **Artifact output:** Attaches a self-contained single-file `eval-report.html` (`--html`) directly to the Pull Request.
 
 ### Loop 3: Nightly Polygon (Regression, `--metamorphic`, Memory Drift & `--chaos`)

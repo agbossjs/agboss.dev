@@ -1,19 +1,19 @@
 ---
 title: AI-Assisted Engineering & Coding Skills (AGENTS.md)
-description: How AGBoss keeps every AI coding agent (OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Aider, and Claude Code) 100% aligned with HarnessDSL and the Path Scope compiler via AGENTS.md and 12 offline-synced skill reference modules.
+description: How AGBoss keeps every AI coding agent (OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Aider, and Claude Code) 100% aligned with HarnessDSL and the Path Scope compiler via AGENTS.md and 13 offline-synced skill reference modules (including LangGraph migration).
 ---
 
 In modern engineering teams, Senior, Staff, and Principal engineers rarely type multi-agent boilerplate by hand. Instead, they act as **systems architects** who specify domain boundaries, DTO contracts, and failure invariants while **AI coding agents — OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Cline, Aider, or Claude Code —** generate and refactor the implementation.
 
 However, pre-trained coding models do not know AGBoss or **HarnessDSL** out of the box. Left unguided, they fall back to legacy orchestration habits: shared mutable state bags, `new MyDto()` instantiation, raw numbers instead of `seconds()` / `usd()`, `as any` casts, or multi-call lines in `*.workflow.ts` that fail Path Scope compilation.
 
-AGBoss solves this in a **tool-agnostic, cross-agent way** by bundling an authoritative, compiler-verified **AI Skill Suite** (`AGENTS.md` + 12 progressive-disclosure reference modules) directly inside the `agboss` npm package and automatically keeping the reference modules in sync with your installed framework version.
+AGBoss solves this in a **tool-agnostic, cross-agent way** by bundling an authoritative, compiler-verified **AI Skill Suite** (`AGENTS.md` + 13 progressive-disclosure reference modules) directly inside the `agboss` npm package and automatically keeping the reference modules in sync with your installed framework version.
 
 ---
 
 ## How coding agents verify graphs in practice
 
-Every rule in `AGENTS.md` and the 12 skill reference modules maps directly to a compile-time check in `agboss check` and a deterministic offline test in `agboss/testing`. When your coding agent scaffolds or edits a workflow, it validates the graph and runs a deterministic Vitest test in milliseconds:
+Every rule in `AGENTS.md` and the 13 skill reference modules maps directly to a compile-time check in `agboss check` and a deterministic offline test in `agboss/testing`. When your coding agent scaffolds or edits a workflow, it validates the graph and runs a deterministic Vitest test in milliseconds:
 
 <!-- snippet-context
 import { Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
@@ -203,14 +203,14 @@ AGBoss sets up a two-tier, tool-agnostic instruction architecture in your reposi
 
 `agboss create` generates two files in your repository root that are **committed to Git** and **created only once** (never overwritten by subsequent upgrades or syncs):
 
-- **`AGENTS.md` (Universal Standard):** The open cross-agent standard read natively by **OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Cline, Roo Code, and Aider**. It contains your project-specific architectural rules and a progressive-disclosure routing table pointing to the 12 framework reference modules. Because AGBoss never overwrites `AGENTS.md`, your team can freely append domain-specific conventions or links for your preferred IDE/agent.
+- **`AGENTS.md` (Universal Standard):** The open cross-agent standard read natively by **OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Cline, Roo Code, and Aider**. It contains your project-specific architectural rules and a progressive-disclosure routing table pointing to the 13 framework reference modules. Because AGBoss never overwrites `AGENTS.md`, your team can freely append domain-specific conventions or links for your preferred IDE/agent.
 - **`CLAUDE.md` (1-Line Bridge):** A single-line pointer file (`@AGENTS.md`) so Claude Code loads the exact same `AGENTS.md` instructions without duplicating a single rule.
 
 ### 2. Offline-Synced Progressive-Disclosure Reference Modules
 
 Why not dump all 50 pages of framework documentation directly into `AGENTS.md`? Because loading 50 pages of docs on every prompt bloats your coding agent's context window and degrades code quality.
 
-Instead, the 12 modular reference guides live inside `node_modules/agboss/skills/agboss/` (shipped offline inside the `agboss` npm package) and are automatically synced into `.claude/skills/agboss/` (the standard skill discovery path also referenced directly by `AGENTS.md` so Cursor, Codex, Windsurf, Copilot, and Gemini CLI read the exact same markdown files on demand):
+Instead, the 13 modular reference guides live inside `node_modules/agboss/skills/agboss/` (shipped offline inside the `agboss` npm package) and are automatically synced into `.claude/skills/agboss/` (the standard skill discovery path also referenced directly by `AGENTS.md` so Cursor, Codex, Windsurf, Copilot, and Gemini CLI read the exact same markdown files on demand):
 
 ```text
 my-app/
@@ -235,12 +235,13 @@ my-app/
                 ├── 09-persistence-k8s-and-deploy.md
                 ├── 10-testing-vcr-and-evals.md
                 ├── 11-cli-studio-and-error-catalog.md
-                └── 12-end-to-end-recipes.md
+                ├── 12-end-to-end-recipes.md
+                └── 13-migrating-from-langgraph.md
 ```
 
 Why is the synced skill directory gitignored instead of committed?
-- **Zero version drift across upgrades:** Every time you upgrade `agboss` and run `npm install` (via `"postinstall": "npm run types"`, where `"types": "agboss check"`), `npx agboss check`, or `npx agboss generate`, the CLI compares the installed `agboss` version against `.agboss-skills.json` and updates the 13 skill files in place.
-- **No noisy 13-file PR diffs:** Upgrading `agboss` in `package.json` never pollutes your pull requests with documentation diffs, and accidental local edits to synced skill files are automatically detected (`[skills.local-edit]`) and restored to match the installed runtime.
+- **Zero version drift across upgrades:** Every time you upgrade `agboss` and run `npm install` (via `"postinstall": "npm run types"`, where `"types": "agboss check"`), `npx agboss check`, or `npx agboss generate`, the CLI compares the installed `agboss` version against `.agboss-skills.json` and updates the 14 skill files in place.
+- **No noisy 14-file PR diffs:** Upgrading `agboss` in `package.json` never pollutes your pull requests with documentation diffs, and accidental local edits to synced skill files are automatically detected (`[skills.local-edit]`) and restored to match the installed runtime.
 - **100% offline & supply-chain safe:** `agboss check` never makes network calls to download instructions that steer coding agents; skills always match the exact version of `agboss` installed in `node_modules`.
 
 ### Opting out of auto-sync
@@ -259,9 +260,9 @@ For environments that prefer not to write synced skill files into the workspace,
 
 ---
 
-## Inside the 12 modular skill references
+## Inside the 13 modular skill references
 
-`AGENTS.md` and `SKILL.md` act as a **context-efficient router**. They define the 10 core invariants and instruct your coding agent (whether Cursor, Codex, Windsurf, Copilot, Gemini CLI, or Claude Code) to open only the specific `references/01..12` file relevant to the current task:
+`AGENTS.md` and `SKILL.md` act as a **context-efficient router**. They define the 10 core invariants and instruct your coding agent (whether Cursor, Codex, Windsurf, Copilot, Gemini CLI, or Claude Code) to open only the specific `references/01..13` file relevant to the current task:
 
 | Reference File | Loaded By Coding Agent When… | Key Contracts Covered |
 | :--- | :--- | :--- |
@@ -269,15 +270,37 @@ For environments that prefer not to write synced skill files into the workspace,
 | `01-composition-and-architecture.md` | Designing workflows, splitting graphs, or authoring DTOs | `@Agent` vs `@Action` vs `@Tool`, `DecidedBy.Code` vs `DecidedBy.Model`, `@Text`/`@Integer`/`@Flag`/`@OneOf`/`@ListOf`/`@Nested`, narrow DTOs vs God DTOs |
 | `02-flow-dsl-all-combinations.md` | Writing or editing `*.workflow.ts` flow paths & error handlers | `start()`, `.returns(Dto, { about })`, `.switch(caseOf())`, `.chooseOne(route())`, `historyOf()`, `.toParallelAgents()`, `.joinQuorum()`, `ThisWorkflow`, `.onError()` hierarchy |
 | `03-components-di-and-lifecycle.md` | Implementing components, DI services, lifecycle hooks, or `AppEnvironment` | `@Application`, class-inheritance DI, `OnInit -> OnStart -> OnStop -> OnDestroy`, `ExecutionContext`, `SpendRecorder`, `JudgeModel`, `@ToolInterceptor`, `CompactionStrategy.Custom`, `secret()`, `env()`, `seconds()`, `usd()` |
-| `04-mcp-and-a2a.md` | Integrating external MCP servers, A2A remote agents, or Agent Mesh | `@McpServer`, `@McpTool`, `@McpExpose`, `createMcpService`, `@A2AAgent`, `@A2AExpose`, `a2aHttpListener` (`callerOf`), Agent Mesh Envelope (`agboss-mesh`), `$ agboss check --federation` |
+| `04-mcp-and-a2a.md` | Integrating external MCP servers, A2A remote agents, or Agent Mesh | `@McpServer`, `@McpTool`, `@McpExpose`, `createMcpService`, `@A2AAgent`, `a2aHttpListener` (`callerResolver`), `MeshEnvelope` (`agboss-mesh`), `$ agboss check --federation` |
 | `05-channels-and-human-in-the-loop.md` | Adding human approvals, pauses, or webhook resume endpoints | `@ChannelRole`, `@ReplyInterpreter`, `@Channel`, `ChannelOutcome.awaitReply()`, `withdraw()`, `result.pending`, `app.resume({ pauseId, reply })` |
 | `06-finops-providers-and-queues.md` | Configuring budgets, model providers, rate limits, or circuit breakers | `@Budget` (`Application`, `Tenant`, `Execution`), `@ModelProvider` (`OpenRouterProvider`, `ModelProviderHandler`), `PromptCaching`, `QueueBalancingStrategy.TenantRoundRobin`, shared 429 cooldowns |
-| `07-guardrails-pii-and-security.md` | Implementing input/output guardrails (`DecidedBy.Model` / `DecidedBy.Code`) or PII masking | `@InputGuardrail`, `@OutputGuardrail`, `GuardrailHandler`, `GuardrailVerdict`, `GuardrailRefusal`, `@PiiPolicy`, deterministic HMAC `PiiAction.replaceWithToken()` |
+| `07-guardrails-pii-and-security.md` | Implementing input/output guardrails (`DecidedBy.Model` / `DecidedBy.Code`) or PII masking | `@InputGuardrail`, `@OutputGuardrail`, `GuardrailHandler`, `GuardrailDecision`, `@PiiPolicy`, deterministic HMAC `PiiAction.replaceWithToken()` |
 | `08-observability-and-tracing.md` | Writing `On*` observers, inspecting `result.record`, or Langfuse | 23 `On*` observer interfaces (`OnExecutionEnd`, `OnSpend`, `OnValuesOutdated`, `OnQuorumDecided`), `result.record.pauses`, `scripts/langfuse.sh` |
 | `09-persistence-k8s-and-deploy.md` | Configuring SQLite/Postgres stores, leases, or Kubernetes probes | 7 repository contracts, `Sqlite*` WAL providers, 30s execution leases, `SIGTERM` drain, `@HealthCheck`, `checkLiveness()`, `checkReadiness()`, `configHash` rollouts |
 | `10-testing-vcr-and-evals.md` | Writing unit tests, trajectory assertions, `@EvalSuite`, or golden evals | `testWith(App, { instances: 2, concurrency: TestConcurrency.inOrder([...]) })`, `toHaveCalledTools`, `toHaveToolCallMatching`, `VirtualClock`, all 10 unit runners (`testTool` .. `testToolInterceptor`), `@EvalSuite` (`pass@k` / `pass^k`, Cohen's $\kappa$) |
 | `11-cli-studio-and-error-catalog.md` | Running CLI commands or fixing `[rule.code]` compiler diagnostics | Complete catalog of `[flow.*]`, `[graph.*]`, `[input.*]`, `[router.*]`, `[di.*]`, `[environment.*]`, `[prompt.*]`, and `[judge.*]` diagnostics with before/after fixes |
 | `12-end-to-end-recipes.md` | Scaffolding a complete multi-file feature from scratch | 4 complete multi-file blueprints: review loops with `{ about }`, parallel quorums with `@Channel`, MCP + A2A agents, and multi-tenant Kubernetes apps |
+| `13-migrating-from-langgraph.md` | Migrating an existing raw LangGraph (`StateGraph` / `Annotation.Root`) codebase to AGBoss | 3-step migration playbook: decomposing `StateAnnotation` into a read/write matrix and narrow `@Dto` classes, 1-to-1 primitive translation table, and uncovering latent LangGraph bugs via `npx agboss check` |
+
+---
+
+## Inside `13-migrating-from-langgraph.md`: The 3-Step LangGraph Migration Playbook
+
+When an engineer or coding agent migrates an existing raw LangGraph (`StateGraph`, `Annotation.Root`) service to AGBoss, `13-migrating-from-langgraph.md` guides a deterministic 3-step transformation:
+
+1. **Step 1 — Decompose `StateAnnotation` via a Read/Write Matrix into narrow `@Dto` classes:**
+   Instead of a single 30-field optional `Annotation.Root({...})` state bag where every node can read or overwrite any field, the agent builds a node-by-node read/write matrix and extracts cohesive, non-optional `@Dto` classes (`OrderQueryDto`, `PolicyVerdictDto`, `RefundReceiptDto`) governed by [Path Scope](/concepts/path-scope/).
+2. **Step 2 — 1-to-1 Primitive Translation Table:**
+
+| Raw LangGraph Construct | AGBoss Equivalent |
+| :--- | :--- |
+| `new StateGraph(StateAnnotation).addNode("x", fn)` | [`@Agent`](/reference/agent/) (LLM turn) or [`@Action`](/reference/action/) (deterministic TypeScript with `compensateWith`) |
+| `addConditionalEdges("x", routerFn, map)` | [`@Router`](/reference/router/) (`DecidedBy.Code` or `DecidedBy.Model`) + `.chooseOne(route(...))` or `.switch(caseOf(...))` |
+| `new Send("worker", item)` map-reduce | `.toParallelAgents()` or `.toParallelWorkflows()` with `maxItems`, `maxConcurrency`, and `.join()` / `.joinQuorum()` |
+| `interrupt(payload)` + `Command({ resume })` | [`@ChannelRole`](/reference/channel/) + `ChannelOutcome.awaitReply()` + two-phase `app.resume({ pauseId, decision })` |
+| `PostgresSaver` / `SqliteSaver` checkpointer | [7 repository contracts](/guides/persistence-and-scaling/) (`SqliteCheckpointRepository`, `ExecutionLeaseRepository`, etc.) |
+
+3. **Step 3 — Expose hidden bugs in the legacy graph with `npx agboss check`:**
+   Running `npx agboss check` on the migrated topology immediately catches latent bugs that raw LangGraph only surfaces in production: branches where a downstream node read a field that was never populated (`[input.missing-on-path]`), review loops where an agent read a stale draft from 2 iterations ago (`[input.outdated-on-path]`), side-effecting nodes lacking rollback handlers (`[flow.uncompensated-action]`), and dead state writes (`[flow.unused-output]`).
 
 ---
 

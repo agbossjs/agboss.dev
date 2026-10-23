@@ -1,9 +1,9 @@
 ---
 title: "@Workflow"
-description: Complete API reference for @Workflow in AGBoss — options, Path Scope Flow DSL methods, parallel waves, quorums, child workflows, and review loops.
+description: Complete API reference for @Workflow in AGBoss — options, HarnessDSL (HDSL) Path Scope flow methods, parallel waves, quorums, child workflows, and review loops.
 ---
 
-The `@Workflow` decorator defines a typed state graph (`*.workflow.ts`) in AGBoss. Every workflow declares its `name`, `version`, and `flow` array of paths built with `start()`, `agent()`, `router()`, `action()`, `workflow()`, `route()`, and `caseOf()`, enforcing strictly one chained method call per line (`@stylistic/newline-per-chained-call`) and compile-time Path Scope verification.
+The `@Workflow` decorator defines a typed state graph (`*.workflow.ts`) in AGBoss using **HarnessDSL (`HDSL`)** — our declarative graph syntax. Every workflow declares its `name`, `version`, and `flow` array of paths built with `start()`, `agent()`, `router()`, `action()`, `workflow()`, `route()`, and `caseOf()`, enforcing strictly one chained method call per line (`@stylistic/newline-per-chained-call`) and compile-time Path Scope verification.
 
 ## Complete `@Workflow` example with all capabilities
 
@@ -454,7 +454,7 @@ Every `@Workflow` class name ends with `Workflow` and its `name` option ends wit
 | `uncompactedTurns` | `number \| TurnLimit` | No | Number of recent finished turns shown in full to agents and model routers in this workflow (`5` by default, or `TurnLimit.ALL`). |
 | `promptVariables` | `Readonly<Record<string, string>>` | No | Static `{{variable}}` substitutions available to every prompt in the workflow. |
 
-## What Flow DSL functions and related entities work with `@Workflow`?
+## What HarnessDSL (HDSL) flow functions and related entities work with `@Workflow`?
 
 | Builder / Entity | Import Path | Description |
 | :--- | :--- | :--- |

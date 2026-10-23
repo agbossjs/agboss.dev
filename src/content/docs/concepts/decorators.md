@@ -29,7 +29,7 @@ In **AGBoss** (*Agent Graph Builder Open Source System*) and its declarative spe
 | [`@ChannelRole`](/reference/channel-role/) / [`@Channel`](/reference/channel/) / [`@ReplyInterpreter`](/reference/reply-interpreter/) | `agboss` (`*.channel.ts`) | Out-of-process pause role (`approves`), free-text `@ReplyInterpreter`, and transport implementation (`send(ask)`, `withdraw(info)`) |
 | [`@Rag`](/reference/rag/) | `agboss` / `agboss/rag` (`*.rag.ts`) | Knowledge base (`RagConnector`, `SqliteFtsConnector`) |
 | [`@McpServer`](/reference/mcp/) / [`@McpTool`](/reference/mcp-tool/) / [`@McpExpose`](/reference/mcp-expose/) | `agboss` / `agboss/mcp` (`*.mcp.ts`) | Model Context Protocol client servers, typed tools, and server exposure |
-| [`@A2AAgent` & `@A2AExpose`](/reference/a2a-agent/) | `agboss` / `agboss/a2a` (`*.a2a.ts`) | Remote Agent-to-Agent protocol client (`A2AClient`), `@A2AExpose` boundary, and multi-tenant `a2aHttpListener` |
+| [`@A2AAgent` & `a2aHttpListener`](/reference/a2a-agent/) | `agboss` / `agboss/a2a` (`*.a2a.ts`) | Remote Agent-to-Agent protocol client (`A2AClient`), `@Injectable()` `A2ACallerResolver`, and multi-tenant `a2aHttpListener` |
 | [`@Text`, `@ListOf`, `@Nested`, …](/reference/dto/) | `agboss/dto` (`*.dto.ts`) | Field decorators on plain DTO classes compiled to JSON Schema and checked by `agboss check` |
 
 ## Naming & suffix invariant (`[name.kind-suffix]`)
@@ -122,6 +122,6 @@ it("executes LookupOrderTool in isolation without booting the workflow", async (
 
 ## Where to explore individual decorators
 
-- [Workflow DSL (`@Workflow`)](/concepts/workflow/) for path chains, `.switch(caseOf())`, `.chooseOne(route())`, parallel launches, and quorums.
+- [Workflow HDSL (`@Workflow`)](/concepts/workflow/) for `HarnessDSL` path chains, `.switch(caseOf())`, `.chooseOne(route())`, parallel launches, and quorums.
 - [Dependency Injection (`@Injectable`)](/concepts/dependency-injection/) for constructor injection, `ExecutionContext`, `Clock`, `Logger`, and lifecycle hooks.
 - [Agent Reference](/reference/agent/), [Router Reference](/reference/router/), and [Tool Reference](/reference/tool/) for full decorator options.

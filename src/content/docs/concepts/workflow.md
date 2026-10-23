@@ -1,5 +1,5 @@
 ---
-title: Workflow DSL — HarnessDSL (HDSL) & Canonical Topology
+title: Workflow HDSL — HarnessDSL & Canonical Topology
 description: Master HarnessDSL (HDSL) — the declarative graph grammar and verification specification inside AGBoss, enforcing canonical topology isomorphism (in-degree = 1 vs >= 2), one-call-per-line paths, narrow DTO contracts, review loops with about and historyOf, parallel waves, and quorums.
 ---
 
@@ -13,7 +13,7 @@ When AI coding agents edit unconstrained graph definitions, they can format the 
 2. **Convergence node (`in-degree >= 2`):** A node reached from two or more edges (for example, `MainRouter` reached both from `start(IntakeWorkflowStart)` and from the `caseOf(ProfileDto)` loop-back) **must** be extracted as a top-level entry (`router(MainRouter)`, `agent(ReviewerAgent)`, `action(MergeAction)`) in the `flow: [...]` array (`[flow.shared-node-inline]`).
 3. **One chained call per line:** Every builder method call occupies its own line, and inline branch nesting is capped at depth 4 (`[flow.path-too-deep]`).
 
-## How paths, `.chooseOne(route())`, and `.switch(caseOf())` work
+## How HDSL paths, `.chooseOne(route())`, and `.switch(caseOf())` work
 
 Components declare their typed `input` fields and `output` DTO (or `oneOf(DtoA, DtoB)` union), while the `@Workflow({ flow: [...] })` array holds the entire control-flow topology and data flow:
 
@@ -192,7 +192,7 @@ When a reviewer evaluates an artifact (such as `OfferDraftDto`), attach `{ about
 
 ## How parallel launches, quorums, and recursion work
 
-For concurrent execution and hierarchical composition, the Workflow DSL provides four additional primitives:
+For concurrent execution and hierarchical composition, HarnessDSL (`HDSL`) provides four additional primitives:
 
 1. **Parallel launches (`.toParallelAgents()` / `.toParallelWorkflows()`):** Run multiple distinct agents (`SecurityAgent, LegalAgent, { maxConcurrency: 3 }`) or fan out across a `listOf(ItemDto)` (`{ maxItems: 20, maxConcurrency: 4 }`), followed by `.join()` and `.onJoinError(...)`.
 2. **Consensus quorums (`.joinQuorum()` / `.joinQuorumGroups()`):** Continue as soon as `{ min, max, deadline: seconds(30) }` answers are accepted by `@Arbiter` rules attached via `.acceptedBy(ArbiterClass)` or `.acceptedBy(anyOf(A, B))`, cancelling surplus branches immediately.

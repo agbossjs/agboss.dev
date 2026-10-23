@@ -1,13 +1,13 @@
 ---
-title: "@A2AAgent & @A2AExpose"
-description: Complete API reference for @A2AAgent, @A2AExpose, a2aHttpListener, A2ACaller, and the Agent Mesh Envelope in agboss/a2a.
+title: "@A2AAgent, a2aHttpListener & A2ACallerResolver"
+description: Complete API reference for @A2AAgent, A2AClient, a2aHttpListener, A2ACallerResolver, A2ACallerResolution, a2aServer, and the signed Agent Mesh Envelope in agboss/a2a.
 ---
 
-The `@A2AAgent` and `@A2AExpose` decorators (`"agboss/a2a"`) provide both sides of the Agent-to-Agent (A2A) protocol in AGBoss:
-- **`@A2AAgent`** (`a2a/*.a2a.ts`) defines a typed client (`extends A2AClient<TIn, TOut>`) for a remote A2A workflow or agent, registered in `@Workflow({ providers: [RemoteA2AAgent] })` and injected into any `@Tool` or `@Action` via `deps: [RemoteA2AAgent]`.
-- **`@A2AExpose`** (`a2a/*.expose.ts`) declares which [`@WorkflowStart`](/reference/workflow-start/) entry points an `@Application({ exposes: [MyA2AExpose] })` exports over HTTP via `a2aHttpListener({ app, expose, base, callerOf })`.
+The `@A2AAgent` decorator, `a2aHttpListener`, and `A2ACallerResolver` (`"agboss/a2a"`) provide both sides of the multi-tenant Agent-to-Agent (A2A) and Agent Mesh protocol in AGBoss:
+- **`@A2AAgent`** (`a2a/*.a2a.ts`) defines a typed client (`extends A2AClient`) for a remote A2A workflow, registered in `@Workflow({ providers: [RemoteA2AAgent] })` and injected into any `@Tool` or `@Action` via `deps: [RemoteA2AAgent]`.
+- **`a2aHttpListener(app, { start, callerResolver, meshVerifier?, base })`** and **`A2ACallerResolver<typeof StartClass>`** (`a2a/*.a2a-caller-resolver.ts`) serve a [`@WorkflowStart`](/reference/workflow-start/) over HTTP (`POST <base>/execute`, `/resume`, `/cancel`), resolving the authenticated `tenant`, `ownerId`, `execution`, and `peer` from an `@Injectable()` resolver in the DI container before reading any request body.
 
-## Complete `@A2AAgent`, `@A2AExpose` & `a2aHttpListener` example
+## Complete `@A2AAgent`, `A2ACallerResolver`, `a2aHttpListener` & `a2aServer` example
 
 ```ts title="src/a2a/billing-specialist.a2a-agent.ts" file=src/a2a/billing-specialist.a2a-agent.ts
 import {
@@ -34,8 +34,20 @@ export class TaxAuditOutputDto {
 @A2AAgent({
   name: "remote-tax-auditor-a2a-agent",
   url: "https://tax-agent.internal.acme.com/a2a",
+  deps: [ExecutionContext],
 })
-export class RemoteTaxAuditorA2AAgent extends A2AClient {}
+export class RemoteTaxAuditorA2AAgent extends A2AClient {
+  constructor(private readonly executionContext: ExecutionContext) {
+    super();
+  }
+
+  protected override getHeaders(): Promise<Record<string, string>> {
+    return Promise.resolve({
+      "idempotency-key": this.executionContext.step.idempotencyKey,
+      "x-tenant-id": this.executionContext.tenant.tenantId,
+    });
+  }
+}
 
 // 2. Inject RemoteTaxAuditorA2AAgent into an @Action or @Tool:
 @Action({
@@ -63,100 +75,57 @@ export class DelegateTaxAuditAction implements ActionHandler<DelegateTaxAuditAct
 }
 ```
 
-<!--
-```ts file=src/a2a/a2a-ambient.d.ts
-import type { IncomingMessage, RequestListener } from "node:http";
-import type { Class } from "agboss";
-
-declare module "agboss/a2a" {
-  export interface A2AExposeOptions {
-    readonly name: string;
-    readonly version: string;
-    readonly exports: readonly Class[];
-  }
-  export function A2AExpose(options: A2AExposeOptions): ClassDecorator;
-
-  export enum A2ARejection {
-    Unauthenticated = "unauthenticated",
-    Forbidden = "forbidden",
-  }
-
-  export class A2ACaller {
-    readonly accepted: boolean;
-    static accepted(options: {
-      readonly tenant: { readonly id: string; readonly [key: string]: unknown };
-      readonly ownerId?: string;
-      readonly peer?: string;
-    }): A2ACaller;
-    static rejected(options: {
-      readonly reason: A2ARejection;
-      readonly message?: string;
-    }): A2ACaller;
-  }
-
-  export function a2aHttpListener(options: {
-    readonly app: unknown;
-    readonly expose?: Class;
-    readonly start?: Class;
-    readonly base?: string;
-    readonly callerOf: (request: IncomingMessage) => Promise<A2ACaller> | A2ACaller;
-  }): RequestListener;
-}
-```
--->
-
-```ts title="src/a2a/tax-auditor.expose.ts" file=src/a2a/tax-auditor.expose.ts
+```ts title="src/a2a/tax-auditor.a2a-caller-resolver.ts" file=src/a2a/tax-auditor.a2a-caller-resolver.ts
+import { Injectable } from "agboss";
 import {
-  A2ACaller,
-  A2AExpose,
-  A2ARejection,
-  a2aHttpListener,
+  A2ACallerResolution,
+  A2ARoute,
+  type A2ACallerRequest,
+  type A2ACallerResolver,
 } from "agboss/a2a";
-import { TaxAuditWorkflowStart } from "../workflows/support-escalation.workflow.js";
+import type { TaxAuditWorkflowStart } from "../workflows/support-escalation.workflow.js";
 
-// 3. Expose @WorkflowStart entry points on the remote service with @A2AExpose:
-@A2AExpose({
-  name: "tax-auditor-a2a-expose",
-  version: "1.0.0",
-  exports: [TaxAuditWorkflowStart],
-})
-export class TaxAuditorA2AExpose {}
-
-// 4. Multi-tenant HTTP listener resolving tenant, ownerId, and authenticated peer per request:
-export function createTaxA2AListener(app: unknown) {
-  return a2aHttpListener({
-    app,
-    expose: TaxAuditorA2AExpose,
-    base: "/a2a",
-    callerOf: (request) => {
-      const tenantId = request.headers["x-tenant-id"];
-      if (typeof tenantId !== "string" || tenantId.length === 0) {
-        return A2ACaller.rejected({
-          reason: A2ARejection.Unauthenticated,
-          message: "Missing x-tenant-id header",
-        });
-      }
-      return A2ACaller.accepted({
-        tenant: { id: tenantId },
-        ownerId:
-          typeof request.headers["x-user-id"] === "string"
-            ? request.headers["x-user-id"]
-            : undefined,
-        peer: "support-escalation-application",
+// 3. @Injectable() caller resolver registered in @Workflow({ providers: [ShopA2aCallerResolver] }):
+@Injectable()
+export class ShopA2aCallerResolver implements A2ACallerResolver<typeof TaxAuditWorkflowStart> {
+  resolveCaller(
+    request: A2ACallerRequest,
+  ): A2ACallerResolution<typeof TaxAuditWorkflowStart> {
+    const auth = request.http.headers.authorization ?? "";
+    if (!auth.startsWith("Bearer ")) {
+      return A2ACallerResolution.unauthenticated({
+        reason: "Missing Bearer token",
+        challenge: 'Bearer realm="a2a"',
       });
-    },
-  });
+    }
+    const tenantId = request.http.headers["x-tenant-id"];
+    if (typeof tenantId !== "string" || tenantId.length === 0) {
+      return A2ACallerResolution.unauthenticated({ reason: "Missing x-tenant-id header" });
+    }
+    if (request.route === A2ARoute.Resume && auth === "Bearer read-only-key") {
+      return A2ACallerResolution.forbidden({
+        reason: "Read-only key cannot answer workflow pauses",
+      });
+    }
+    return A2ACallerResolution.resolved({
+      tenant: { tenantId },
+      ownerId: `client-${tenantId}`,
+      peer: request.signedBy,
+    });
+  }
 }
 ```
 
 ```ts title="src/workflows/support-escalation.workflow.ts" file=src/workflows/support-escalation.workflow.ts
 import { Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
+import { a2aHttpListener, type A2AAdapter, type A2AApp } from "agboss/a2a";
 import {
   DelegateTaxAuditAction,
   RemoteTaxAuditorA2AAgent,
   TaxAuditInputDto,
   TaxAuditOutputDto,
 } from "../a2a/billing-specialist.a2a-agent.js";
+import { ShopA2aCallerResolver } from "../a2a/tax-auditor.a2a-caller-resolver.js";
 
 @WorkflowStart({
   name: "tax-audit-workflow-start",
@@ -175,7 +144,7 @@ export class TaxAuditWorkflowFinish {}
 @Workflow({
   name: "support-escalation-workflow",
   version: "1.0.0",
-  providers: [RemoteTaxAuditorA2AAgent],
+  providers: [RemoteTaxAuditorA2AAgent, ShopA2aCallerResolver],
   flow: [
     start(TaxAuditWorkflowStart)
       .returns(TaxAuditInputDto)
@@ -185,6 +154,15 @@ export class TaxAuditWorkflowFinish {}
   ],
 })
 export class SupportEscalationWorkflow {}
+
+// 4. Multi-tenant HTTP listener resolving ShopA2aCallerResolver from the app container:
+export function createTaxA2AListener(app: A2AApp, _adapter?: A2AAdapter) {
+  return a2aHttpListener(app, {
+    start: TaxAuditWorkflowStart,
+    callerResolver: ShopA2aCallerResolver,
+    base: "/a2a",
+  });
+}
 ```
 
 <!--
@@ -212,13 +190,16 @@ export class SupportEscalationApplication {}
 -->
 
 ```ts title="test/billing-specialist.a2a.test.ts" file=test/billing-specialist.a2a.test.ts
-import { expect, it } from "vitest";
+import { expect } from "vitest";
+import { A2ACallerRejectedError, A2AClient } from "agboss/a2a";
 import type { DtoClass } from "agboss/dto";
-import { override, testAction } from "agboss/testing";
+import { override, testAction, testWith } from "agboss/testing";
 import {
   DelegateTaxAuditAction,
   RemoteTaxAuditorA2AAgent,
 } from "../src/a2a/billing-specialist.a2a-agent.js";
+import { ShopA2aCallerResolver } from "../src/a2a/tax-auditor.a2a-caller-resolver.js";
+import { SupportEscalationApplication } from "../src/escalation.application.js";
 import { TaxAuditWorkflowStart } from "../src/workflows/support-escalation.workflow.js";
 
 class FakeTaxAuditorA2AAgent extends RemoteTaxAuditorA2AAgent {
@@ -227,7 +208,26 @@ class FakeTaxAuditorA2AAgent extends RemoteTaxAuditorA2AAgent {
   }
 }
 
-it("delegates tax audit task to remote A2A agent deterministically", async () => {
+const test = testWith(SupportEscalationApplication, {
+  overrides: [override(RemoteTaxAuditorA2AAgent, FakeTaxAuditorA2AAgent)],
+});
+
+test("rejects unauthenticated A2A requests via a2aServer and delegates when authenticated", async ({
+  a2aServer,
+}) => {
+  const { url } = await a2aServer({
+    start: TaxAuditWorkflowStart,
+    callerResolver: ShopA2aCallerResolver,
+  });
+
+  // 1. Unauthenticated caller receives 401 A2ACallerRejectedError before any workflow step runs:
+  const unauthed = new A2AClient({ url }).send({ invoiceId: "INV-9102" });
+  await expect(unauthed).rejects.toFailWith(A2ACallerRejectedError, {
+    httpStatus: 401,
+    code: "a2a.caller-unauthenticated",
+  });
+
+  // 2. Unit-test the delegating @Action in isolation:
   const runAction = testAction(DelegateTaxAuditAction, {
     overrides: [override(RemoteTaxAuditorA2AAgent, FakeTaxAuditorA2AAgent)],
   });
@@ -241,25 +241,25 @@ it("delegates tax audit task to remote A2A agent deterministically", async () =>
 });
 ```
 
-## What options do `@A2AAgent` and `@A2AExpose` accept?
+## What options do `@A2AAgent` and `a2aHttpListener` accept?
 
-| Decorator | Option | Type | Required | Description |
+| API / Decorator | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `@A2AAgent` | `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-a2a-agent` (class name ending with `A2AAgent`, `[name.kind-suffix]`). |
-| `@A2AAgent` | `url` | `string` | **Yes** | Base URL or `AppEnvironment` field name of the remote A2A endpoint (`"https://billing.internal.example.com/a2a"`). |
-| `@A2AAgent` | `target` | `{ application: string; start: string }` | No | Remote application and `@WorkflowStart` contract coordinates verified across repositories by `$ agboss check --federation`. |
-| `@A2AAgent` | `input` / `output` | `DtoClass` | No | Typed request and response DTO contracts compiled into the application's contract passport (`agboss describe --json`). |
-| `@A2AAgent` | `deps` | `readonly Token[]` | No | Constructor dependencies (`ApplicationContext`, `ExecutionContext`, or `@Injectable` auth services). |
-| `@A2AExpose` | `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-a2a-expose` (`"tax-auditor-a2a-expose"`). |
-| `@A2AExpose` | `version` | `string` | **Yes** | Semantic version of the exposed A2A boundary (`"1.0.0"`). |
-| `@A2AExpose` | `exports` | `readonly Class[]` | **Yes** | Array of [`@WorkflowStart`](/reference/workflow-start/) classes exposed over A2A and recorded in `agboss describe --json`. |
+| `@A2AAgent` | `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-a2a-agent` (`[name.kind-suffix]`). |
+| `@A2AAgent` | `url` | `string` | **Yes** | Base URL of the remote A2A endpoint (`"https://billing.internal.example.com/a2a"`), serving `POST <url>/execute`, `/resume`, and `/cancel`. |
+| `@A2AAgent` | `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `TenantContext`, or `@Injectable` auth services) used inside `protected override getHeaders()`. |
+| `a2aHttpListener(app, options)` | `start` | `Class` | **Yes** | The [`@WorkflowStart`](/reference/workflow-start/) class served at this A2A endpoint. |
+| `a2aHttpListener(app, options)` | `callerResolver` | `Class<A2ACallerResolver<TStart>>` | **Yes** | An `@Injectable()` class listed in `@Application({ providers })` or `@Workflow({ providers })` (`[a2a.caller-resolver-not-listed]` if omitted). |
+| `a2aHttpListener(app, options)` | `meshVerifier` | `Class<MeshVerifier>` | No | Optional `@Injectable()` service implementing `verifyKeyOf(issuer)` to resolve peer Ed25519 SPKI public keys dynamically alongside `@Application({ mesh: { peers } })`. |
+| `a2aHttpListener(app, options)` | `base` | `string` | No | URL path prefix (`"/a2a"` by default). |
 
-## Multi-tenant `a2aHttpListener` & the Agent Mesh Envelope
+## `A2ACallerResolution`, `a2aServer` & the Signed Agent Mesh Envelope
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `a2aHttpListener({ app, expose, base, callerOf })` | `"agboss/a2a"` | Creates a Node `http.RequestListener` serving Agent Card discovery (`GET <base>/.well-known/agent.json`), `POST <base>/execute`, and `POST <base>/stream`. Never defaults to an implicit tenant; every request is authenticated via `callerOf(request)`. |
-| `A2ACaller.accepted(...)` / `A2ACaller.rejected(...)` | `"agboss/a2a"` | Returned by `callerOf(request)` to bind the verified `tenant`, `ownerId`, and authenticated `peer` (or reject with HTTP `401` `A2ARejection.Unauthenticated` / HTTP `403` `A2ARejection.Forbidden`). |
-| **Agent Mesh Envelope (`agboss-mesh`)** | `"agboss/a2a"` | JWS EdDSA-signed envelope header (plus W3C `traceparent`) carrying `origin` (`rootExecutionId`, `executionId`, `tenantId`, `step.idempotencyKey`), `budget.remaining`, `deadline.remaining`, and `callChain` across service hops. |
-| `MeshLoopDetectedError` & `HopsLimitExceededError` | `"agboss"` | Thrown before executing a step when `callChain` contains the current service/workflow (cross-service cycle) or exceeds `@Application({ maxMeshHops })` (`6` by default). |
-| `$ agboss check --federation <dir>` | CLI | Verifies cross-repository `@A2AAgent` / `@McpServer` imports against `@A2AExpose` / `@McpExpose` `schemaHash` snapshots from `agboss describe --json`. |
+| `A2ACallerResolution.resolved({ tenant, ownerId, execution, peer })` | `"agboss/a2a"` | Returned by `resolveCaller(request: A2ACallerRequest)` to bind the verified `tenant`, `ownerId` (thread ownership), `execution` context values, and trusted `peer`. |
+| `A2ACallerResolution.unauthenticated({ reason, challenge? })` / `.forbidden({ reason })` | `"agboss/a2a"` | Rejects the request before reading the body or starting an execution with HTTP `401` (`a2a.caller-unauthenticated`) or HTTP `403` (`a2a.caller-forbidden`), thrown on the client as `A2ACallerRejectedError`. |
+| `a2aServer({ start, callerResolver, meshVerifier? })` | `"agboss/testing"` | `testWith` fixture that serves the test's `app` on `127.0.0.1:0` and returns `{ url }` for `new A2AClient({ url, headers })`. |
+| **Agent Mesh Envelope (`MeshEnvelope`, `agboss-mesh`)** | `"agboss"` | JWS EdDSA (Ed25519) envelope header (`_meta["agboss.dev/mesh"]` over MCP, plus W3C `traceparent`) carrying `origin` (`executionId`, `parentExecutionId`, `workflow`, `step.idempotencyKey`), `budget.remaining`, `deadline.remaining`, and `callChain` (`MeshHop[]`), plus signed `MeshRunReport` spend attribution (`ToolCallRecord.remote`). |
+| `MeshLoopDetectedError` & `HopsLimitExceededError` | `"agboss"` | Thrown before executing a step when `callChain` contains the current `(application, start)` pair (`limit.mesh-loop`) or reaches `@Application({ maxMeshHops })` (`8` by default, `limit.hops`). |
+| `$ agboss check --federation <dir>` | CLI | Verifies cross-repository `@A2AAgent` / `@McpServer` contracts against `agboss describe --json` snapshots. |

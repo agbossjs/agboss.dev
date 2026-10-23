@@ -23,7 +23,7 @@ export interface NavItem {
 export const NAV: NavItem[] = [
 	{
 		label: 'Why AGBoss',
-		blurb: 'Why coding agents fail on raw multi-agent graphs at scale—and how AGBoss enforces 7 distributed-systems patterns at compile time.',
+		blurb: 'Why coding agents fail on raw multi-agent graphs at scale—and how AGBoss & HDSL enforce 7 distributed-systems patterns at compile time.',
 		groups: [
 			{
 				links: [
@@ -39,7 +39,7 @@ export const NAV: NavItem[] = [
 			{
 				title: 'Architecture & Patterns',
 				links: [
-					{ label: 'Canonical Topology & Quorums', href: '/concepts/workflow/' },
+					{ label: 'Canonical Topology & Quorums (HDSL)', href: '/concepts/workflow/' },
 					{ label: 'Path-Scoped SSA Dataflow', href: '/concepts/path-scope/' },
 					{ label: 'Transactional Sagas & Rollback', href: '/guides/error-handling-and-rollback/' },
 					{ label: 'Multi-Instance, Leases & SQLite', href: '/guides/persistence-and-recovery/' },
@@ -91,7 +91,7 @@ export const NAV: NavItem[] = [
 	},
 	{
 		label: 'Docs',
-		blurb: 'Core concepts, categorized decorator reference, CLI, and release notes (v0.0.2).',
+		blurb: 'Core concepts, HarnessDSL (HDSL) syntax, categorized decorator reference, CLI, and release notes (v0.0.2).',
 		groups: [
 			{
 				title: 'Core Concepts',
@@ -103,7 +103,7 @@ export const NAV: NavItem[] = [
 					{ label: '@Application & lifecycle', href: '/concepts/application/' },
 					{ label: 'Digital & Physical Missions', href: '/concepts/mission-orchestration/' },
 					{ label: 'Decorators & Role Segregation', href: '/concepts/decorators/' },
-					{ label: 'Workflow DSL & Topology', href: '/concepts/workflow/' },
+					{ label: 'Workflow HDSL & Topology', href: '/concepts/workflow/' },
 					{ label: 'Path Scope (SSA) & Provenance', href: '/concepts/path-scope/' },
 					{ label: 'DI & Custom Overrides', href: '/concepts/dependency-injection/' },
 					{ label: 'Contexts & authorization', href: '/concepts/contexts/' },
