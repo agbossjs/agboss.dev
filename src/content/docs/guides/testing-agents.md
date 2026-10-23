@@ -1,9 +1,18 @@
 ---
-title: Testing Workflows & the 10 Unit Runners
-description: Test multi-agent workflows and components deterministically with agboss/testing — testWith(Application), mockLlm, tool trajectory matchers (toHaveCalledTools, toHaveToolCallMatching), TestConcurrency.inOrder, VirtualClock, VCR stale-cassette checks, and 10 isolated unit runners.
+title: "Loop 0–1: Deterministic Harness, 10 Unit Runners & VCR Lock"
+description: "Verify Graph & Mesh Contracts in Loop 0 (agboss check --federation) and Harness Code in Loop 1 (npm test) for $0 in seconds using agboss/testing — testWith(Application), 10 isolated unit runners, VirtualClock, TestConcurrency.inOrder, ModelFailure chaos, and [vcr.stale-cassette] hash locks."
 ---
 
-Testing agent systems in CI should never require live LLM API keys, flaky network calls, or real wall-clock waiting. The `agboss/testing` entry provides a deterministic testing architecture: `testWith(Application)` for full workflow integration tests on a `VirtualClock` with scripted model replies, tool-call trajectory assertions (`toHaveCalledTools`, `toHaveToolCallMatching`), and blocked network calls, plus ten dedicated unit runners for testing individual components in isolation.
+In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), **Loop 0 (`$ agboss check --federation`, `< 1s`, `$0`)** proves graph topology and cross-service mesh contracts at compile time, while **Loop 1 (`npm test`, `~3s`, `$0`)** tests your entire TypeScript harness (`@Action`, `@Tool`, `@ToolInterceptor`, `DecidedBy.Code` `@Router` and `@Arbiter`, `@PiiPolicy`, `@Compaction`, queues, retries, and LIFO sagas) without calling a live LLM. Together, `agboss/testing` provides `testWith(Application)` on a deterministic `VirtualClock`, ten isolated component runners, `ModelFailure` chaos injection, and VCR cassettes locked to [Loop 2 live PR evals](/guides/evaluation-and-profiles/) via `promptHash` and `schemaHash` (`[vcr.stale-cassette]`).
+
+---
+
+## How do Loop 0 (`agboss check`) and Loop 1 (`npm test`) fit into the 5-Loop Funnel?
+
+| Loop | Command | Latency & Cost | Objects Verified | Lock to Next Loop |
+| :--- | :--- | :--- | :--- | :--- |
+| **Loop 0: Static Proof** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save & first CI step) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance (`[input.missing-on-path]`), `{ about }` staleness (`[input.outdated-on-path]`), LIFO saga compensations (`[flow.uncompensated-action]`), and Agent Mesh schemas | Emits `.agboss/types.d.ts` required for Loop 1 |
+| **Loop 1: Deterministic Harness & Chaos** | `npm test` (`agboss/testing` + VCR) | `~3s` · **`$0`** (every commit; no live LLM) | **Object 2 (Harness Code):** 10 unit runners, full-graph `testWith(App)` with `mockLlm`, `ModelFailure` chaos (`429`, timeouts, truncated JSON), `TestConcurrency.inOrder`, and multi-pod `{ instances: 2 }` leases | **`[vcr.stale-cassette]`** (`promptHash` + `schemaHash`) triggers [Loop 2 PR Smoke Gate](/guides/evaluation-and-profiles/) whenever a prompt or DTO schema changes |
 
 ---
 

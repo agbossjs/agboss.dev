@@ -110,13 +110,19 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Testing & Evaluation (5 Loops)',
+					items: [
+						{ label: '5-Loop Verification Funnel', slug: 'concepts/verification-funnel' },
+						{ label: 'Loop 0–1: Unit Runners, testWith & VCR', slug: 'guides/testing-agents' },
+						{ label: 'Loop 2–4: Evals, pass^k & Calibration', slug: 'guides/evaluation-and-profiles' },
+					],
+				},
+				{
 					label: 'Production Guides',
 					items: [
 						{ label: 'Parallel, Quorums & Child Workflows', slug: 'guides/parallel-quorums-and-child-workflows' },
 						{ label: 'Channels, Pauses & Webhooks', slug: 'guides/channels-and-pauses' },
 						{ label: 'Multi-Instance, Leases & SQLite', slug: 'guides/persistence-and-recovery' },
-						{ label: 'Testing & 10 Unit Runners', slug: 'guides/testing-agents' },
-						{ label: 'Evals, Golden Sets & Profiles', slug: 'guides/evaluation-and-profiles' },
 						{ label: 'Error Handling & Rollback', slug: 'guides/error-handling-and-rollback' },
 						{ label: 'FinOps & Model Providers', slug: 'guides/finops-and-providers' },
 						{ label: 'PII Policies & Guardrails', slug: 'guides/security-and-pii' },

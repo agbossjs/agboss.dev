@@ -29,6 +29,7 @@ export const NAV: NavItem[] = [
 				links: [
 					{ label: 'Why AGBoss (Manifesto)', href: '/why/' },
 					{ label: '7 Architectural Principles', href: '/concepts/architecture/' },
+					{ label: '5-Loop Verification Funnel', href: '/concepts/verification-funnel/' },
 					{ label: 'AI Coding Skills (AGENTS.md)', href: '/concepts/ai-coding-skills/' },
 					{ label: 'Progressive Crystallization', href: '/concepts/progressive-crystallization/' },
 					{ label: 'Digital & Physical Missions', href: '/concepts/mission-orchestration/' },
@@ -59,6 +60,17 @@ export const NAV: NavItem[] = [
 					{ label: 'Introduction', href: '/getting-started/introduction/' },
 					{ label: 'Installation', href: '/getting-started/installation/' },
 					{ label: 'Quickstart', href: '/getting-started/quick-start/' },
+					{ label: 'job-scout & flow-patterns', href: '/examples/job-scout/' },
+					{ label: 'Changelog & releases', href: '/changelog/' },
+				],
+			},
+			{
+				title: 'Testing & Evaluation (5 Loops)',
+				links: [
+					{ label: '5-Loop Verification Funnel', href: '/concepts/verification-funnel/' },
+					{ label: 'Loop 0–1: Unit Runners, testWith & VCR', href: '/guides/testing-agents/' },
+					{ label: 'Loop 2–4: Evals, pass^k & Calibration', href: '/guides/evaluation-and-profiles/' },
+					{ label: 'Loop B: Progressive Crystallization', href: '/concepts/progressive-crystallization/' },
 				],
 			},
 			{
@@ -67,21 +79,12 @@ export const NAV: NavItem[] = [
 					{ label: 'Parallel, quorums & child workflows', href: '/guides/parallel-quorums-and-child-workflows/' },
 					{ label: 'Channels, pauses & webhooks', href: '/guides/channels-and-pauses/' },
 					{ label: 'Multi-instance, leases & SQLite', href: '/guides/persistence-and-recovery/' },
-					{ label: 'Testing & 10 unit runners', href: '/guides/testing-agents/' },
-					{ label: 'Evals, golden sets & profiles', href: '/guides/evaluation-and-profiles/' },
 					{ label: 'Error handling & rollback', href: '/guides/error-handling-and-rollback/' },
 					{ label: 'FinOps & model providers', href: '/guides/finops-and-providers/' },
 					{ label: 'PII policies & guardrails', href: '/guides/security-and-pii/' },
 					{ label: 'Memory & compaction', href: '/guides/memory-and-compaction/' },
 					{ label: 'Observability & tracing', href: '/guides/observability-and-tracing/' },
 					{ label: 'MCP, RAG & A2A protocols', href: '/guides/mcp-rag-and-a2a/' },
-				],
-			},
-			{
-				title: 'Examples & Releases',
-				links: [
-					{ label: 'job-scout & flow-patterns', href: '/examples/job-scout/' },
-					{ label: 'Changelog & releases', href: '/changelog/' },
 				],
 			},
 		],
@@ -94,6 +97,7 @@ export const NAV: NavItem[] = [
 				title: 'Core Concepts',
 				links: [
 					{ label: '7 Architectural Principles', href: '/concepts/architecture/' },
+					{ label: '5-Loop Verification Funnel', href: '/concepts/verification-funnel/' },
 					{ label: 'AI Coding Skills (AGENTS.md)', href: '/concepts/ai-coding-skills/' },
 					{ label: 'Progressive Crystallization', href: '/concepts/progressive-crystallization/' },
 					{ label: '@Application & lifecycle', href: '/concepts/application/' },

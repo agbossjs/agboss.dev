@@ -1,9 +1,9 @@
 ---
-title: Evals, Golden Sets, Judges & A/B Profiles
-description: How AGBoss evaluates multi-agent quality using the 3-layer test split, @EvalSuite, pass@k and pass^k reliability metrics, @Judge calibration (Cohen's kappa), golden sets, and side-by-side YAML profile comparisons.
+title: "Loop 2–4: Live Evals, pass^k, Nightly Polygon & Judge Calibration"
+description: "Run Loops 2–4 of the AGBoss 5-Loop Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k reliability against cached baselines, Nightly metamorphic & compaction drift polygons, Cohen's kappa judge calibration, and production feedback loops."
 ---
 
-Changing an agent's prompt, model, or reasoning effort in production should be driven by measurable accuracy, `pass@k` / `pass^k` reliability, pairwise win rates, latency, and USD cost rather than guesswork. AGBoss provides a complete evaluation architecture: in-loop [`@Judge`](/reference/judge/) quality gates (`DecidedBy.Model` and `DecidedBy.Code`), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmark suites (`agboss/eval`), automatic **`Tern`** recording (`promptVersion`, `modelVersion`, and RFC 8785 `configHash`), YAML profile overlays (`profiles/<workflow>/<profile>.yaml`), golden datasets (`agboss golden`), and side-by-side A/B evaluation (`agboss compare`, `$ agboss eval run`, and `$ agboss eval ui`).
+In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), once [Loop 0 (`agboss check`) and Loop 1 (`npm test`)](/guides/testing-agents/) have verified your topology and TypeScript harness for `$0`, **Loops 2–4** evaluate live model trajectories, memory compaction survival, and production telemetry. AGBoss combines in-loop [`@Judge`](/reference/judge/) gates (`DecidedBy.Code` and `DecidedBy.Model`), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmarks (`agboss/eval`), Fail-Fast `$0 → $$$` cascades, `pass@k` vs `pass^k` baseline gates (`flaky-on-baseline` quarantine), nightly `--metamorphic` and `--chaos` polygons, Cohen's $\kappa$ calibration (`agboss eval calibrate`), and two production feedback loops (`agboss golden` & [Progressive Crystallization](/concepts/progressive-crystallization/)).
 
 ---
 
@@ -235,16 +235,17 @@ test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and uni
 
 ---
 
-## Principle 1: The 3-layer test & evaluation split
+## Principle 1: How do Loops 2–4 fit into the 5-Loop Verification Funnel?
 
-A foundational rule of AGBoss is that **unit tests (`npm test`) never call a live model**: scripted tests verify *your TypeScript graph code*, while evaluations (`agboss eval`, `agboss replay`, `agboss compare`) measure *model and prompt behavior* against real tasks:
+A foundational rule of AGBoss is: **never verify with a paid language model what can be proven by the compiler or checked by deterministic TypeScript; and when you invoke a model, check `$0` trajectory invariants and code judges first before calling a calibrated LLM judge.** See the full [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/) architecture for all four objects of verification and both production feedback loops:
 
-| Layer | Command / Runner | Models & Cost | What It Proves |
+| Loop | Command / Runner | Latency & Cost | What It Proves |
 | :--- | :--- | :--- | :--- |
-| **1. Unit & Workflow Tests** (`*.test.ts`, `npm test`, CI) | `testWith(App)` with `mockLlm`, `TestConcurrency`, `VirtualClock`, and the 10 unit runners (`testTool`, `testJudge`, `testCompaction`, `testToolInterceptor`, …) | Scripted (`$0.00`, offline, deterministic) | Your graph paths, Path Scope inputs, `{ about }` outdating, `.onError` handlers, saga rollbacks, and multi-instance leases work as designed |
-| **1.5. Recorded VCR Runs** (`*.integration.test.ts`) | `testWith(App, { vcr: { cassetteName } })` (`VcrMode.Auto` / `VcrMode.Replay`, verified by `[vcr.stale-cassette]`) | Recorded once from real models, replayed offline (`$0.00` in CI) | Real multi-step model responses and tool payloads integrate cleanly with your DTO schemas |
-| **2. Evaluation & Golden Sets** (`@EvalSuite`, `agboss eval`, `replay`, `golden`, `compare`) | `$ agboss eval run`, `npx agboss eval`, `npx agboss replay`, `npx agboss compare`, or `compareProfiles()` | Real models, capped by `@Application({ budgets })` | `pass@k` capability, `pass^k` production reliability, tool trajectory invariants, and whether a new YAML profile or prompt version improves quality without regressions |
-| **3. Provider Smoke Tests** (`tests/smoke/`, `agboss check --models`) | `npx agboss check --models` and a small budget-capped smoke suite | Real provider endpoints | Every model ID, reasoning effort, cache retention, and price table matches the live `@ModelProvider` |
+| **[Loop 0: Compiler](/concepts/verification-funnel/#loop-0-static-proof-agboss-check---federation--0--1-second)** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance, `{ about }` staleness, LIFO saga compensations, and Agent Mesh federation schemas |
+| **[Loop 1: Deterministic Harness](/guides/testing-agents/)** | `npm test` (`testWith(App)`, 10 unit runners, `VirtualClock`, VCR) | `~3s` · **`$0`** (every commit; locked by `[vcr.stale-cassette]`) | **Object 2 (Harness Code):** `@Action`, `DecidedBy.Code` `@Router`/`@Arbiter`, `@Tool`, `@ToolInterceptor`, `@PiiPolicy`, retries, `ModelFailure` chaos, and `{ instances: 2 }` pod leases |
+| **Loop 2: PR Smoke Gate** | `$ agboss eval run --runs 5 --baseline` | `~1 min` · **`$`** (on PR when `promptHash` / `schemaHash` changes) | **Object 3 (Model & Trajectory):** Fail-Fast cascade (`$0` `requiredTools`/`forbiddenTools`/`toolInvariant` $\to$ `$0` code `@Judge` $\to$ LLM `@Judge`), `pass^5` vs cached `--baseline` (`flaky-on-baseline` quarantine), and `eval-report.html` |
+| **Loop 3: Nightly Polygon** | `$ agboss eval run --runs 20 --metamorphic --chaos` | `~15 min` · **`$$`** (nightly on `main` / pre-release) | **Objects 3 & 4 (Trajectory & Memory):** Full 30–50+ task benchmark with pinned `vendorRouting`, `--metamorphic` paraphrase invariance, multi-turn `@Compaction` survival, stale-memory override, `--chaos`, and provider drift detection |
+| **Loop 4: Production & Feedback Loops A/B** | `ExecutionRecord` $\to$ `$ agboss eval ui` / `$ agboss eval calibrate` / `agboss golden` | `24/7` · Continuous | **Loop A:** Failure taxonomy tagging, Cohen's $\kappa \ge 0.80$ judge calibration, and 1-click promotion to `golden/*.yaml`. **Loop B:** [Progressive Crystallization](/concepts/progressive-crystallization/) from paid Loop 2 back into `$0` Loop 1 |
 
 ---
 
