@@ -54,4 +54,4 @@ jobs:
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SA }}
-      - run: npx --yes firebase-tools@latest deploy --only hosting --project "${{ vars.GCP_PROJECT_ID }}" --non-interactive
+      - run: npx --yes firebase-tools@15.34.0 deploy --only hosting --project "${{ vars.GCP_PROJECT_ID }}" --non-interactive
