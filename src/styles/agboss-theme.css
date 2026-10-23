@@ -1242,3 +1242,31 @@ header a[rel='me']:hover {
 .agboss-missions-link a:hover {
 	text-decoration: underline;
 }
+
+/* ---------- Narrower "On this page" right TOC (1.5x narrower: 12.5rem vs 18.75rem) & wider central content ---------- */
+:root[data-has-sidebar] {
+	--sl-content-width: 56rem;
+}
+
+@media (min-width: 72rem) {
+	:root[data-has-sidebar][data-has-toc] .right-sidebar-container {
+		--sl-sidebar-width: 12.5rem;
+		width: max(
+			12.5rem,
+			calc(12.5rem + (100% - var(--sl-content-width) - 12.5rem) / 2)
+		);
+	}
+
+	:root[data-has-sidebar][data-has-toc] .right-sidebar-panel .sl-container {
+		width: calc(12.5rem - 2 * var(--sl-sidebar-pad-x));
+		max-width: 11rem;
+	}
+
+	:root[data-has-sidebar][data-has-toc] .main-pane {
+		width: min(
+			calc(100% - 12.5rem),
+			calc(var(--sl-content-width) + (100% - var(--sl-content-width) - 12.5rem) / 2)
+		);
+	}
+}
+
