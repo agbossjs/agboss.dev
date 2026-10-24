@@ -3,7 +3,7 @@ title: "@A2AAgent, a2aHttpListener & A2ACallerResolver"
 description: Complete API reference for @A2AAgent, A2AClient, a2aHttpListener, A2ACallerResolver, A2ACallerResolution, a2aServer, and the signed Agent Mesh Envelope in agboss/a2a.
 ---
 
-The `@A2AAgent` decorator, `a2aHttpListener`, and `A2ACallerResolver` (`"agboss/a2a"`) provide both sides of the multi-tenant Agent-to-Agent (A2A) and Agent Mesh protocol in AGBoss:
+The `@A2AAgent` decorator, `a2aHttpListener`, and `A2ACallerResolver` (`"agboss/a2a"`) provide both the client and server sides of the multi-tenant Agent-to-Agent (A2A) and federated Agent Mesh protocol in AGBoss, enabling strongly typed cross-service workflow calls with signed `MeshEnvelope` budget, deadline, and call-chain propagation:
 - **`@A2AAgent`** (`a2a/*.a2a.ts`) defines a typed client (`extends A2AClient`) for a remote A2A workflow, registered in `@Workflow({ providers: [RemoteA2AAgent] })` and injected into any `@Tool` or `@Action` via `deps: [RemoteA2AAgent]`.
 - **`a2aHttpListener(app, { start, callerResolver, meshVerifier?, base })`** and **`A2ACallerResolver<typeof StartClass>`** (`a2a/*.a2a-caller-resolver.ts`) serve a [`@WorkflowStart`](/reference/workflow-start/) over HTTP (`POST <base>/execute`, `/resume`, `/cancel`), resolving the authenticated `tenant`, `ownerId`, `execution`, and `peer` from an `@Injectable()` resolver in the DI container before reading any request body.
 

@@ -45,6 +45,7 @@ agboss g workflow onboarding
 | `agboss eval run --suite <name>` | Runs an `@EvalSuite` across `--runs <k>` trials (`pass@k` and `pass^k`), `--report <run.json>`, `--baseline <run.json> --fail-on-regression`, and `--html <report.html>` (plus `$ agboss eval run --chaos --metamorphic`) |
 | `agboss eval calibrate --report <run.json>` | Computes pairwise **Cohen's kappa ($\kappa$)**, confusion matrices, disagreements, and metric rubrics between `@Judge` verdicts and human `EvalLabel` JSONL annotations (`--labels <file.jsonl>`) |
 | `agboss eval show <run.json> --html <file>` / `$ agboss eval ui` | Re-renders a saved `EvalRunReport` artifact into a self-contained static HTML page without calling models, or launches the local interactive Eval UI workbench (`127.0.0.1`) |
+| `$ agboss hub` | Launches the multi-service **AGBoss Mesh Hub** portal aggregating `describe --json` snapshots, `eval` reports, cross-service `ExecutionRecord` trees, and Progressive Crystallization heatmaps |
 | `agboss golden add --name <n>` | Saves recent real tasks as a reusable golden evaluation dataset |
 | `agboss compare --profiles base,<p>` | Compares YAML configuration profiles side by side against a golden set |
 | `agboss rag index` | Builds or updates `@Rag` knowledge-base indexes |
