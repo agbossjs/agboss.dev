@@ -5,8 +5,8 @@ template: splash
 banner:
   content: '<strong>New in v0.0.2:</strong> <a href="/concepts/architecture/">7 Distributed-Systems Principles</a> · <a href="/concepts/verification-funnel/">5-Loop Verification Funnel</a> · <a href="/concepts/workflow/">HarnessDSL (HDSL)</a> · <a href="/concepts/ai-coding-skills/">Coding Skills →</a>'
 hero:
-  title: '<span class="hero-lead">AGBoss makes TypeScript agents</span><br/><span class="hero-rotator" id="hero-rotator"><span class="hero-trait is-active">Compiler-verified</span><span class="hero-trait">Zero-God-State</span><span class="hero-trait">Cache-invariant</span><span class="hero-trait">Transactional</span><span class="hero-trait">Cost-capped</span><span class="hero-trait">Deterministic</span></span>'
-  tagline: 'Static graph compiler &amp; production runtime that scales to hundreds of nodes on <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a>, with its declarative <strong>HarnessDSL (HDSL)</strong> grammar.'
+  title: '<span class="hero-eyebrow">TypeScript Framework &amp; Static Graph Compiler on LangGraph · Apache 2.0</span><span class="hero-headline">Your coding agent writes the graph.<br/>AGBoss proves it right.</span>'
+  tagline: '<p class="hero-lead-copy"><strong>AGBoss</strong> (<em>Agent Graph Builder Open Source System</em>) compiles declarative <strong>HarnessDSL</strong> workflows before a single LLM token is spent. It catches missing path inputs, stale loop data, and uncompensated sagas at build time (<code>agboss check</code>), and ships with 13 auto-synced AI coding skills so coding agents can scale graphs to hundreds of nodes without a mutable God State.</p>'
   actions:
     - text: Get started
       link: /getting-started/introduction/
@@ -17,12 +17,6 @@ hero:
       variant: secondary
 ---
 
-<div class="agboss-lede">
-	<p class="agboss-slogan">Your coding agent writes the graph. AGBoss proves it right.</p>
-	<p><strong>AGBoss</strong> (<em>Agent Graph Builder Open Source System</em>) is the framework, static compiler (<code>agboss check</code>), and runtime on LangGraph, and <strong>HarnessDSL (HDSL)</strong> is its built-in declarative graph grammar — enforcing 7 distributed-systems invariants with offline-synced <code>AGENTS.md</code> coding skills. <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>.</p>
-	<p class="agboss-sr-only">AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework, static graph compiler (<code>agboss check</code>), and production runtime layered on top of LangGraph (<code>npm i agboss</code>). Inside AGBoss, HarnessDSL (HDSL) is the declarative graph grammar and verification specification (just as JSX is to React or PSL is to Prisma) that defines how <code>*.workflow.ts</code> <code>flow</code> chains and contract decorators express narrow <code>@Dto</code> handoffs, Path Scope, <code>in-degree = 1</code> vs <code>in-degree &gt;= 2</code> canonical topology, <code>&#123; about &#125;</code> staleness tracking, quorums, and <code>compensateWith</code> / <code>committedBy</code> sagas. When AI coding agents decompose a complex problem into hundreds of nodes on raw orchestration libraries, they create a mutable God State Object with dozens of optional fields, mix LLM reasoning with non-idempotent side effects, break provider KV prefix caches, and lose rollback invariants. AGBoss embeds 7 classical distributed-systems patterns directly into its HarnessDSL grammar, static compiler (<code>agboss check</code> + <code>.agboss/types.d.ts</code>), and auto-synced <code>AGENTS.md</code> + 13 skill reference modules.</p>
-</div>
-
 <div class="agboss-install-grid">
 	<div class="agboss-install-card">
 		<div class="agboss-install-card-head">
@@ -32,7 +26,7 @@ hero:
 		<pre class="agboss-install-cmd"><code>npx agboss create my-app
 cd my-app
 npm install</code></pre>
-		<span class="agboss-install-note">Scaffolds <code>agboss</code> + <code>agboss-cli</code>, runs <code>agboss check</code> on postinstall, generates <code>.agboss/types.d.ts</code> &amp; unpacks 13 AI coding skills.</span>
+		<span class="agboss-install-note">Scaffolds the project, generates <code>.agboss/types.d.ts</code> &amp; unpacks 13 AI coding skills.</span>
 	</div>
 	<div class="agboss-install-card">
 		<div class="agboss-install-card-head">
@@ -41,7 +35,7 @@ npm install</code></pre>
 		</div>
 		<pre class="agboss-install-cmd"><code>npm install agboss
 npm install -D agboss-cli</code></pre>
-		<span class="agboss-install-note">Lightweight <code>agboss</code> runtime in <code>dependencies</code>; static compiler, Studio &amp; UI servers in <code>agboss-cli</code> (<code>devDependencies</code>).</span>
+		<span class="agboss-install-note">Production runtime in <code>dependencies</code>; static compiler &amp; UI tools in <code>devDependencies</code>.</span>
 	</div>
 </div>
 
@@ -204,7 +198,7 @@ npm install -D agboss-cli</code></pre>
 ## Verified Engineering Proofs & Examples (`agbossjs/agboss-examples`)
 
 <div class="agboss-pillars">
-	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/path-scope-proof" target="_blank" rel="noopener">
+	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof" target="_blank" rel="noopener">
 		<span class="agboss-mission-kicker">COMPILER PROOF · 4 GRAPH BUGS</span>
 		<h3><code>path-scope-proof</code></h3>
 		<p>Side-by-side proof where <code>[input.missing-on-path]</code>, <code>[input.outdated-on-path]</code>, <code>[launch.branch-outdates-sibling]</code>, and <code>[flow.uncompensated-action]</code> pass raw LangGraph <code>tsc</code> but are caught before runtime by <code>agboss check</code>.</p>
