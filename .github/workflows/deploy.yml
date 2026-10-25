@@ -1,13 +1,19 @@
 name: Deploy
 
-# Deploys only from main. Pull requests (including from forks) build but never
-# touch GCP: the Workload Identity provider accepts tokens only for
-# agbossjs/agboss.dev on refs/heads/main.
+# Deploys only from main. Pull requests (including from forks) build and run
+# full documentation snippet compilation (`npm run check:docs`) against the
+# pinned `agbossjs/agboss` commit in `.agboss-version.json`, but never touch GCP.
 on:
   push:
-    branches: [main]
+    branches: [main, "chore/**"]
   pull_request:
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      framework_sha:
+        description: "Exact agbossjs/agboss commit SHA for check:docs (defaults to .agboss-version.json)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -18,17 +24,95 @@ concurrency:
 
 jobs:
   build:
+    name: Build & Verify Docs (Node 24 + check:docs)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: 1a. Checkout agboss.dev with full git history (for sitemap/JSON-LD lastmod)
+        uses: actions/checkout@v4
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request'
+          fetch-depth: 0
+
+      - name: 1b. Resolve & verify pinned framework SHA
+        id: pin
+        run: |
+          WEBSITE_SHA="$(git rev-parse HEAD)"
+          PINNED_SHA="$(node -p "JSON.parse(require('node:fs').readFileSync('.agboss-version.json', 'utf8')).frameworkSha")"
+          TARGET_SHA="${{ inputs.framework_sha }}"
+          if [ -z "$TARGET_SHA" ]; then
+            TARGET_SHA="$PINNED_SHA"
+          fi
+          if [ -z "$TARGET_SHA" ]; then
+            echo "::error::Missing frameworkSha in .agboss-version.json and workflow_dispatch input"
+            exit 1
+          fi
+          echo "website_sha=$WEBSITE_SHA" >> "$GITHUB_OUTPUT"
+          echo "framework_sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+          echo "Resolved website_sha=$WEBSITE_SHA"
+          echo "Resolved framework_sha=$TARGET_SHA"
+
+      - name: 1c. Checkout agbossjs/agboss at exact pinned SHA (no fallback to main)
+        uses: actions/checkout@v4
+        with:
+          repository: agbossjs/agboss
+          ref: ${{ steps.pin.outputs.framework_sha }}
+          path: .agboss-framework
+
+      - name: 1d. Assert checked-out framework commit matches target SHA
+        run: |
+          ACTUAL_SHA="$(git -C .agboss-framework rev-parse HEAD)"
+          EXPECTED_SHA="${{ steps.pin.outputs.framework_sha }}"
+          if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "::error::Checked-out framework SHA ($ACTUAL_SHA) does not match expected SHA ($EXPECTED_SHA)"
+            exit 1
+          fi
+          ln -sfn "$GITHUB_WORKSPACE/.agboss-framework" ../agboss
+
+      - name: 2. Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: 3. Install & build agbossjs/agboss framework for snippet verification
+        run: |
+          npm --prefix .agboss-framework ci
+          npm --prefix .agboss-framework run build
+
+      - name: 4. Install agboss.dev dependencies
+        run: npm ci
+
+      - name: 5. Compile and verify all documentation TypeScript snippets (check:docs)
+        env:
+          AGBOSS_REPO_DIR: .agboss-framework
+        run: |
+          DOCS_OUT="$(npm run check:docs)"
+          echo "$DOCS_OUT"
+          {
+            echo "## Documentation & Website Build Gate"
+            echo ""
+            echo "- **Website commit (\`agbossjs/agboss.dev\`):** \`${{ steps.pin.outputs.website_sha }}\`"
+            echo "- **Framework commit (\`agbossjs/agboss\`):** \`${{ steps.pin.outputs.framework_sha }}\`"
+            echo "- **Node.js:** \`$(node --version)\`"
+            echo "- **\`npm run check:docs\`:** \`PASSED\`"
+            echo ""
+            echo "\`\`\`text"
+            echo "$DOCS_OUT"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 6. Build Astro/Starlight site & verify release metadata consistency (npm run build + verify:release-meta)
+        run: |
+          npm run test:release-meta
+          npm run verify:release-meta -- --source
+          npm run build
+          npm run verify:release-meta -- --dist
+          echo "- **\`npm run test:release-meta\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **\`npm run verify:release-meta -- --source\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **\`npm run build\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **\`npm run verify:release-meta -- --dist\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 7. Upload built site artifact
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist
@@ -36,7 +120,7 @@ jobs:
 
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
       name: production

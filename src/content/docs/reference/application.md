@@ -313,7 +313,7 @@ Every `@Application` class name ends with `Application` and its `name` option en
 | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | Yes | Unique kebab-case identifier ending with `-application` (e.g., `"job-scout-application"`). |
-| `version` | `string` | Yes | Semantic release version of the application (`"0.0.2"`), recorded in logs and traces. |
+| `version` | `string` | Yes | Semantic release version of the application (`"0.1.0"`), recorded in logs and traces. |
 | `workflows` | `readonly Class[]` | Yes | Top-level `@Workflow` classes registered in the application; child workflows are discovered automatically. |
 | `environment` | `Class` | Yes | Environment contract class (`AppEnvironment` or `EmptyEnvironment`) validated at startup. |
 | `providers` | `readonly Provider[]` | No | Infrastructure repository implementations (`Sqlite*Repository`), `@ModelProvider` classes, `@Channel` implementations, and shared `@Injectable` services. |

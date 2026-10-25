@@ -1,0 +1,155 @@
+---
+title: Interactive Feature Explorer
+description: Interactive walkthrough of AGBoss components, Path Scope workflow verification, LIFO sagas, dependency injection, budgets, PII masking, testing, and multi-run evaluations.
+---
+
+AGBoss is an open-source TypeScript framework with static verification (`agboss check`) for complex multi-agent workflows on top of LangGraph. Use the interactive Feature Explorer below to inspect how each decorator, workflow primitive, and testing loop works in real application code.
+
+## How does each AGBoss capability work in code?
+
+Select a capability category on the left and switch between the code tabs on the right to see the exact production problem it addresses, the AGBoss solution, and the corresponding TypeScript implementation.
+
+<div class="agx not-content" id="agx">
+	<div class="agx-list" aria-label="AGBoss features">
+		<div class="agx-item is-active">
+			<button class="agx-tab" type="button" data-key="application">
+				<span class="agx-title">Components &amp; Skills <span class="agx-badge">CORE</span></span>
+				<span class="agx-desc">Decorated contracts, HarnessDSL (HDSL) paths, @Application assembly &amp; AGENTS.md skills.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="application">@Application</button>
+				<button class="agx-sub" type="button" data-key="workflow">@Workflow (HDSL)</button>
+				<button class="agx-sub" type="button" data-key="agent">@Agent</button>
+				<button class="agx-sub" type="button" data-key="router">@Router</button>
+				<button class="agx-sub" type="button" data-key="tool">@Tool</button>
+				<button class="agx-sub" type="button" data-key="mcp">@McpServer</button>
+				<button class="agx-sub" type="button" data-key="rag">@Rag</button>
+				<button class="agx-sub" type="button" data-key="provider">@ModelProvider</button>
+				<button class="agx-sub" type="button" data-key="skills">AI Skills</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="loops">
+				<span class="agx-title">Loops &amp; Quorums</span>
+				<span class="agx-desc">Compile-time HDSL Path Scope, &#123; about &#125; review loops, and @Arbiter quorums.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="loops">Review loop</button>
+				<button class="agx-sub" type="button" data-key="provenance">Provenance</button>
+				<button class="agx-sub" type="button" data-key="parallel">Parallel</button>
+				<button class="agx-sub" type="button" data-key="quorum">Quorum &amp; @Arbiter</button>
+				<button class="agx-sub" type="button" data-key="recursion">Child Workflow</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="sagas">
+				<span class="agx-title">Transactional Sagas <span class="agx-badge">NEW</span></span>
+				<span class="agx-desc">Declarative compensateWith &amp; committedBy with automatic LIFO rollback.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="sagas">compensateWith &amp; committedBy</button>
+				<button class="agx-sub" type="button" data-key="lifo">LIFO Unwinding</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="di">
+				<span class="agx-title">Lifecycle &amp; DI</span>
+				<span class="agx-desc">OnInit..OnDestroy, 23 graph hooks, and @HealthCheck probes.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="di">Lifecycle</button>
+				<button class="agx-sub" type="button" data-key="callbacks">23 Graph Hooks</button>
+				<button class="agx-sub" type="button" data-key="contexts">Scoped DI &amp; Health</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="dto">
+				<span class="agx-title">Typed Inputs &amp; Env</span>
+				<span class="agx-desc">Decorated DTOs, fail-fast secret()/env(), and typed units.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="dto">DTOs &amp; PII Fields</button>
+				<button class="agx-sub" type="button" data-key="environments">Environments &amp; Units</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="guards">
+				<span class="agx-title">Cache, PII &amp; Approval</span>
+				<span class="agx-desc">KV-cache invariant HMAC masking, guardrails, and two-phase pauses.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="guards">@PiiPolicy &amp; KV Cache</button>
+				<button class="agx-sub" type="button" data-key="guardrail">@InputGuardrail</button>
+				<button class="agx-sub" type="button" data-key="approval">Human Approval</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="cost">
+				<span class="agx-title">Cost &amp; Durability</span>
+				<span class="agx-desc">Pre-call @Budget reservation, SQLite WAL stores, and 30s pod leases.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="cost">@Budget Caps</button>
+				<button class="agx-sub" type="button" data-key="durability">SQLite Stores</button>
+				<button class="agx-sub" type="button" data-key="recovery">30s Leases</button>
+				<button class="agx-sub" type="button" data-key="scaling">Work-Stealing</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="testing">
+				<span class="agx-title">Loop 0–1: Harness &amp; VCR</span>
+				<span class="agx-desc">$0 compiler proof, deterministic testWith races, 10 unit runners &amp; VCR hash locks.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="testing">Workflow &amp; Races</button>
+				<button class="agx-sub" type="button" data-key="runners">10 Unit Runners</button>
+			</div>
+		</div>
+		<div class="agx-item">
+			<button class="agx-tab" type="button" data-key="tracing">
+				<span class="agx-title">Loop 2–4: Eval Funnel</span>
+				<span class="agx-desc">Fail-fast @EvalSuite cascades, pass^k vs baseline, Cohen&apos;s kappa &amp; crystallization.</span>
+			</button>
+			<div class="agx-subs">
+				<button class="agx-sub is-active" type="button" data-key="tracing">Langfuse &amp; Audit</button>
+				<button class="agx-sub" type="button" data-key="describe">Crystallization</button>
+				<button class="agx-sub" type="button" data-key="ab">Evals &amp; Profiles</button>
+			</div>
+		</div>
+	</div>
+	<div class="agx-code">
+		<div class="agx-diag" id="agx-diag">
+			<div class="agx-diag-card is-problem">
+				<span class="agx-diag-kicker">Production Problem</span>
+				<p id="agx-problem"></p>
+			</div>
+			<div class="agx-diag-card is-solution">
+				<span class="agx-diag-kicker">AGBoss Solution</span>
+				<p id="agx-solution"></p>
+			</div>
+		</div>
+		<div class="agx-win">
+			<div class="agx-bar">
+				<span class="agx-dot"></span><span class="agx-dot"></span><span class="agx-dot"></span>
+				<div class="agx-file-tabs" id="agx-files" role="tablist" aria-label="Snippet files">
+					<button class="agx-file-tab is-active" id="agx-file" type="button" role="tab">job-scout.application.ts</button>
+				</div>
+			</div>
+			<pre class="agx-body"><code id="agx-src"></code></pre>
+		</div>
+	</div>
+</div>
+
+## Where can you run these capabilities end to end?
+
+Every mechanism in the explorer above is backed by runnable verification suites in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples):
+
+- **[`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss):** Dependency injection, `@Router` + `@Agent` + `@Tool`, SQLite cost ledger, and HTTP server integration.
+- **[`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof):** Build-time `[input.missing-on-path]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`, and `[flow.uncompensated-action]` proofs.
+- **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk):** Reversible HMAC `@PiiPolicy`, `@InputGuardrail` / `@OutputGuardrail`, `@ToolInterceptor`, `@Compaction`, and `@EvalSuite`.
+- **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga):** Declarative `compensateWith` / `committedBy` LIFO sagas, two-phase `@ChannelRole` pauses, `@Arbiter` quorums, and SQLite crash recovery.
+- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** `ChildPlacement.AnyInstance` distributed child workflows, 30s leases, and `@HealthCheck` liveness/readiness probes.
+- **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh):** Multi-service A2A + MCP mesh, `agboss check --federation`, and `agboss hub`.
+- **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration):** Deterministic before/after migration from raw LangGraph shared state to AGBoss narrow DTOs and `HarnessDSL`.
+
+<script src="/scripts/feature-explorer.js" defer></script>

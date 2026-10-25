@@ -1,0 +1,96 @@
+---
+import { RELEASE_META } from '../config/release';
+
+const isPublished = RELEASE_META.isPublishedToRegistry;
+const packCmd = RELEASE_META.preReleaseCommands.packTarballs;
+const targetPreviewCmd = RELEASE_META.preReleaseCommands.targetCliPreview;
+const newProjectCmd = RELEASE_META.publishedCommands.newProject;
+const existingProjectCmd = RELEASE_META.publishedCommands.existingProject;
+---
+
+{
+	isPublished ? (
+		<div class="agboss-install-grid" data-release-mode="published">
+			<div class="agboss-install-card">
+				<div class="agboss-install-card-head">
+					<span class="agboss-install-label">New project</span>
+					<button
+						class="agboss-copy"
+						type="button"
+						data-copy-text={newProjectCmd}
+						onclick="navigator.clipboard.writeText(this.dataset.copyText)"
+						aria-label="Copy new project commands"
+					>
+						⧉
+					</button>
+				</div>
+				<pre class="agboss-install-cmd"><code>{newProjectCmd}</code></pre>
+				<span class="agboss-install-note">
+					Scaffolds the project, generates <code>.agboss/types.d.ts</code> &amp; syncs 13 AI coding
+					skills.
+				</span>
+			</div>
+			<div class="agboss-install-card">
+				<div class="agboss-install-card-head">
+					<span class="agboss-install-label">Existing project</span>
+					<button
+						class="agboss-copy"
+						type="button"
+						data-copy-text={existingProjectCmd}
+						onclick="navigator.clipboard.writeText(this.dataset.copyText)"
+						aria-label="Copy existing project commands"
+					>
+						⧉
+					</button>
+				</div>
+				<pre class="agboss-install-cmd"><code>{existingProjectCmd}</code></pre>
+				<span class="agboss-install-note">
+					Production runtime in <code>dependencies</code>; static compiler &amp; UI tools in{' '}
+					<code>devDependencies</code>.
+				</span>
+			</div>
+		</div>
+	) : (
+		<div class="agboss-install-grid" data-release-mode="pre-release">
+			<div class="agboss-install-card">
+				<div class="agboss-install-card-head">
+					<span class="agboss-install-label">
+						Pre-release ({RELEASE_META.displayVersion}) · Build &amp; pack from source
+					</span>
+					<button
+						class="agboss-copy"
+						type="button"
+						data-copy-text={packCmd}
+						onclick="navigator.clipboard.writeText(this.dataset.copyText)"
+						aria-label="Copy pre-release source build commands"
+					>
+						⧉
+					</button>
+				</div>
+				<pre class="agboss-install-cmd"><code>{packCmd}</code></pre>
+				<span class="agboss-install-note">
+					Packs local <code>agboss-{RELEASE_META.sourceVersion}.tgz</code> &amp;{' '}
+					<code>agboss-cli-{RELEASE_META.sourceVersion}.tgz</code> release-candidate tarballs (
+					<a href="/getting-started/installation/">installation guide →</a> ·{' '}
+					<a href={RELEASE_META.examplesRepoUrl} target="_blank" rel="noopener">
+						run 7 verified examples →
+					</a>
+					).
+				</span>
+			</div>
+			<div class="agboss-install-card">
+				<div class="agboss-install-card-head">
+					<span class="agboss-install-label">
+						Target npm CLI · Unlocks on v{RELEASE_META.sourceVersion} publish
+					</span>
+				</div>
+				<pre class="agboss-install-cmd"><code>{targetPreviewCmd}</code></pre>
+				<span class="agboss-install-note">
+					<strong>Note:</strong> <code>agboss@{RELEASE_META.publishedPlaceholderVersion}</code> on
+					npm is an initial placeholder — use the source/tarball workflow on the left until{' '}
+					<code>{RELEASE_META.sourceVersion}</code> is published.
+				</span>
+			</div>
+		</div>
+	)
+}

@@ -1,4 +1,5 @@
 // @ts-check
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,9 +8,35 @@ import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
 
 /**
- * Post-build hook that enriches @astrojs/sitemap output with <lastmod> tags
- * and writes /sitemap.xml alongside /sitemap-index.xml so every crawler and
- * GEO auditor finds a fresh sitemap at all conventional paths.
+ * Resolves the git commit date (YYYY-MM-DD) for the source doc backing a sitemap URL.
+ * Returns undefined if no git commit exists for the file so <lastmod> is omitted rather than faked.
+ * @param {string} locUrl
+ */
+function gitLastModForUrl(locUrl) {
+	try {
+		const u = new URL(locUrl);
+		const slug = u.pathname.replace(/^\/+|\/+$/g, '') || 'index';
+		const docsDir = path.resolve(process.cwd(), 'src/content/docs');
+		const candidates = [
+			path.join(docsDir, `${slug}.md`),
+			path.join(docsDir, `${slug}.mdx`),
+			path.join(docsDir, slug, 'index.md'),
+			path.join(docsDir, slug, 'index.mdx'),
+		];
+		const sourceFile = candidates.find((p) => fs.existsSync(p));
+		if (!sourceFile) return undefined;
+		const out = execFileSync('git', ['log', '-1', '--format=%cs', '--', sourceFile], {
+			encoding: 'utf8',
+		}).trim();
+		return /^\d{4}-\d{2}-\d{2}$/u.test(out) ? out : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Post-build hook that enriches @astrojs/sitemap output with per-file git <lastmod> tags
+ * and writes /sitemap.xml alongside /sitemap-index.xml.
  */
 function geoSitemapEnricher() {
 	return {
@@ -19,12 +46,14 @@ function geoSitemapEnricher() {
 				const outDir = fileURLToPath(dir);
 				const s0 = path.join(outDir, 'sitemap-0.xml');
 				const sMain = path.join(outDir, 'sitemap.xml');
-				const today = new Date().toISOString().slice(0, 10);
 				if (fs.existsSync(s0)) {
 					const xml = fs.readFileSync(s0, 'utf8');
 					const enriched = xml.replace(
 						/<loc>([^<]+)<\/loc>(?!\s*<lastmod>)/g,
-						`<loc>$1</loc><lastmod>${today}</lastmod>`,
+						(_match, loc) => {
+							const lastMod = gitLastModForUrl(loc);
+							return lastMod ? `<loc>${loc}</loc><lastmod>${lastMod}</lastmod>` : `<loc>${loc}</loc>`;
+						},
 					);
 					fs.writeFileSync(s0, enriched, 'utf8');
 					fs.writeFileSync(sMain, enriched, 'utf8');
@@ -58,7 +87,7 @@ export default defineConfig({
 		starlight({
 			title: 'AGBoss',
 			description:
-				'AGBoss (Agent Graph Builder Open Source System) is a strictly typed TypeScript framework, static compiler (agboss check), and production runtime for multi-agent systems with hundreds of nodes on LangGraph, with HarnessDSL (HDSL) — its built-in declarative graph grammar and verification specification enforcing 7 distributed-systems principles and AGENTS.md coding skills.',
+				'AGBoss is an open-source TypeScript framework with static verification for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed dataflow, and build-time graph checking.',
 			logo: {
 				light: './src/assets/agboss-mark-light.svg',
 				dark: './src/assets/agboss-mark-dark.svg',
@@ -77,7 +106,7 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://agboss.dev/og-image.png' } },
 				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
 				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
-				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss (Agent Graph Builder Open Source System) — Static Graph Compiler & Runtime for LangGraph with HarnessDSL' } },
+				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss — Open-Source TypeScript Framework with Static Verification for Multi-Agent Workflows on LangGraph' } },
 				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://agboss.dev/og-image.png' } },
 			],
@@ -91,6 +120,7 @@ export default defineConfig({
 						{ label: 'Introduction', slug: 'getting-started/introduction' },
 						{ label: 'Installation', slug: 'getting-started/installation' },
 						{ label: 'Quick start', slug: 'getting-started/quick-start' },
+						{ label: 'Interactive Feature Explorer', slug: 'features' },
 					],
 				},
 				{
@@ -206,9 +236,9 @@ export default defineConfig({
 				starlightLlmsTxt({
 					projectName: 'AGBoss (Agent Graph Builder Open Source System)',
 					description:
-						'AGBoss (Agent Graph Builder Open Source System) is the TypeScript framework, static graph compiler (agboss check), and production runtime for multi-agent systems scaling to hundreds of nodes and System-2 Physical AI orchestration on LangGraph (scaffold a new project with `npx agboss create my-app && cd my-app && npm install`, or add to an existing project with `npm install agboss && npm install -D agboss-cli && npx agboss check`), and HarnessDSL (HDSL) is the declarative graph grammar and verification specification inside AGBoss (analogous to JSX in React or PSL in Prisma — defining how *.workflow.ts flow chains and contract decorators express narrow @Dto handoffs, Path Scope, in-degree = 1 vs >= 2 canonical topology, { about } staleness tracking, quorums, ChildPlacement.AnyInstance distributed child workflows, and compensateWith / committedBy sagas). Together they enforce 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & 4-Stage Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, 30s leases, ChildPlacement.AnyInstance work-stealing, K8s probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join + agboss hub Crystallization Radar from DecidedBy.Model to DecidedBy.Code).',
+						'AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework with static verification (agboss check) for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed DTO dataflow, and HarnessDSL (HDSL) — its declarative workflow grammar enforcing 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, 30s leases, ChildPlacement.AnyInstance work-stealing, health probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join + agboss hub Crystallization Radar from DecidedBy.Model to DecidedBy.Code).',
 					details:
-						'AGBoss (Agent Graph Builder Open Source System) is engineered for Senior, Staff, Principal, and CTO engineers who decompose complex domains into specialized agent graphs using AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code). Instead of allowing coding agents to generate an untyped mutable God State Object with tangled side effects and broken KV caches, AGBoss and its built-in HarnessDSL (HDSL) grammar enforce distributed-systems invariants at compile time via `agboss check` (emitting `.agboss/types.d.ts`) and guide coding agents via auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`, including `13-migrating-from-langgraph.md`) and `agboss/eslint`. In HarnessDSL, workflows use strictly one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
+						'AGBoss is designed for TypeScript engineers building multi-agent workflows with or without AI coding assistants. Instead of relying on an untyped mutable shared state object where missing branch inputs or stale loop outputs fail at runtime, AGBoss verifies workflow topology and Path Scope before runtime via `agboss check` (emitting `.agboss/types.d.ts`) and ships with auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`) and `agboss/eslint`. Workflows use one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
 					customSets: [
 						{
 							label: 'Core Concepts & HarnessDSL (HDSL)',
