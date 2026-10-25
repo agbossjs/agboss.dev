@@ -25,7 +25,7 @@ const isActive = (item: (typeof NAV)[number]) => {
 };
 ---
 
-<div class="header agb-header">
+<div class="header agb-header" data-release-mode={RELEASE_META.isPublishedToRegistry ? 'published' : 'pre-release'}>
 	<div class="title-wrapper sl-flex">
 		<SiteTitle />
 	</div>

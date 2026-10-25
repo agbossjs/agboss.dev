@@ -14,13 +14,15 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const argv = process.argv.slice(2);
 const wantPublished = argv.includes("--published");
 const wantPreRelease = argv.includes("--pre-release");
+const rootIdx = argv.indexOf("--root");
+const ROOT = rootIdx !== -1 && argv[rootIdx + 1] ? resolve(argv[rootIdx + 1]) : DEFAULT_ROOT;
 
 if ((wantPublished && wantPreRelease) || (!wantPublished && !wantPreRelease)) {
-  console.error("Usage: node scripts/set-release-mode.mjs <--published | --pre-release>");
+  console.error("Usage: node scripts/set-release-mode.mjs <--published | --pre-release> [--root <dir>]");
   process.exit(1);
 }
 

@@ -11,6 +11,7 @@
     "pin:framework-sha": "node scripts/pin-framework-sha.mjs",
     "release:mode": "node scripts/set-release-mode.mjs",
     "verify:release-meta": "node scripts/verify-release-meta.mjs",
+    "test:release-meta": "node --test scripts/verify-release-meta.test.mjs",
     "check:docs": "node ${AGBOSS_REPO_DIR:-../agboss}/scripts/check-docs.mjs --no-cli-sources --docs $(find src/content/docs -type f \\( -name '*.md' -o -name '*.mdx' \\) -print | paste -sd, -)"
   },
   "dependencies": {

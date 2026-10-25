@@ -102,11 +102,14 @@ jobs:
 
       - name: 6. Build Astro/Starlight site & verify release metadata consistency (npm run build + verify:release-meta)
         run: |
-          npm run verify:release-meta
+          npm run test:release-meta
+          npm run verify:release-meta -- --source
           npm run build
-          npm run verify:release-meta
-          echo "- **\`npm run verify:release-meta\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
+          npm run verify:release-meta -- --dist
+          echo "- **\`npm run test:release-meta\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **\`npm run verify:release-meta -- --source\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **\`npm run build\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **\`npm run verify:release-meta -- --dist\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: 7. Upload built site artifact
         uses: actions/upload-artifact@v4
