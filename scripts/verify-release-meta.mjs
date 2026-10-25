@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
- * P0-1 (Problem B): Validates `src/config/release.ts` (`RELEASE_META`) and ensures that
- * `nav.ts`, `Header.astro`, `Head.astro`, and `InstallCards.astro` derive all version
- * and release-channel labels from `RELEASE_META` without hardcoded pre-release strings
- * that could leave a mixture of pre-release and published labels after switching modes.
+ * Validates `src/config/release.ts` (`RELEASE_META`), UI components, documentation
+ * pages, and built HTML (`dist/`) so that pre-release (`v0.1.0-rc`) and published
+ * (`v0.1.0`) modes remain 100% consistent with zero mixed pre-release/published labels.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -44,7 +43,10 @@ for (const [name, content] of [
 const activeBlockMatch = releaseTs.match(
   /export const RELEASE_META[\s\S]*?=\s*\{([\s\S]*?)\};/,
 );
-assert.ok(activeBlockMatch, "Could not locate `export const RELEASE_META = { ... };` in src/config/release.ts");
+assert.ok(
+  activeBlockMatch,
+  "Could not locate `export const RELEASE_META = { ... };` in src/config/release.ts",
+);
 const activeBlock = activeBlockMatch[1];
 
 const isPublishedMatch = activeBlock.match(/isPublishedToRegistry:\s*(true|false)/);
@@ -62,6 +64,16 @@ const displayVersion = displayVerMatch[1];
 const releaseChannelLabel = channelMatch[1];
 const softwareVersion = softwareVerMatch[1];
 
+const DOC_FILES = [
+  "src/content/docs/index.mdx",
+  "src/content/docs/getting-started/installation.md",
+  "src/content/docs/getting-started/quick-start.md",
+  "src/content/docs/changelog.md",
+  "src/content/docs/community.mdx",
+  "src/content/docs/examples/job-scout.md",
+  "SECURITY.md",
+];
+
 if (!isPublishedToRegistry) {
   assert.equal(
     displayVersion,
@@ -78,6 +90,14 @@ if (!isPublishedToRegistry) {
     "0.1.0-rc",
     `When isPublishedToRegistry is false, softwareVersion must be '0.1.0-rc' (found '${softwareVersion}')`,
   );
+  for (const relPath of DOC_FILES) {
+    const text = readFileSync(join(ROOT, relPath), "utf8");
+    assert.equal(
+      text.includes("0.1.0-rc"),
+      true,
+      `When isPublishedToRegistry is false, ${relPath} must reflect pre-release status ('0.1.0-rc')`,
+    );
+  }
 } else {
   assert.equal(
     displayVersion,
@@ -94,6 +114,14 @@ if (!isPublishedToRegistry) {
     "0.1.0",
     `When isPublishedToRegistry is true, softwareVersion must be '0.1.0' with no '-rc' suffix (found '${softwareVersion}')`,
   );
+  for (const relPath of DOC_FILES) {
+    const text = readFileSync(join(ROOT, relPath), "utf8");
+    assert.equal(
+      text.includes("0.1.0-rc"),
+      false,
+      `When isPublishedToRegistry is true, ${relPath} must not contain '0.1.0-rc' (run 'npm run release:mode -- --published')`,
+    );
+  }
 }
 
 // 3. If dist/index.html has been built, verify the rendered HTML matches the active mode with no mixed labels
@@ -104,7 +132,7 @@ if (existsSync(distIndexPath)) {
     assert.equal(
       html.includes('data-release-mode="pre-release"'),
       true,
-      "dist/index.html must render data-release-mode=\"pre-release\" when isPublishedToRegistry is false",
+      'dist/index.html must render data-release-mode="pre-release" when isPublishedToRegistry is false',
     );
     assert.equal(
       html.includes("v0.1.0-rc"),
@@ -115,7 +143,7 @@ if (existsSync(distIndexPath)) {
     assert.equal(
       html.includes('data-release-mode="published"'),
       true,
-      "dist/index.html must render data-release-mode=\"published\" when isPublishedToRegistry is true",
+      'dist/index.html must render data-release-mode="published" when isPublishedToRegistry is true',
     );
     assert.equal(
       html.includes("v0.1.0-rc"),
@@ -126,5 +154,5 @@ if (existsSync(distIndexPath)) {
 }
 
 console.log(
-  `[verify-release-meta] OK — isPublishedToRegistry=${isPublishedToRegistry}, displayVersion=${displayVersion}, releaseChannelLabel=${releaseChannelLabel}, softwareVersion=${softwareVersion}`,
+  `[verify:release-meta] OK — isPublishedToRegistry=${isPublishedToRegistry}, displayVersion=${displayVersion}, releaseChannelLabel=${releaseChannelLabel}, softwareVersion=${softwareVersion}`,
 );
