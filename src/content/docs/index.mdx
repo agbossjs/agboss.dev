@@ -1,19 +1,19 @@
 ---
 title: AGBoss
-description: "AGBoss is a TypeScript framework and static graph compiler on LangGraph. Compiles declarative HarnessDSL workflows at build time with 13 AI coding skills."
+description: "AGBoss is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification."
 template: splash
 banner:
-  content: '<strong>New in v0.0.2:</strong> <a href="/concepts/architecture/">7 Distributed-Systems Principles</a> · <a href="/concepts/verification-funnel/">5-Loop Verification Funnel</a> · <a href="/concepts/workflow/">HarnessDSL (HDSL)</a> · <a href="/concepts/ai-coding-skills/">Coding Skills →</a>'
+  content: '<strong>Pre-Release v0.1.0-rc:</strong> <a href="#executable-proof">Executable Path Scope Proof</a> · <a href="/features/">Interactive Feature Explorer</a> · <a href="/examples/job-scout/">7 Verified Examples</a> · <a href="/getting-started/quick-start/">Quickstart →</a>'
 hero:
-  title: '<span class="hero-eyebrow">TypeScript Framework &amp; Static Graph Compiler on LangGraph · Apache 2.0</span><span class="hero-headline">Your coding agent writes the graph.<br/>AGBoss proves it right.</span>'
-  tagline: '<p class="hero-lead-copy"><strong>AGBoss</strong> (<em>Agent Graph Builder Open Source System</em>) compiles declarative <strong>HarnessDSL</strong> workflows before a single LLM token is spent. It catches missing path inputs, stale loop data, and uncompensated sagas at build time (<code>agboss check</code>), and ships with 13 auto-synced AI coding skills so coding agents can scale graphs to hundreds of nodes without a mutable God State.</p>'
+  title: '<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class="hero-headline">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>'
+  tagline: '<p class="hero-lead-copy"><strong>AGBoss</strong> is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification.</p>'
   actions:
-    - text: Get started
-      link: /getting-started/introduction/
+    - text: Get Started
+      link: /getting-started/quick-start/
       icon: right-arrow
       variant: primary
-    - text: 7 Principles
-      link: /concepts/architecture/
+    - text: See the Proof
+      link: '#executable-proof'
       variant: secondary
 ---
 
@@ -26,211 +26,143 @@ hero:
 		<pre class="agboss-install-cmd"><code>npx agboss create my-app
 cd my-app
 npm install</code></pre>
-		<span class="agboss-install-note">Scaffolds the project, generates <code>.agboss/types.d.ts</code> &amp; unpacks 13 AI coding skills.</span>
+		<span class="agboss-install-note">Scaffolds the project, generates <code>.agboss/types.d.ts</code> &amp; syncs 13 AI coding skills. (<a href="/getting-started/installation/">Pre-release v0.1.0-rc setup →</a>)</span>
 	</div>
 	<div class="agboss-install-card">
 		<div class="agboss-install-card-head">
 			<span class="agboss-install-label">Existing project</span>
-			<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npm install agboss\nnpm install -D agboss-cli')" aria-label="Copy existing project commands">⧉</button>
+			<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npm install agboss\nnpm install -D agboss-cli\nnpx agboss check')" aria-label="Copy existing project commands">⧉</button>
 		</div>
 		<pre class="agboss-install-cmd"><code>npm install agboss
-npm install -D agboss-cli</code></pre>
+npm install -D agboss-cli
+npx agboss check</code></pre>
 		<span class="agboss-install-note">Production runtime in <code>dependencies</code>; static compiler &amp; UI tools in <code>devDependencies</code>.</span>
 	</div>
 </div>
 
-## What AGBoss can do
+<div id="executable-proof"></div>
 
-<div class="agx" id="agx">
-	<div class="agx-list" aria-label="AGBoss features">
-		<div class="agx-item is-active">
-			<button class="agx-tab" type="button" data-key="application">
-				<span class="agx-title">Components &amp; Skills <span class="agx-badge">NEW</span></span>
-				<span class="agx-desc">Decorated contracts, HarnessDSL (HDSL) paths, @Application assembly &amp; AGENTS.md skills.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="application">@Application</button>
-				<button class="agx-sub" type="button" data-key="workflow">@Workflow (HDSL)</button>
-				<button class="agx-sub" type="button" data-key="agent">@Agent</button>
-				<button class="agx-sub" type="button" data-key="router">@Router</button>
-				<button class="agx-sub" type="button" data-key="tool">@Tool</button>
-				<button class="agx-sub" type="button" data-key="mcp">@McpServer</button>
-				<button class="agx-sub" type="button" data-key="rag">@Rag</button>
-				<button class="agx-sub" type="button" data-key="provider">@ModelProvider</button>
-				<button class="agx-sub" type="button" data-key="skills">AI Skills</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="loops">
-				<span class="agx-title">Loops &amp; Quorums</span>
-				<span class="agx-desc">Compile-time HDSL Path Scope, &#123; about &#125; review loops, and @Arbiter quorums.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="loops">Review loop</button>
-				<button class="agx-sub" type="button" data-key="provenance">Provenance</button>
-				<button class="agx-sub" type="button" data-key="parallel">Parallel</button>
-				<button class="agx-sub" type="button" data-key="quorum">Quorum &amp; @Arbiter</button>
-				<button class="agx-sub" type="button" data-key="recursion">Child Workflow</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="sagas">
-				<span class="agx-title">Transactional Sagas <span class="agx-badge">NEW</span></span>
-				<span class="agx-desc">Declarative compensateWith &amp; committedBy with automatic LIFO rollback.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="sagas">compensateWith &amp; committedBy</button>
-				<button class="agx-sub" type="button" data-key="lifo">LIFO Unwinding</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="di">
-				<span class="agx-title">Lifecycle &amp; DI</span>
-				<span class="agx-desc">OnInit..OnDestroy, 23 graph hooks, and @HealthCheck probes.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="di">Lifecycle</button>
-				<button class="agx-sub" type="button" data-key="callbacks">23 Graph Hooks</button>
-				<button class="agx-sub" type="button" data-key="contexts">Scoped DI &amp; Health</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="dto">
-				<span class="agx-title">Typed Inputs &amp; Env</span>
-				<span class="agx-desc">Decorated DTOs, fail-fast secret()/env(), and typed units.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="dto">DTOs &amp; PII Fields</button>
-				<button class="agx-sub" type="button" data-key="environments">Environments &amp; Units</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="guards">
-				<span class="agx-title">Cache, PII &amp; Approval</span>
-				<span class="agx-desc">KV-cache invariant HMAC masking, guardrails, and two-phase pauses.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="guards">@PiiPolicy &amp; KV Cache</button>
-				<button class="agx-sub" type="button" data-key="guardrail">@InputGuardrail</button>
-				<button class="agx-sub" type="button" data-key="approval">Human Approval</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="cost">
-				<span class="agx-title">Cost &amp; Durability</span>
-				<span class="agx-desc">Pre-call @Budget reservation, SQLite WAL stores, and 30s pod leases.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="cost">@Budget Caps</button>
-				<button class="agx-sub" type="button" data-key="durability">SQLite Stores</button>
-				<button class="agx-sub" type="button" data-key="recovery">30s Leases</button>
-				<button class="agx-sub" type="button" data-key="scaling">Work-Stealing</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="testing">
-				<span class="agx-title">Loop 0–1: Harness &amp; VCR</span>
-				<span class="agx-desc">$0 compiler proof, deterministic testWith races, 10 unit runners &amp; VCR hash locks.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="testing">Workflow &amp; Races</button>
-				<button class="agx-sub" type="button" data-key="runners">10 Unit Runners</button>
-			</div>
-		</div>
-		<div class="agx-item">
-			<button class="agx-tab" type="button" data-key="tracing">
-				<span class="agx-title">Loop 2–4: Eval Funnel</span>
-				<span class="agx-desc">Fail-fast @EvalSuite cascades, pass^k vs baseline, Cohen&apos;s kappa &amp; crystallization.</span>
-			</button>
-			<div class="agx-subs">
-				<button class="agx-sub is-active" type="button" data-key="tracing">Langfuse &amp; Audit</button>
-				<button class="agx-sub" type="button" data-key="describe">Crystallization</button>
-				<button class="agx-sub" type="button" data-key="ab">Evals &amp; Profiles</button>
-			</div>
-		</div>
-	</div>
-	<div class="agx-code">
-		<div class="agx-diag" id="agx-diag">
-			<div class="agx-diag-card is-problem">
-				<span class="agx-diag-kicker">Production Problem</span>
-				<p id="agx-problem"></p>
-			</div>
-			<div class="agx-diag-card is-solution">
-				<span class="agx-diag-kicker">AGBoss Solution</span>
-				<p id="agx-solution"></p>
-			</div>
-		</div>
-		<div class="agx-win">
-			<div class="agx-bar">
-				<span class="agx-dot"></span><span class="agx-dot"></span><span class="agx-dot"></span>
-				<div class="agx-file-tabs" id="agx-files" role="tablist" aria-label="Snippet files">
-					<button class="agx-file-tab is-active" id="agx-file" type="button" role="tab">job-scout.application.ts</button>
-				</div>
-			</div>
-			<pre class="agx-body"><code id="agx-src"></code></pre>
-		</div>
-	</div>
-</div>
+## How does AGBoss catch workflow dataflow errors before runtime?
 
-## Built for AI-Assisted Engineering & Autonomous Missions
+In raw graph orchestrators that share a single mutable state object (`Annotation.Root`), a router branch that skips an upstream producer compiles cleanly under `tsc` and fails only in production when that branch is taken. AGBoss verifies **Path Scope** across every possible execution path at build time via `agboss check` and generated `.agboss/types.d.ts` provenance types (`Produced<Dto, Producer>`):
+
+```ts no-check: intentional [input.missing-on-path] example from 02-path-scope-proof
+// fast-track-contract.workflow.ts
+@Workflow({
+  name: "fast-track-contract-workflow",
+  version: "1.0.0",
+  flow: [
+    start(FastTrackContractWorkflowStart)
+      .returns(ContractDraftDto)
+      .toRouter(ContractTrackRouter)
+      .chooseOne(
+        // Standard path produces ComplianceApprovalDto before publishing
+        route("standard")
+          .toAgent(ComplianceCheckAgent)
+          .returns(ComplianceApprovalDto)
+          .to(PublishContractAction),
+        // Fast-track skips ComplianceCheckAgent and jumps straight to PublishContractAction!
+        route("fast-track")
+          .to(PublishContractAction),
+      ),
+    path(PublishContractAction)
+      .returns(PublishedContractDto)
+      .toFinish(FastTrackContractWorkflowFinish),
+  ],
+})
+export class FastTrackContractWorkflow {}
+```
+
+Running `npx agboss check` rejects this graph before a single model call or side effect executes:
+
+```text
+error [input.missing-on-path]: publish-contract-action requires ComplianceApprovalDto
+  (parameter 'approval'), which is not produced on path:
+  fast-track-contract-workflow-start → contract-track-router → publish-contract-action
+  (produced only on: fast-track-contract-workflow-start → contract-track-router → compliance-check-agent → publish-contract-action)
+```
+
+<p>
+  <a href="https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof" target="_blank" rel="noopener"><strong>Run <code>02-path-scope-proof</code> on GitHub →</strong></a>
+  &nbsp;·&nbsp;
+  <a href="/concepts/path-scope/">Read Path Scope &amp; Provenance docs →</a>
+  &nbsp;·&nbsp;
+  <a href="/features/">Explore all capabilities in the Interactive Feature Explorer →</a>
+</p>
+
+## What are the three core capabilities of AGBoss?
 
 <div class="agboss-pillars">
-	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/architecture/">
-		<span class="agboss-mission-kicker">7 INVARIANTS · HARNESSDSL</span>
-		<h3>Zero-God-State Graph Compiler</h3>
-		<p>Replace untyped <code>Annotation.Root</code> state bags with compile-time Path Scope dominance (<code>.agboss/types.d.ts</code>), canonical topology, and KV-cache prefix invariance.</p>
-		<span class="agboss-pillar-cta">7 Architectural Principles →</span>
+	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/decorators/">
+		<span class="agboss-mission-kicker">1 · DESIGN</span>
+		<h3>Typed Components &amp; Declarative Workflows</h3>
+		<p>Compose workflows from single-responsibility classes (<code>@Agent</code>, <code>@Router</code>, <code>@Arbiter</code>, <code>@Action</code>, <code>@Tool</code>) wired with constructor dependency injection (<code>@Injectable</code>), narrow <code>@Dto</code> handoffs, and canonical <code>HarnessDSL</code> flow chains.</p>
+		<span class="agboss-pillar-cta">Components &amp; HarnessDSL →</span>
 	</a>
-	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/ai-coding-skills/">
-		<span class="agboss-mission-kicker">CODEX · CURSOR · WINDSURF · CLAUDE</span>
-		<h3>Universal AI Coding Skills</h3>
-		<p><code>agboss create</code> and <code>agboss check</code> sync <code>AGENTS.md</code> and 13 progressive-disclosure reference modules so any coding agent builds 100+ node graphs accurately.</p>
-		<span class="agboss-pillar-cta">AI Coding Skills Guide →</span>
+	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/verification-funnel/">
+		<span class="agboss-mission-kicker">2 · VERIFY</span>
+		<h3>Static Graph Checking, Unit Runners &amp; Evals</h3>
+		<p>Verify Path Scope, review-loop freshness (<code>&#123; about &#125;</code>), and saga compensation before runtime with <code>agboss check</code>, run deterministic races with <code>testWith()</code> + <code>VirtualClock</code> and 10 unit runners, and gate model changes with <code>@EvalSuite</code> (<code>pass@k</code> / <code>pass^k</code>).</p>
+		<span class="agboss-pillar-cta">5-Loop Verification Funnel →</span>
 	</a>
-	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/mission-orchestration/">
-		<span class="agboss-mission-kicker">DIGITAL &amp; PHYSICAL AI</span>
-		<h3>System-2 Mission Orchestrator</h3>
-		<p>Run multi-day enterprise sagas and robotics mission plans with multimodal <code>@Arbiter</code> quorums, two-phase <code>@ChannelRole</code> withdrawal, and LIFO rollbacks.</p>
-		<span class="agboss-pillar-cta">System-2 Missions →</span>
+	<a class="agboss-mission-card agboss-pillar-link" href="/guides/error-handling-and-rollback/">
+		<span class="agboss-mission-kicker">3 · OPERATE</span>
+		<h3>LIFO Sagas, Human Pauses, Budgets &amp; Leases</h3>
+		<p>Operate workflows with declarative <code>compensateWith</code> / <code>committedBy</code> LIFO rollbacks, two-phase <code>@ChannelRole</code> pauses, pre-call <code>@Budget</code> reservations, reversible HMAC <code>@PiiPolicy</code>, SQLite WAL stores, 30s leases, and <code>ChildPlacement.AnyInstance</code> work-stealing.</p>
+		<span class="agboss-pillar-cta">Sagas, Persistence &amp; FinOps →</span>
 	</a>
 </div>
 
-## Verified Engineering Proofs & Examples (`agbossjs/agboss-examples`)
+## Which runnable examples can you start with?
+
+Every example in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) is verified offline with `npm run check`, `npm test`, and `npx tsx src/demo.ts`:
 
 <div class="agboss-pillars">
+	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss" target="_blank" rel="noopener">
+		<span class="agboss-mission-kicker">STARTER · P0</span>
+		<h3><code>01-hello-agboss</code></h3>
+		<p>Minimal end-to-end starter demonstrating constructor DI, <code>@Router</code> + <code>@Agent</code> + <code>@Tool</code> composition, <code>@Budget</code> caps, <code>src/http/server.ts</code> endpoints, and deterministic unit/workflow tests.</p>
+		<span class="agboss-pillar-cta">View 01-hello-agboss →</span>
+	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof" target="_blank" rel="noopener">
-		<span class="agboss-mission-kicker">COMPILER PROOF · 4 GRAPH BUGS</span>
+		<span class="agboss-mission-kicker">STATIC COMPILER PROOF · P0</span>
 		<h3><code>02-path-scope-proof</code></h3>
-		<p>Side-by-side proof where <code>[input.missing-on-path]</code>, <code>[input.outdated-on-path]</code>, <code>[launch.branch-outdates-sibling]</code>, and <code>[flow.uncompensated-action]</code> pass raw LangGraph <code>tsc</code> (<code>langgraph-broken/</code>) but are caught before runtime by <code>agboss check</code>.</p>
-		<span class="agboss-pillar-cta">Inspect Proof →</span>
+		<p>Side-by-side comparison of 4 graph bugs (<code>[input.missing-on-path]</code>, <code>[input.outdated-on-path]</code>, <code>[launch.branch-outdates-sibling]</code>, <code>[flow.uncompensated-action]</code>) that pass raw <code>tsc</code> in LangGraph but are caught by <code>agboss check</code>.</p>
+		<span class="agboss-pillar-cta">View 02-path-scope-proof →</span>
 	</a>
-	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples" target="_blank" rel="noopener">
-		<span class="agboss-mission-kicker">SAGAS · EVALS · 3-SERVICE MESH · WORK-STEALING</span>
-		<h3><code>03-support-refund-desk</code>, <code>04-travel-booking-saga</code>, <code>05-cluster-work-stealing</code> &amp; <code>06-enterprise-agent-mesh</code></h3>
-		<p>Executable proofs covering reversible HMAC <code>@PiiPolicy</code>, BM25/TF-IDF <code>@Rag</code>, 5-loop <code>@EvalSuite</code> + compact git baselines, LIFO sagas, <code>ChildPlacement.AnyInstance</code> work-stealing, and a 3-service A2A + MCP mesh.</p>
-		<span class="agboss-pillar-cta">Browse 7 Verified Examples →</span>
-	</a>
-	<a class="agboss-mission-card agboss-pillar-link" href="/examples/job-scout/">
-		<span class="agboss-mission-kicker">STARTER, HTTP SERVER &amp; MIGRATION</span>
-		<h3><code>01-hello-agboss</code>, <code>07-langgraph-migration</code> &amp; <code>job-scout</code></h3>
-		<p>Start with real HTTP service DI, production <code>src/http/server.ts</code> pause/health adapters, canonical <code>1 class = 1 file</code> + symmetric <code>tests/</code> layout, or compare <code>before-langgraph/</code> vs <code>after-agboss/</code> side by side.</p>
-		<span class="agboss-pillar-cta">Examples &amp; Architecture Guide →</span>
+	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga" target="_blank" rel="noopener">
+		<span class="agboss-mission-kicker">LIFO SAGAS &amp; RECOVERY · P0</span>
+		<h3><code>04-travel-booking-saga</code></h3>
+		<p>Multi-step flight, hotel, and payment booking workflow proving automatic LIFO compensation on failure, budget abort, cancellation, two-phase <code>@ChannelRole</code> pauses, <code>@Arbiter</code> quorums, and SQLite crash recovery.</p>
+		<span class="agboss-pillar-cta">View 04-travel-booking-saga →</span>
 	</a>
 </div>
 
-<div class="agboss-sr-only">
+<p>
+  <a href="/examples/job-scout/"><strong>Browse the full 7-example catalog (including <code>03-support-refund-desk</code>, <code>05-cluster-work-stealing</code>, <code>06-enterprise-agent-mesh</code>, and <code>07-langgraph-migration</code>) →</strong></a>
+</p>
 
-## Why engineering teams build production agents on AGBoss
+## Ready to build with AGBoss?
 
-<p>Unlike lightweight prompt wrappers or hosted agent platforms that lock your state and traces behind a proprietary API, AGBoss compiles directly into your Node.js service with verifiable runtime guarantees.</p>
+AGBoss is open source under the **Apache-2.0** license and runs inside your own Node.js infrastructure with zero vendor lock-in.
 
-<ul>
-	<li><strong>100% compile-time graph, Path Scope, and saga verification:</strong> Every path slot, constructor dependency, DTO schema, and <code>compensateWith</code> rollback path (<code>[flow.uncompensated-action]</code>) is verified by the <a href="https://www.typescriptlang.org/" target="_blank" rel="noopener">TypeScript</a> compiler and <code>agboss check</code> before deployment.</li>
-	<li><strong>200+ decision and chat model endpoints:</strong> Built on <a href="https://www.langchain.com/langgraph" target="_blank" rel="noopener">LangGraph</a> and OpenRouter with calibrated decision routing, tenant-weighted rate limiting at 120 calls per minute, and shared 429 cooldowns.</li>
-	<li><strong>100% self-hosted trace and PII isolation:</strong> Sensitive fields are pseudonymized before leaving your boundary, and full execution trees export to self-hosted <a href="https://langfuse.com/" target="_blank" rel="noopener">Langfuse</a> and OpenTelemetry collectors alongside <code>agboss describe --json</code> revision snapshots.</li>
-</ul>
-
+<div class="agboss-pillars">
+	<a class="agboss-mission-card agboss-pillar-link" href="/getting-started/quick-start/">
+		<span class="agboss-mission-kicker">5 · 15 · 30 MINUTE PATH</span>
+		<h3>Quickstart Guide</h3>
+		<p>Go from installation and your first <code>agboss check</code> to dependency injection, typed DTO handoffs, and intentional Path Scope verification in 30 minutes.</p>
+		<span class="agboss-pillar-cta">Start the Quickstart →</span>
+	</a>
+	<a class="agboss-mission-card agboss-pillar-link" href="/features/">
+		<span class="agboss-mission-kicker">INTERACTIVE CODE WALKTHROUGH</span>
+		<h3>Interactive Feature Explorer</h3>
+		<p>Inspect 37 interactive code examples covering every AGBoss decorator, workflow topology pattern, LIFO saga, and evaluation loop.</p>
+		<span class="agboss-pillar-cta">Open Feature Explorer →</span>
+	</a>
+	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss" target="_blank" rel="noopener">
+		<span class="agboss-mission-kicker">APACHE-2.0 · OPEN SOURCE</span>
+		<h3>GitHub Repository</h3>
+		<p>Explore the framework source code, CLI compiler, release checklist, and executable proof suite on GitHub.</p>
+		<span class="agboss-pillar-cta">github.com/agbossjs/agboss →</span>
+	</a>
 </div>
-
-<script src="/scripts/hero-rotator.js" is:inline></script>
-<script src="/scripts/feature-explorer.js" is:inline></script>

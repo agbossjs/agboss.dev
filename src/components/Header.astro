@@ -6,6 +6,7 @@ import Search from 'virtual:starlight/components/Search';
 import SiteTitle from 'virtual:starlight/components/SiteTitle';
 import SocialIcons from 'virtual:starlight/components/SocialIcons';
 import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import { RELEASE_META } from '../config/release';
 import { NAV } from './nav';
 
 const shouldRenderSearch =
@@ -39,7 +40,7 @@ const isActive = (item: (typeof NAV)[number]) => {
 					aria-expanded="false"
 				>
 					<span class="agb-version-dot" aria-hidden="true"></span>
-					<span>v0.0.2</span>
+					<span>{RELEASE_META.displayVersion}</span>
 					<svg class="agb-chev" viewBox="0 0 12 12" aria-hidden="true">
 						<path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
 					</svg>
@@ -50,8 +51,8 @@ const isActive = (item: (typeof NAV)[number]) => {
 						role="menuitem"
 						class="agb-version-option is-current"
 					>
-						<span class="agb-version-name">v0.0.2</span>
-						<span class="agb-version-tag agb-version-tag--latest">latest</span>
+						<span class="agb-version-name">{RELEASE_META.displayVersion}</span>
+						<span class="agb-version-tag agb-version-tag--latest">{RELEASE_META.releaseChannelLabel}</span>
 					</a>
 					<a href="/changelog/" role="menuitem" class="agb-version-footer">
 						Changelog & Release Notes →

@@ -5,6 +5,8 @@ description: "Install the AGBoss TypeScript runtime (agboss) and static compiler
 
 Installing AGBoss gives you the lightweight production runtime (`agboss`), focused subpath entries (`agboss/dto`, `agboss/units`, `agboss/models`, `agboss/testing`, `agboss/eval`, `agboss/mcp`, `agboss/rag`, `agboss/a2a`, `agboss/memory`, `agboss/eslint`), 13 bundled AI coding-agent reference modules (`node_modules/agboss/skills/agboss/`), and the `agboss-cli` static compiler and developer toolkit (`agboss` / `agb`). Importing `agboss` has zero side effects: tracing, MCP, and SQLite load only when an application uses them.
 
+> **Pre-Release Status (`v0.1.0-rc`):** The current repository source in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) targets **`0.1.0` (`v0.1.0-rc` pre-release)**. On the public npm registry (`registry.npmjs.org`), `agboss@0.0.1` and `agboss-cli@0.0.1` are currently initial placeholder packages while `0.1.0` completes pre-release verification. Until `0.1.0` is published to npm, run the examples via [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs`) or pack local tarballs from [`agbossjs/agboss`](https://github.com/agbossjs/agboss) (`npm run build && npm pack --workspaces`).
+
 ## Option 1: Create a new project (`npx agboss create my-app`)
 
 The fastest way to start a new project from scratch is with `npx agboss create` (also works via `npx agboss-cli create`, short alias `agb c`):

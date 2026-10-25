@@ -1,11 +1,11 @@
 ---
 title: Digital & Physical AI Missions (System-2 Planner)
-description: How AGBoss orchestrates mission-critical digital workflows and acts as the System-2 high-level mission planner for Physical AI, robotics, and devices.
+description: How AGBoss orchestrates complex digital workflows and acts as the System-2 high-level mission planner for Physical AI, robotics, and devices.
 ---
 
-AGBoss is a strictly typed TypeScript application framework designed for **mission-critical multi-agent systems and long-running autonomous missions** on top of [LangGraph](https://www.langchain.com/langgraph). While lightweight prompt chains and untyped graphs suffice for conversational chatbots, production digital operations and physical autonomous systems require static graph and saga verification (`agboss check`), automatic LIFO side-effect compensation (`compensateWith` / `committedBy`), pre-call FinOps budget reservations, multi-instance lease work-stealing, and two-phase human-in-the-loop pauses with automatic button withdrawal (`ChannelHandler.withdraw`).
+AGBoss is a strictly typed TypeScript application framework designed for **complex multi-agent workflows and long-running autonomous missions** on top of [LangGraph](https://www.langchain.com/langgraph). While lightweight prompt chains and untyped graphs suffice for conversational chatbots, production digital operations and physical autonomous systems require static graph and saga verification (`agboss check`), automatic LIFO side-effect compensation (`compensateWith` / `committedBy`), pre-call FinOps budget reservations, multi-instance lease work-stealing, and two-phase human-in-the-loop pauses with automatic button withdrawal (`ChannelHandler.withdraw`).
 
-## Why do mission-critical digital and physical AI systems need a System-2 orchestrator?
+## Why do high-consequence digital and physical AI systems need a System-2 orchestrator?
 
 One unified `@Application` architecture in AGBoss governs both long-running enterprise backend pipelines and high-level physical autonomy:
 

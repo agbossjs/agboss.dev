@@ -1,19 +1,21 @@
 ---
+import { execFileSync } from 'node:child_process';
 import Default from '@astrojs/starlight/components/Head.astro';
+import { RELEASE_META } from '../config/release';
 
 const route = Astro.locals.starlightRoute;
 const entry = route?.entry;
 const title = entry?.data?.title ?? 'AGBoss';
 const description =
 	entry?.data?.description ??
-	'Strictly typed TypeScript framework and static graph compiler for multi-agent systems scaling to hundreds of nodes on LangGraph — enforcing 7 distributed-systems architectural principles via HarnessDSL, agboss check, and built-in AGENTS.md skills for AI coding agents.';
+	'AGBoss is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification.';
 
 const siteOrigin = 'https://agboss.dev';
 const pathname = Astro.url.pathname;
 const canonicalUrl = new URL(pathname, siteOrigin).toString();
 const isHome = pathname === '/' || pathname === '';
 const pageTitle = isHome
-	? 'AGBoss — Compiler-Verified TypeScript Framework for Multi-Agent Systems'
+	? 'AGBoss — Build Complex AI Workflows. Catch Graph Errors Before Runtime.'
 	: `${title} | AGBoss Docs`;
 
 if (route?.head) {
@@ -52,7 +54,27 @@ if (route?.head) {
 }
 
 const publishedDate = '2026-10-01';
-const modifiedDate = new Date().toISOString().slice(0, 10);
+function resolveGitLastMod(filePath?: string): string {
+	try {
+		const args = filePath
+			? ['log', '-1', '--format=%cs', '--', filePath]
+			: ['log', '-1', '--format=%cs'];
+		const out = execFileSync('git', args, { encoding: 'utf8' }).trim();
+		if (/^\d{4}-\d{2}-\d{2}$/u.test(out)) {
+			return out;
+		}
+		const fallback = execFileSync('git', ['log', '-1', '--format=%cs'], {
+			encoding: 'utf8',
+		}).trim();
+		if (/^\d{4}-\d{2}-\d{2}$/u.test(fallback)) {
+			return fallback;
+		}
+	} catch {
+		// Fall back to publishedDate when git metadata is unavailable
+	}
+	return publishedDate;
+}
+const modifiedDate = resolveGitLastMod(entry?.filePath);
 
 const segments = pathname.split('/').filter(Boolean);
 const breadcrumbItems = [
@@ -103,7 +125,8 @@ const websiteSchema = {
 	'@id': `${siteOrigin}/#website`,
 	name: 'AGBoss',
 	url: siteOrigin,
-	description: 'Strictly typed TypeScript framework and static graph compiler for multi-agent systems scaling to hundreds of nodes on LangGraph, enforcing 7 distributed-systems architectural principles at compile time.',
+	description:
+		'AGBoss is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification.',
 	publisher: { '@id': `${siteOrigin}/#organization` },
 };
 
@@ -129,7 +152,7 @@ const pageEntity = isHome
 			url: canonicalUrl,
 			image: `${siteOrigin}/og-image.png`,
 			applicationCategory: 'DeveloperApplication',
-			softwareVersion: '0.0.2',
+			softwareVersion: RELEASE_META.softwareVersion,
 			operatingSystem: 'Node.js, Cross-platform',
 			programmingLanguage: 'TypeScript',
 			codeRepository: 'https://github.com/agbossjs/agboss',

@@ -23,11 +23,12 @@ export interface NavItem {
 export const NAV: NavItem[] = [
 	{
 		label: 'Why AGBoss',
-		blurb: 'Why coding agents fail on raw multi-agent graphs at scale—and how AGBoss & HDSL enforce 7 distributed-systems patterns at compile time.',
+		blurb: 'Why multi-agent graphs become hard to maintain at scale—and how AGBoss combines DI, typed dataflow, and static workflow verification.',
 		groups: [
 			{
 				links: [
 					{ label: 'Why AGBoss (Manifesto)', href: '/why/' },
+					{ label: 'Interactive Feature Explorer', href: '/features/' },
 					{ label: '7 Architectural Principles', href: '/concepts/architecture/' },
 					{ label: '5-Loop Verification Funnel', href: '/concepts/verification-funnel/' },
 					{ label: 'AI Coding Skills (AGENTS.md)', href: '/concepts/ai-coding-skills/' },
@@ -91,11 +92,12 @@ export const NAV: NavItem[] = [
 	},
 	{
 		label: 'Docs',
-		blurb: 'Core concepts, HarnessDSL (HDSL) syntax, categorized decorator reference, CLI, and release notes (v0.0.2).',
+		blurb: 'Core concepts, HarnessDSL (HDSL) syntax, categorized decorator reference, CLI, and release notes (v0.1.0-rc).',
 		groups: [
 			{
 				title: 'Core Concepts',
 				links: [
+					{ label: 'Interactive Feature Explorer', href: '/features/' },
 					{ label: '7 Architectural Principles', href: '/concepts/architecture/' },
 					{ label: '5-Loop Verification Funnel', href: '/concepts/verification-funnel/' },
 					{ label: 'AI Coding Skills (AGENTS.md)', href: '/concepts/ai-coding-skills/' },
@@ -153,7 +155,7 @@ export const NAV: NavItem[] = [
 					{ label: '@McpExpose', href: '/reference/mcp-expose/' },
 					{ label: '@A2AAgent', href: '/reference/a2a-agent/' },
 					{ label: 'CLI (agboss)', href: '/cli/' },
-					{ label: 'v0.0.2 Changelog', href: '/changelog/' },
+					{ label: 'v0.1.0-rc Changelog', href: '/changelog/' },
 				],
 			},
 		],

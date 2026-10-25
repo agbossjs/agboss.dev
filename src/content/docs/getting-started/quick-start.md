@@ -5,7 +5,18 @@ description: Build, statically verify with agboss check, run, and unit-test your
 
 Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `agboss/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose **HarnessDSL (`HDSL`)** `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.
 
-## Step 1: Set up a project (new or existing)
+> **Pre-Release Status (`v0.1.0-rc`):** The current repository source in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) targets **`0.1.0` (`v0.1.0-rc`)**, while `agboss@0.0.1` and `agboss-cli@0.0.1` on `registry.npmjs.org` are initial placeholder packages. To run a verified starter today before `0.1.0` is published to npm, clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs && cd 01-hello-agboss`) or install local tarballs packed from [`agbossjs/agboss`](https://github.com/agbossjs/agboss).
+
+### Progressive Learning Path
+
+| Milestone | Time | What You Will Accomplish |
+| :--- | :---: | :--- |
+| **1. First 5 Minutes** | `5 min` | Install `agboss` + `agboss-cli` (or run `01-hello-agboss`), verify the graph with `npx agboss check`, and run your first deterministic workflow test (`npm test`). |
+| **2. Next 15 Minutes** | `15 min` | Add constructor dependency injection (`@Injectable`), narrow `@Dto` contracts (`@Text`, `@Integer`), and compose a `@Router` + `@Agent` + `@Tool` workflow inside `@Application`. |
+| **3. At 30 Minutes** | `30 min` | Understand **Path Scope** (`Produced<Dto, Producer>`) and trigger intentional build-time graph failures (`[input.missing-on-path]`, `[input.outdated-on-path]`, `[flow.uncompensated-action]`) in [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof). |
+| **4. Advanced Guides** | `30+ min` | Scale to LIFO sagas ([`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)), distributed `ChildPlacement.AnyInstance` work-stealing ([`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)), multi-run `@EvalSuite` ([`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)), and A2A + MCP federation ([`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)). |
+
+## 5 Minutes: Install, check, and run
 
 ### Option 1 — Create a new project from scratch
 
@@ -28,7 +39,7 @@ npx agboss check
 - **`agboss` (`dependencies`)** is the lightweight production runtime (decorators, graph engine, DI, repository contracts, subpaths `agboss/dto`, `agboss/testing`, `agboss/eval`, `agboss/eslint`, and bundled AI skills) deployed in Docker / Kubernetes.
 - **`agboss-cli` (`devDependencies`)** is the static compiler (`agboss check`), generator (`agboss generate`), dev watcher (`agboss dev`), Studio bridge (`agboss studio`), and local UI toolkit (`agboss eval ui`, `agboss hub ui`) kept out of production images.
 
-## Step 2: Build and run your first workflow
+## 15 Minutes: Dependency injection, typed DTOs, and workflow composition
 
 The example below defines a customer support workflow and its enclosing `@Application`, then executes a turn via `app.execute`:
 
@@ -145,12 +156,20 @@ test("executes SupportWorkflow deterministically without an API key", async ({ a
 });
 ```
 
-## How to inspect, typecheck, and chat from the CLI
+## 30 Minutes: Path Scope and intentional graph failures
 
-Once your workflow and application are defined, use the `agboss` CLI to validate the graph, inspect resolved providers and budgets, or start an interactive session:
+Once your workflow and application are defined, use the `agboss` CLI to validate the graph, inspect resolved providers and budgets, or test how `agboss check` catches structural graph bugs before runtime:
 
 1. **Generate flow types and validate assembly:** Run `npx agboss check --application src/support.workflow.ts` to write `.agboss/types.d.ts` and verify every path, DTO transition, and budget rule without an API key.
 2. **Inspect the assembled topology:** Run `npx agboss describe --application src/support.workflow.ts` to print every path, node producer, model provider resolution, and worst-case step count.
-3. **Run interactively in the terminal:** Run `npx agboss chat --application src/support.workflow.ts` to chat with the workflow and inspect per-turn spend.
+3. **Trigger an intentional Path Scope failure:** In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof), inspect how `agboss check` catches four classes of graph defects that pass `tsc --noEmit` in raw shared-state graphs:
+   - `[input.missing-on-path]` — a router branch skips an upstream producer required by a downstream step.
+   - `[input.outdated-on-path]` — a revision loop modifies an artifact (`{ about }`) without re-running downstream verification.
+   - `[launch.branch-outdates-sibling]` — a parallel branch overwrites a DTO slot while a sibling branch concurrently reads it.
+   - `[flow.uncompensated-action]` — an error path exits a workflow after a side-effecting `@Action({ compensateWith })` without running its compensation handler.
+4. **Run interactively in the terminal:** Run `npx agboss chat --application src/support.workflow.ts` to chat with the workflow and inspect per-turn spend.
 
-Next, learn how the [`@Application` root](/concepts/application/), [Component Decorators](/concepts/decorators/), and [Workflow HDSL (`HarnessDSL`)](/concepts/workflow/) work in detail.
+## Next Steps & Advanced Guides
+
+- **Core Concepts:** [`@Application` & Lifecycle](/concepts/application/), [Component Decorators](/concepts/decorators/), [Workflow HDSL (`HarnessDSL`)](/concepts/workflow/), and [Path Scope & Provenance](/concepts/path-scope/).
+- **Production Operations:** [Transactional Sagas & Rollback](/guides/error-handling-and-rollback/), [Channels, Pauses & Webhooks](/guides/channels-and-pauses/), [Multi-Instance, Leases & SQLite](/guides/persistence-and-recovery/), [Evals, `pass^k` & Calibration](/guides/evaluation-and-profiles/), and [MCP, RAG & A2A Protocols](/guides/mcp-rag-and-a2a/).
