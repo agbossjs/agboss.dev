@@ -3,7 +3,11 @@ title: "@ModelProvider"
 description: Complete API reference for @ModelProvider in agboss/models — OpenRouterProvider, OpenAiCompatibleProvider, custom ModelProviderHandler transport, RateLimitPolicy, RetryPolicy, CircuitBreakerPolicy, and PromptCaching.
 ---
 
-The `@ModelProvider` decorator (`"agboss/models"`) defines an application-level LLM gateway registered in [`@Application({ providers })`](/reference/application/). Every model string referenced by an `@Agent`, `@Router`, `@Arbiter`, `@Judge`, `@Compaction`, `@InputGuardrail`, `@OutputGuardrail`, or `@PiiPolicy` is matched at startup against the `serves` regular expressions of your registered `@ModelProvider` classes (`[model.unserved]` or `[model.ambiguous-provider]` if zero or multiple providers match).
+The `@ModelProvider` decorator (`"agboss/models"`) defines an application-level LLM gateway registered in [`@Application({ providers })`](/reference/application/). Every model string referenced by an `@Agent`, `@Router`, `@Arbiter`, `@Judge`, `@Compaction`, `@InputGuardrail`, `@OutputGuardrail`, or `@PiiPolicy` is matched at startup against the `serves` regular expressions of your registered `@ModelProvider` classes (`[model.unserved]` or `[model.ambiguous-provider]` if zero or multiple custom providers match).
+
+:::tip[Built-in providers automatically yield claimed models (`#454`)]
+Every application includes the built-in catch-all `OpenRouterModelProvider` (`serves: [/.*/]`) and `DecisionsModelProvider` (`serves: [/^typesafe\/jev-/]`). You do **not** need to subclass `OpenRouterModelProvider` just to add a custom `@ModelProvider` (such as an Anthropic, Bedrock, or local Ollama provider) — the built-in catch-all providers automatically yield any model matched by another `@ModelProvider` listed in `@Application({ providers })`. Subclass `OpenRouterModelProvider` (`extends OpenRouterModelProvider`) only when you want to replace the default OpenRouter catch-all itself.
+:::
 
 `@ModelProvider` supports two transport modes (`[model-provider.both-modes]` if mixed):
 1. **HTTP base URL mode (`OpenRouterProvider` / `OpenAiCompatibleProvider`):** Configured with `baseUrl` / `baseUrlField` and optional `apiKey` (plus OpenRouter host and quantization pinning `only`, `ignore`, `quantizations`, `allowFallbacks`).
@@ -284,7 +288,7 @@ Every `@ModelProvider` class extends `OpenRouterProvider`, `OpenAiCompatibleProv
 | `OpenRouterProvider` & `OpenAiCompatibleProvider` | `"agboss/models"` | Base classes for OpenRouter and OpenAI-compatible chat/decision model servers (OpenAI, vLLM, Ollama, LiteLLM). |
 | `ModelProviderHandler` (`complete(request)`) | `"agboss/models"` | Interface for custom SDK/transport gateways (AWS Bedrock, Vertex AI, corporate proxies) wrapped by all AGBoss FinOps, rate-limit, circuit-breaker, and PII policies. |
 | `ModelProviderFailureError` | `"agboss/models"` | Thrown inside `complete(request)` to report classified failures (`ModelFailure.RateLimit` with `retryAfter`, `ModelFailure.Overloaded`, `ModelFailure.InvalidOutput`, `ModelFailure.InvalidToolArguments`) to the retry and AIMD engines. |
-| `OpenRouterModelProvider` & `DecisionsModelProvider` | `"agboss/models"` | Built-in default providers used when `@Application({ providers })` lists no custom `@ModelProvider`. |
+| `OpenRouterModelProvider` & `DecisionsModelProvider` | `"agboss/models"` | Built-in catch-all providers (`serves: [/.*/]` and `[/^typesafe\/jev-/]`) that automatically yield any model claimed by another `@ModelProvider` in `@Application({ providers })` (unless explicitly replaced by subclassing `extends OpenRouterModelProvider` or `extends DecisionsModelProvider`). |
 | `RateLimitPolicy` & `QueueBalancingStrategy` | `"agboss/models"` | Configures `maxConcurrentCalls`, `perMinute`, and `QueueBalancingStrategy` (`TenantRoundRobin`, `TenantLeastInFlight`, `TenantWeighted`, `Fifo`). |
 | `RetryPolicy` & `CircuitBreakerPolicy` | `"agboss/models"` | Configures per-call exponential backoff and shared multi-instance circuit breaking. |
 | `ModelCost`, `Reasoning`, `PromptCaching` | `"agboss/models"` | Configures token pricing, thinking effort (`ReasoningEffort`), and KV prefix cache policies. |

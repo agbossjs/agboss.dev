@@ -233,7 +233,13 @@ npx agboss golden add --name order-triage-core --from-last 20
 npx agboss compare --profiles base,candidate --golden order-triage-core
 
 # 3. Run the evaluation suite across k=5 trials and gate against the main branch baseline:
-$ agboss eval run --suite order-triage-eval-suite --runs 5 --baseline .artifacts/eval/main.json --fail-on-regression
+npx agboss eval run --suite order-triage-eval-suite --runs 5 --baseline .artifacts/eval/main.json --fail-on-regression
+
+# 4. Export execution history and inspect the Progressive Crystallization Radar in AGBoss Mesh Hub (#401):
+npx agboss describe --json > .artifacts/describe.json
+npx agboss records export --all-tenants --out .artifacts/records.jsonl
+npx agboss hub show .artifacts --html .artifacts/hub.html
+npx agboss hub ui .artifacts
 ```
 
-See [Evaluation, Golden Sets & A/B Profiles](/guides/evaluation-and-profiles/) for full details on `@EvalSuite`, `pass@k` / `pass^k`, and CI regression gates.
+The **Progressive Crystallization Radar** in `agboss hub` joins `agboss describe --json` (`configHash`, `promptHash`, `schemaHash`), stored `ExecutionRecord`s (`steps[].decision`, `inputHash`, `toolCalls`), and `EvalRunReport` artifacts to highlight `DecidedBy.Model` routers whose decisions are invariant per `inputHash` and `@Agent` steps with deterministic tool sequences or low `pass^k`. See [Evaluation, Golden Sets & A/B Profiles](/guides/evaluation-and-profiles/) for full details on `@EvalSuite`, `pass@k` / `pass^k`, and CI regression gates.

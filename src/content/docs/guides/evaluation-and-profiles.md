@@ -341,12 +341,14 @@ You can also invoke `compareProfiles` programmatically inside custom benchmark s
 
 <!-- snippet-context
 declare class JobScout { settings(): import("agboss").WorkflowSettings }
+declare class ChatWorkflowStart {}
 -->
 ```ts title="src/evals/compare-profiles.ts"
 import { compareProfiles } from "agboss";
 
 export async function runComparison() {
   const comparison = await compareProfiles(JobScout, {
+    start: ChatWorkflowStart,
     profiles: ["base", "scout-low-thinking"],
     tasks: ["Find senior backend jobs in Europe", "Save the first two jobs"],
   });
@@ -440,10 +442,16 @@ npx agboss eval show .artifacts/eval/pr.json --html .artifacts/eval/report.html
 npx agboss eval calibrate --report .artifacts/eval/pr.json --labels eval/labels/job-scout-eval-suite.jsonl
 
 # 5. Run chaos fault injection (429s, timeouts, truncated tool JSON) and metamorphic paraphrase checks:
-$ agboss eval run --suite job-scout-eval-suite --chaos --metamorphic
+npx agboss eval run --suite job-scout-eval-suite --chaos 0.3 --chaos-seed 42 --metamorphic
 
-# 6. Open the local interactive Eval UI workbench (trajectory inspector, failure taxonomy tagging & live kappa labeling):
-$ agboss eval ui --report .artifacts/eval/pr.json --labels eval/labels/job-scout-eval-suite.jsonl
+# 6. Promote a stored production ExecutionRecord into a typed @EvalSuite case (Loop 5):
+npx agboss generate eval-case refund-edge-eval-case --suite job-scout-eval-suite --from-execution exec-9102
+
+# 7. Export stored ExecutionRecords to JSONL for offline analysis or AGBoss Mesh Hub:
+npx agboss records export --all-tenants --out .artifacts/records.jsonl
+
+# 8. Open the local interactive Eval UI workbench (trajectory inspector, failure taxonomy tagging & live kappa labeling):
+npx agboss eval ui --dir .artifacts/eval
 ```
 
 | Capability | How It Works |
@@ -451,5 +459,6 @@ $ agboss eval ui --report .artifacts/eval/pr.json --labels eval/labels/job-scout
 | **`pass@k` vs `pass^k` (`--runs <k>`)** | `pass@k` measures whether a case passed **at least once** in $k$ trials (capability); `pass^k` measures whether it passed **all $k$ of $k$ trials** (production reliability). High `pass@k` (`1.00`) paired with low `pass^k` (`< 0.80`) marks the case `unstable` and flags the step as a **Progressive Crystallization candidate**. |
 | **Baseline Regression Gate (`--baseline --fail-on-regression`)** | Compares every case against a baseline report JSON (`exit code 5` on new failures). Any case whose baseline had `0 < pass^k < 1` is marked `flaky-on-baseline` (`CaseComparison.FlakyOnBaseline`) and quarantined so baseline noise never blocks unrelated pull requests. |
 | **Judge Calibration (`eval calibrate` & Cohen's $\kappa$)** | Computes pairwise **Cohen's kappa ($\kappa$)**, a confusion matrix (`TP`, `FP`, `TN`, `FN`), disagreements, and per-metric rubrics between each `@Judge` and human `EvalLabel` JSONL annotations (`eval/labels/<suite>.jsonl`). Also warns with `[judge.same-model-family]` when a model judge shares the evaluated agent's model family. |
-| **Chaos (`--chaos`) & Metamorphic (`--metamorphic`)** | `--chaos` injects transient provider faults (`429`, timeouts, truncated tool arguments) below `ProviderFetch` to verify retry and `.onError()` resilience; `--metamorphic` runs case `variants` and verifies that the tool-call trajectory remains invariant across prompt rewordings. |
+| **Chaos (`--chaos <rate> --chaos-seed <n>`) & Metamorphic (`--metamorphic`)** | `--chaos` injects transient provider faults (`429`, timeouts, truncated answers) below `ProviderFetch` to verify retry and `.onError()` resilience; `--metamorphic` runs case `variants` and verifies that the tool-call trajectory (`metamorphic` check) remains invariant across prompt rewordings. |
+| **Production Flywheel (`generate eval-case --from-execution` & `records export`)** | Reads an `ExecutionRecord` from `ExecutionHistoryRepository` (`SqliteExecutionHistoryRepository`), turns its conversation history, input, and required tool calls into a typed `evalCase(...)` in your `@EvalSuite`, and exports JSONL records (`agboss records export`) for offline auditing and `agboss hub`. |
 | **HTML Report (`eval show --html`) & Interactive Workbench (`eval ui`)** | Generates a self-contained single-file HTML report for CI artifacts (`eval run --html` or `eval show <run.json> --html`), or launches a local web workbench (`127.0.0.1`) to inspect multi-turn trajectories, tag failure modes, label runs with live $\kappa$ recalculation, and promote production traces into `@EvalSuite` cases. |

@@ -7,7 +7,9 @@ Running multi-agent workflows in production requires strict guardrails against r
 
 ## How `@ModelProvider` pools manage rate limits and tenant fairness
 
-Every model in an application resolves to exactly one `@ModelProvider` listed in `@Application({ providers })` by matching its `serves` list (checked by `npx agboss check --models --application src/job-scout.application.ts`). A provider's `name` must end with `-model-provider`, and its `rateLimitPolicy` and `circuitBreakerPolicy` are shared across all executions, tenants, and instances via `RateLimitRepository`:
+Every model in an application resolves to a `@ModelProvider` listed in `@Application({ providers })` by matching its `serves` list (checked by `npx agboss check --models`). A provider's `name` must end with `-model-provider`, and its `rateLimitPolicy` and `circuitBreakerPolicy` are shared across all executions, tenants, and instances via `RateLimitRepository`.
+
+Out of the box, AGBoss registers two built-in catch-all providers — `OpenRouterModelProvider` (`serves: [/.*/]`) and `DecisionsModelProvider` (`serves: [/^typesafe\/jev-/]`). When you list a custom `@ModelProvider` with its own `serves` (for example `serves: [/^anthropic\//]` or `[/^bedrock\//]`) in `@Application({ providers })`, the built-in catch-all providers **automatically yield** any model matched by your custom provider (`#454`) — no subclassing of `OpenRouterModelProvider` required. To replace the default OpenRouter catch-all itself, subclass `extends OpenRouterModelProvider`:
 
 ```ts title="src/model-providers/openrouter.model-provider.ts" file=src/model-providers/openrouter.model-provider.ts
 import { ModelCost, ModelProvider, OpenRouterProvider, OPENROUTER_BASE_URL, PromptCaching, QueueBalancingStrategy, RateLimitPolicy, Reasoning, RetryPolicy, TRANSIENT_FAILURES, type OpenRouterFields } from "agboss/models";

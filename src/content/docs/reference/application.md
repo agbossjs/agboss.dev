@@ -331,7 +331,11 @@ Every `@Application` class name ends with `Application` and its `name` option en
 | `tenantContext` | `TenantContextClass` | No | Custom subclass of `TenantContext` whose decorated DTO fields (without `prompt`, `[context.prompt-unused]`) are required on `app.execute(..., { tenant })`. |
 | `executionContext` | `ExecutionContextClass` | No | Custom subclass of `ExecutionContext` carrying per-execution identity fields passed via `app.execute(..., { execution })`. |
 | `defaults` | `WorkflowDefaults` | No | Default `models`, `router`, `guardrail`, `tools`, and `flow` settings inherited by all workflows. |
+| `exposes` | `readonly Class[]` | No | `@A2AExpose` and `@McpExpose` contract classes served over A2A/MCP and exported in `agboss describe --json`. |
+| `maxConcurrentSteps` | `number` | No | Maximum `@Agent`, `@Router`, and `@Action` steps running concurrently in this process before queueing by priority and reporting `step-slots` as `HealthStatus.Degraded`. |
+| `compensationTimeout` | `Milliseconds` | No | Dedicated cleanup window for automatic LIFO saga compensation when an execution is cancelled or hits a limit (`seconds(30)` by default). |
 | `pauseRecordRetention` | `Milliseconds` | No | How long resolved or cancelled pause records remain stored (`hours(24)` by default). |
+| `executionRecordRetention` | `Milliseconds` | No | How long completed `ExecutionRecord` snapshots remain in `ExecutionHistoryRepository` (`days(7)` by default). |
 | `shutdownTimeout` | `Milliseconds` | No | Grace period for `app.close()` and `SIGTERM` / `SIGINT` drain before releasing active execution leases (`seconds(25)` by default). |
 
 ## What related entities work with `@Application`?
@@ -343,5 +347,5 @@ Every `@Application` class name ends with `Application` and its `name` option en
 | `EmptyEnvironment` | `"agboss"` | Built-in empty contract class for applications that do not read environment variables. |
 | `env()`, `env.optional()`, `secret()` | `"agboss"` | Readers used in `environments/*.environment.ts` files to bind and validate `process.env` variables at startup. |
 | `ApplicationContext`, `Clock`, `Logger` | `"agboss"` | Built-in container singletons injectable into any service, action, tool, or observer via `deps`. |
-| `Sqlite*Repository` (7 classes) | `"agboss"` | Zero-dependency `node:sqlite` WAL implementations of the 7 multi-instance durability contracts. |
+| `Sqlite*Repository` (10 classes) | `"agboss"` | Zero-dependency `node:sqlite` WAL implementations of the 10 multi-instance durability, child work-stealing (`SqliteChildExecutionQueueRepository`), history (`SqliteExecutionHistoryRepository`), and mesh deduplication (`SqliteMeshRequestRepository`) contracts. |
 | `testWith(AppClass, options?)` | `"agboss/testing"` | Deterministic test harness that boots one or more application instances with DI `overrides` and a `VirtualClock`. |

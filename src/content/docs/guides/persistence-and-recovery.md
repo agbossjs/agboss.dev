@@ -14,10 +14,13 @@ Below is a complete multi-instance application wired with the 7 `Sqlite*` WAL re
 ```ts title="src/environments/prod.environment.ts" file=src/environments/prod.environment.ts
 import {
   SqliteCheckpointSaver,
+  SqliteChildExecutionQueueRepository,
   SqliteCostLedgerRepository,
+  SqliteExecutionHistoryRepository,
   SqliteExecutionLeaseRepository,
   SqliteExecutionRecordRepository,
   SqliteExecutionTreeRepository,
+  SqliteMeshRequestRepository,
   SqlitePausedExecutionRepository,
   SqliteRateLimitRepository,
   env,
@@ -35,12 +38,15 @@ export const environment: StoreEnvironment = {
 
 export const durableStores = [
   SqliteExecutionRecordRepository,
+  SqliteExecutionHistoryRepository,
   SqliteCostLedgerRepository,
   SqlitePausedExecutionRepository,
   SqliteCheckpointSaver,
   SqliteExecutionLeaseRepository,
   SqliteExecutionTreeRepository,
+  SqliteChildExecutionQueueRepository,
   SqliteRateLimitRepository,
+  SqliteMeshRequestRepository,
 ];
 ```
 
@@ -230,19 +236,26 @@ Because `@Agent`, `@Router`, `@Arbiter`, `@Action`, and `@Tool` classes never im
 
 ---
 
-## What the 7 shared stores coordinate across instances
+## What the 10 shared stores coordinate across instances
 
-Every store is an infrastructure contract with a built-in in-memory default and a built-in zero-dependency `node:sqlite` WAL implementation:
+Every store is an infrastructure contract with a built-in in-memory default (`InMemory*`) and a built-in zero-dependency `node:sqlite` WAL implementation (`Sqlite*`):
 
 | Base Repository Contract | Built-in SQLite Implementation | What It Coordinates Across Instances |
 | :--- | :--- | :--- |
 | `BaseCheckpointSaver` | `SqliteCheckpointSaver` | Saves LangGraph state checkpoints so a pause or crash on Instance A resumes on Instance B |
 | `PausedExecutionRepository` | `SqlitePausedExecutionRepository` | Transitions pauses `Pending → Resolved` atomically (CAS) once, whichever instance handles `app.resume()` |
 | `ExecutionRecordRepository` | `SqliteExecutionRecordRepository` | Persists tenant-isolated threads, owners, `Tern` records, and atomic CAS status transitions |
+| `ExecutionHistoryRepository` | `SqliteExecutionHistoryRepository` | Persists completed `ExecutionRecord` snapshots (`steps[].decision`, `inputHash`, `toolCalls`, `origin`, retained for `executionRecordRetention`) for `agboss records export`, `agboss generate eval-case --from-execution`, and `agboss hub` |
 | `CostLedgerRepository` | `SqliteCostLedgerRepository` | Aggregates token and tool spend across all instances for `Execution`, `Tenant`, and `Application` `@Budget` scopes |
-| `ExecutionLeaseRepository` | `SqliteExecutionLeaseRepository` | Guarantees a single active holder (`seconds(30)` lease) per `(tenantId, rootExecutionId)` execution tree |
+| `ExecutionLeaseRepository` | `SqliteExecutionLeaseRepository` | Guarantees a single active holder (`seconds(30)` lease) per `(tenantId, rootExecutionId)` tree and per remote child (`ChildPlacement.AnyInstance`) |
 | `ExecutionTreeRepository` | `SqliteExecutionTreeRepository` | Shares request-scoped keys (`saveIfAbsent`), `@agboss/cancel-request`, and `@agboss/unwinding` across the execution tree |
-| `RateLimitRepository` | `SqliteRateLimitRepository` | Shares `@ModelProvider` concurrency slots (`<provider>:slots`), per-minute call/token windows, 429 cooldowns, and open circuit breakers |
+| `ChildExecutionQueueRepository` | `SqliteChildExecutionQueueRepository` | Distributes `ChildPlacement.AnyInstance` child workflow tasks (`Queued → Running → Finished`) across worker instances with work-stealing and per-child crash recovery |
+| `RateLimitRepository` | `SqliteRateLimitRepository` | Shares `@ModelProvider` concurrency slots (`<provider>:slots`), shared tree concurrency slots (`SharedTreeSlots`), per-minute call/token windows, 429 cooldowns, and open circuit breakers |
+| `MeshRequestRepository` | `SqliteMeshRequestRepository` | Deduplicates incoming signed Agent Mesh (`@A2AExpose` / `@McpExpose`) requests by `origin.step.idempotencyKey` |
+
+:::note[Multi-instance testing with `InMemory*` vs SQLite `:memory:` (`#458`)]
+`testWith(App, { instances: 2 })` shares the built-in `InMemory*` stores across all instances in the test automatically. However, if your application lists `Sqlite*` stores and sets `sqlitePath: ":memory:"`, SQLite creates a **separate** in-memory database per connection (`SqliteConnection`), so two instances will not see each other's rows. To test multiple instances against a shared SQLite database, point `sqlitePath` in a test environment (e.g., `testWith(App, { instances: 2, env: "instances" })`) at a temporary file path created with `fs.mkdtempSync`.
+:::
 
 ---
 
@@ -264,13 +277,17 @@ One lease exists per execution tree, keyed by `(tenantId, rootExecutionId)`, hel
 
 ---
 
-## Instance step caps (`maxConcurrentSteps`) & distributed work-stealing
+## Instance step caps (`maxConcurrentSteps`) & distributed child work-stealing (`ChildPlacement.AnyInstance`)
 
 - **Local pod ceiling (`@Application({ maxConcurrentSteps: 32 })`):** Caps how many `@Agent`, `@Router`, and `@Action` steps run concurrently inside one process across all tenants and trees. When all slots are busy, additional steps wait in a deadlock-free priority queue:
   1. **Priority 1:** Steps that close a branch (right after a child workflow or `.join()` / `.joinQuorum()`).
   2. **Priority 2:** Deeper in-flight executions (`depth`, with +1 depth aging per 10s waited on the `Clock`).
   3. **Priority 3:** Newly arriving root `app.execute` calls.
 - **Load-balancer readiness shedding (`step-slots`):** While all `maxConcurrentSteps` slots are busy, `await app.checkReadiness()` reports component `step-slots` as `HealthStatus.Degraded` so Kubernetes / load balancers route new requests to idle pods, and the recovery sweep claims at most as many orphans as the instance has free slots.
+- **Distributed child workflow queue (`ChildPlacement.AnyInstance` & `ChildExecutionQueueRepository`, `#333`):** By default, `.toWorkflow(Child)` and `.toParallelWorkflows(Child, ...)` run on the parent's instance (`ChildPlacement.ParentInstance`). Passing `{ placement: ChildPlacement.AnyInstance }` (on `.toWorkflow`, `.toParallelWorkflows`, or `route(Child, { placement: ChildPlacement.AnyInstance })`) dispatches child workflow executions through `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`) so any instance with free `maxConcurrentSteps` slots can claim and run them:
+  - **Shared tree concurrency slots (`RateLimitRepository`):** The root workflow's `maxConcurrentExecutions` cap (`SharedTreeSlots`) is enforced across all worker instances via `RateLimitRepository`.
+  - **Parent lease yielding while waiting:** While the parent workflow waits for remote `AnyInstance` children to finish, it **releases its own tree lease** (`ExecutionLeaseRepository`) and local step slot so the parent pod is never blocked. Whichever instance finishes the last child wakes the parent from its checkpoint.
+  - **Per-child 30s lease & per-child crash recovery:** Each `AnyInstance` child holds its own 30-second lease (`ExecutionLeaseRepository`) renewed every 10s. If the worker running Child #3 crashes mid-wave, another instance reclaims **only Child #3** (`Running` row with expired child lease) from its last checkpoint while sibling children continue uninterrupted. (If `ChildPlacement.AnyInstance` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`, `agboss check` warns with `[application.in-memory-child-queue]`.)
 - **Shared `@ModelProvider` rate limits (`RateLimitRepository`):** Across all instances, `RateLimitRepository` enforces a provider's `maxConcurrentCalls` slots (`acquire` / `renew` / `release`), per-minute call and token windows (`addToWindow`), and 429 `Retry-After` pauses / open circuit breakers (`pauseUntil` / `pausedUntil`).
 
 ---

@@ -301,7 +301,7 @@ export class MergeFindingsAction implements ActionHandler<MergeFindingsAction> {
 // @snippet
 -->
 ```ts title="src/workflows/recursive-research.workflow.ts" file=src/recursive-research.workflow.ts
-import { ThisWorkflow, Workflow, caseOf, listOf, start } from "agboss";
+import { ChildPlacement, ThisWorkflow, Workflow, caseOf, listOf, start } from "agboss";
 
 @Workflow({
   name: "recursive-research-workflow",
@@ -313,7 +313,9 @@ import { ThisWorkflow, Workflow, caseOf, listOf, start } from "agboss";
       .returns(oneOf(ResolvedDto, SubTopicsDto))
       .switch(
         caseOf(ResolvedDto)
-          .toWorkflow(FactCheckChildWorkflow)
+          .toWorkflow(FactCheckChildWorkflow, {
+            placement: ChildPlacement.AnyInstance,
+          })
           .returns(VerifiedSummaryDto)
           .toFinish(ResearchFinish),
         caseOf(SubTopicsDto)
@@ -322,6 +324,7 @@ import { ThisWorkflow, Workflow, caseOf, listOf, start } from "agboss";
           .toParallelWorkflows(ThisWorkflow, {
             maxItems: 5,
             maxConcurrency: 2,
+            placement: ChildPlacement.AnyInstance,
           })
           .join()
           .returns(listOf(VerifiedSummaryDto))
@@ -370,6 +373,7 @@ Every recursive workflow requires `maxDepth` on `@Workflow` (`[graph.missing-max
 | :--- | :--- | :--- |
 | **Fan-out truncation** | `maxItems` + `OnLaunchItemsTruncated` | Caps dynamic list fan-out and emits a typed observer event when excess items are truncated. |
 | **Bounded branch concurrency** | `maxConcurrency` | Limits how many parallel branches execute simultaneously within a fan-out step. |
-| **Tree-wide execution throttle** | `maxConcurrentExecutions` | Caps how many executions across the root and all child workflow trees run a step simultaneously (default `10`; waiting at a join or pause holds no slot). |
+| **Tree-wide execution throttle** | `maxConcurrentExecutions` | Caps how many executions across the root and all child workflow trees run a step simultaneously (default `10`; enforced across instances via `RateLimitRepository` when `ChildPlacement.AnyInstance` is used). |
+| **Distributed child placement** | `placement: ChildPlacement.AnyInstance` | Enqueues `.toWorkflow()`, `.toParallelWorkflows()`, or `route(Workflow)` children into `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`), yielding the parent's lease while waiting and recovering each child independently under its own 30s lease (`[flow.conflicting-placement]` if two paths to the same child disagree). |
 | **Quorum cancellation** | `deadline: seconds(10)` | Automatically aborts slower losing branches (`BranchVerdict.Surplus`) via `AbortSignal` the instant quorum is decided. |
 | **Recursion ceiling** | `maxDepth` | Required on every `ThisWorkflow` graph (`[graph.missing-max-depth]`); omits the recursion tool at `depth === maxDepth` for model launches (soft stop) and throws `DepthLimitExceededError` if exceeded by deterministic launches. |

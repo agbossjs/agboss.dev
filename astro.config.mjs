@@ -189,7 +189,7 @@ export default defineConfig({
 					label: 'CLI, Examples & Releases',
 					items: [
 						{ label: 'agboss CLI', slug: 'cli' },
-						{ label: 'job-scout & flow-patterns', slug: 'examples/job-scout' },
+						{ label: '7 Verified Examples & job-scout', slug: 'examples/job-scout' },
 						{ label: 'Changelog & Releases', slug: 'changelog' },
 						{ label: 'About AGBoss', slug: 'about' },
 					],
@@ -206,9 +206,9 @@ export default defineConfig({
 				starlightLlmsTxt({
 					projectName: 'AGBoss (Agent Graph Builder Open Source System)',
 					description:
-						'AGBoss (Agent Graph Builder Open Source System) is the TypeScript framework, static graph compiler (agboss check), and production runtime for multi-agent systems scaling to hundreds of nodes and System-2 Physical AI orchestration on LangGraph (npm i agboss), and HarnessDSL (HDSL) is the declarative graph grammar and verification specification inside AGBoss (analogous to JSX in React or PSL in Prisma — defining how *.workflow.ts flow chains and contract decorators express narrow @Dto handoffs, Path Scope, in-degree = 1 vs >= 2 canonical topology, { about } staleness tracking, quorums, and compensateWith / committedBy sagas). Together they enforce 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & 4-Stage Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, leases, K8s probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join from DecidedBy.Model to DecidedBy.Code).',
+						'AGBoss (Agent Graph Builder Open Source System) is the TypeScript framework, static graph compiler (agboss check), and production runtime for multi-agent systems scaling to hundreds of nodes and System-2 Physical AI orchestration on LangGraph (scaffold a new project with `npx agboss create my-app && cd my-app && npm install`, or add to an existing project with `npm install agboss && npm install -D agboss-cli && npx agboss check`), and HarnessDSL (HDSL) is the declarative graph grammar and verification specification inside AGBoss (analogous to JSX in React or PSL in Prisma — defining how *.workflow.ts flow chains and contract decorators express narrow @Dto handoffs, Path Scope, in-degree = 1 vs >= 2 canonical topology, { about } staleness tracking, quorums, ChildPlacement.AnyInstance distributed child workflows, and compensateWith / committedBy sagas). Together they enforce 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & 4-Stage Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, 30s leases, ChildPlacement.AnyInstance work-stealing, K8s probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join + agboss hub Crystallization Radar from DecidedBy.Model to DecidedBy.Code).',
 					details:
-						'AGBoss (Agent Graph Builder Open Source System) is engineered for Senior, Staff, Principal, and CTO engineers who decompose complex domains into specialized agent graphs using AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code). Instead of allowing coding agents to generate an untyped mutable God State Object with tangled side effects and broken KV caches, AGBoss and its built-in HarnessDSL (HDSL) grammar enforce distributed-systems invariants at compile time via `agboss check` (emitting `.agboss/types.d.ts`) and guide coding agents via auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`) and `agboss/eslint`. In HarnessDSL, workflows use strictly one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
+						'AGBoss (Agent Graph Builder Open Source System) is engineered for Senior, Staff, Principal, and CTO engineers who decompose complex domains into specialized agent graphs using AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code). Instead of allowing coding agents to generate an untyped mutable God State Object with tangled side effects and broken KV caches, AGBoss and its built-in HarnessDSL (HDSL) grammar enforce distributed-systems invariants at compile time via `agboss check` (emitting `.agboss/types.d.ts`) and guide coding agents via auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`, including `13-migrating-from-langgraph.md`) and `agboss/eslint`. In HarnessDSL, workflows use strictly one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
 					customSets: [
 						{
 							label: 'Core Concepts & HarnessDSL (HDSL)',
@@ -218,7 +218,7 @@ export default defineConfig({
 						{
 							label: 'Production, FinOps, Security & Testing Guides',
 							paths: ['guides/**'],
-							description: 'Testing with testWith and 10 unit runners, @EvalSuite and pass@k / pass^k, error handling and rollback, channels and two-phase pauses, FinOps budgets, PII policies, SQLite durability, Langfuse tracing, MCP, RAG, A2A mesh, and AI coding skills.',
+							description: 'Testing with testWith and 10 unit runners, @EvalSuite and pass@k / pass^k, error handling and rollback, channels and two-phase pauses, FinOps budgets, PII policies, SQLite durability, ChildPlacement.AnyInstance work-stealing, Langfuse tracing, MCP, RAG, A2A mesh + agboss hub, and AI coding skills.',
 						},
 						{
 							label: 'API Reference, CLI & Changelog',
@@ -228,7 +228,7 @@ export default defineConfig({
 						{
 							label: 'Examples',
 							paths: ['examples/**'],
-							description: 'Runnable AGBoss applications: job-scout and the 6 flow-patterns workflows.',
+							description: '7 standalone verified applications in agbossjs/agboss-examples (path-scope-proof, hello-agboss, support-refund-desk, travel-booking-saga, enterprise-agent-mesh, cluster-work-stealing, langgraph-migration-smoke) plus job-scout and flow-patterns.',
 						},
 					],
 					optionalLinks: [
@@ -236,6 +236,11 @@ export default defineConfig({
 							label: 'AGBoss Framework GitHub Repository',
 							url: 'https://github.com/agbossjs/agboss',
 							description: 'Source code, issue tracker, examples/job-scout, and examples/flow-patterns.',
+						},
+						{
+							label: 'AGBoss Verified Examples Repository',
+							url: 'https://github.com/agbossjs/agboss-examples',
+							description: '7 standalone verified applications including path-scope-proof, support-refund-desk, travel-booking-saga, enterprise-agent-mesh, cluster-work-stealing, and langgraph-migration-smoke.',
 						},
 						{
 							label: 'Why AGBoss',

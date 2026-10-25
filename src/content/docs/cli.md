@@ -7,45 +7,49 @@ The `agboss-cli` package provides the `agboss` command-line interface for scaffo
 
 ## How to scaffold projects and generate components
 
-Create a new project interactively or via flags in CI with `agboss create` (alias `agboss c`):
+Create a new project interactively or via flags in CI with `npx agboss create` (also works via `npx agboss-cli create`, short alias `agb c`):
 
 ```bash
-npx -p agboss-cli agboss create my-agents
+npx agboss create my-app
+cd my-app
+npm install
 agboss c support-desk --yes --agents "triage:Sorts requests,answerer:Answers questions" --tools "answerer:search_orders" --mcp filesystem:/path/to/docs --rag notes --skip-install
 ```
 
-Generate components into an existing workflow module with `agboss generate` (alias `agboss g`). The CLI uses the TypeScript Compiler API to wire new components into `@Workflow` / `@Router` arrays and regenerate `.agboss/types.d.ts`:
+Generate components into an existing workflow module with `agboss generate` (alias `agboss g`) using their full names (including kind suffix). The CLI uses the TypeScript Compiler API to wire new components into `@Workflow` / `@Router` / `@EvalSuite` arrays and regenerate `.agboss/types.d.ts`:
 
 ```bash
-agboss g agent billing --workflow src/support-desk/support-desk.workflow.ts --description "Handles invoices"
-agboss g router escalation --workflow src/support-desk/support-desk.workflow.ts
-agboss g tool refund --workflow src/support-desk/support-desk.workflow.ts --agent billing
-agboss g mcp tickets --workflow src/support-desk/support-desk.workflow.ts --command tickets-mcp --tool search --agent billing
-agboss g rag policies --workflow src/support-desk/support-desk.workflow.ts --folder policies --agent billing
-agboss g openapi pets --url ./pets.yaml --workflow src/support-desk/support-desk.workflow.ts --agent billing
-agboss g workflow onboarding
+agboss g agent billing-agent --workflow support-desk-workflow --description "Handles invoices"
+agboss g router escalation-router --workflow support-desk-workflow
+agboss g tool refund-tool --workflow support-desk-workflow --agent billing-agent
+agboss g mcp tickets-mcp --workflow support-desk-workflow --command tickets-mcp --tool search-tool --agent billing-agent
+agboss g rag policies-rag --workflow support-desk-workflow --folder policies --agent billing-agent
+agboss g openapi pets --url ./pets.yaml --workflow support-desk-workflow --agent billing-agent
+agboss g workflow onboarding-workflow
+agboss g eval-case refund-edge-eval-case --suite support-desk-eval-suite --from-execution exec-9102
 ```
 
 ## All `agboss` CLI commands
 
 | Command | What It Does |
 | :--- | :--- |
-| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with workflow, `@Application`, environments, `eslint.config.mjs` (`agboss/eslint`), `.agboss/types.d.ts`, `AGENTS.md`, and Vitest tests |
-| `agboss generate <kind>` (`agboss g`) | Generates and wires an `agent`, `router`, `tool`, `arbiter`, `mcp`, `rag`, `workflow`, or `openapi` client |
-| `agboss check --application <path>` | Writes `.agboss/types.d.ts`, syncs `.claude/skills/agboss/`, and validates all flow, assembly, environment, and prompt rules without calling models |
-| `agboss check --strict --application <path>` | Treats analyser warnings (`[flow.path-too-deep]`, `[judge.same-model-family]`) and assembly warnings (`[application.in-memory-cost-ledger]`) as errors |
-| `agboss check --models --application <path>` | Verifies every model setting across the application against its resolved `@ModelProvider` |
+| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with `agboss` (`dependencies`), `agboss-cli` (`devDependencies`), `@Application`, workflow, environments, `eslint.config.js` (`agboss/eslint`), `.agboss/types.d.ts`, `AGENTS.md`, `CLAUDE.md`, 13 AI coding skills, and Vitest tests |
+| `agboss generate <kind> <name>` (`agboss g`) | Generates and wires an `agent`, `router`, `tool`, `arbiter`, `mcp`, `rag`, `workflow`, `openapi` client, or `eval-case` (`--from-execution <executionId>`) |
+| `agboss check [--application <path>]` | Writes `.agboss/types.d.ts`, syncs `.claude/skills/agboss/` (`SKILL.md` + 13 reference modules), and validates all flow, assembly, environment, and prompt rules without calling models |
+| `agboss check --strict` | Treats analyser warnings (`[flow.path-too-deep]`, `[judge.same-model-family]`) and assembly warnings (`[application.in-memory-cost-ledger]`, `[application.in-memory-child-queue]`) as errors |
+| `agboss check --models` | Verifies every model setting across the application against its resolved `@ModelProvider` |
 | `agboss check --cassettes` | Verifies recorded VCR cassettes against current `promptHash` and `schemaHash` fingerprints (`[vcr.stale-cassette]`) |
-| `$ agboss check --federation <dir>` | Verifies cross-repository `@A2AAgent` / `@McpServer` contracts against snapshots from `agboss describe --json` (`[federation.*]`) |
-| `agboss describe --application <path>` | Prints paths, node inputs by producer, `{ about }` links, `historyOf` limits, model → provider resolution, budgets, and step limits |
-| `agboss describe --json --application <path>` | Exports the full declarative revision snapshot (`configHash`, `maxConcurrentSteps`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and model/tool registries) |
-| `agboss chat --application <path>` | Starts an interactive terminal chat (`--thread`, `--profile`, `--env`) on the `@Application` |
-| `agboss run --application <path> "task"` | Executes a single task on the `@Application` and prints the output and spend summary |
+| `agboss check --federation <path...>` | Verifies cross-repository `@A2AAgent` / `@McpServer` contracts against snapshots from `agboss describe --json` (`[federation.*]`) |
+| `agboss dev` / `agboss studio` | Watches `src/` to regenerate `.agboss/types.d.ts` on save (`dev`), or launches LangGraph Studio for every workflow and child subgraph (`studio`) |
+| `agboss describe [--application <path>]` | Prints paths, node inputs by producer, `{ about }` links, `historyOf` limits, model → provider resolution, budgets, and step limits |
+| `agboss describe --json` | Exports the full declarative revision snapshot (`configHash`, `maxConcurrentSteps`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and `application.contracts.imports` / `exports`) |
+| `agboss chat` / `agboss run` | Starts an interactive terminal chat (`--thread`, `--profile`, `--env`) or executes a single task on the `@Application` and prints the output and spend summary |
 | `agboss eval score` / `agboss replay` | Scores recent `Tern`s (`--start`, `--version`, `--limit`, `--profile`) or replays a prompt version against recorded tasks |
-| `agboss eval run --suite <name>` | Runs an `@EvalSuite` across `--runs <k>` trials (`pass@k` and `pass^k`), `--report <run.json>`, `--baseline <run.json> --fail-on-regression`, and `--html <report.html>` (plus `$ agboss eval run --chaos --metamorphic`) |
+| `agboss eval run --suite <name>` | Runs an `@EvalSuite` across `--runs <k>` trials (`pass@k` and `pass^k`), `--chaos <rate> --chaos-seed <n>`, `--metamorphic`, `--report <run.json>`, `--baseline <run.json> --fail-on-regression`, and `--html <report.html>` |
 | `agboss eval calibrate --report <run.json>` | Computes pairwise **Cohen's kappa ($\kappa$)**, confusion matrices, disagreements, and metric rubrics between `@Judge` verdicts and human `EvalLabel` JSONL annotations (`--labels <file.jsonl>`) |
-| `agboss eval show <run.json> --html <file>` / `$ agboss eval ui` | Re-renders a saved `EvalRunReport` artifact into a self-contained static HTML page without calling models, or launches the local interactive Eval UI workbench (`127.0.0.1`) |
-| `$ agboss hub` | Launches the multi-service **AGBoss Mesh Hub** portal aggregating `describe --json` snapshots, `eval` reports, cross-service `ExecutionRecord` trees, and Progressive Crystallization heatmaps |
+| `agboss eval show <run.json> [--html <file>]` / `agboss eval ui` | Re-renders a saved `EvalRunReport` artifact into a self-contained static HTML page without calling models, or launches the local interactive Eval UI workbench (`127.0.0.1`) |
+| `agboss records export` | Exports completed `ExecutionRecord`s from `ExecutionHistoryRepository` (`--tenant <id>` or `--all-tenants`, `--since`, `--until`) to `--out <file.jsonl>` |
+| `agboss hub show <path...> [--html <file>]` / `agboss hub ui <path...>` | Stitches `describe --json` snapshots, `.jsonl` execution records, and eval reports into the **AGBoss Mesh Hub** (Global Agent Mesh Graph, Cross-Service Execution Trees, Progressive Crystallization Radar, and Blast Radius) as a static HTML page or local UI server (`127.0.0.1`) |
 | `agboss golden add --name <n>` | Saves recent real tasks as a reusable golden evaluation dataset |
 | `agboss compare --profiles base,<p>` | Compares YAML configuration profiles side by side against a golden set |
 | `agboss rag index` | Builds or updates `@Rag` knowledge-base indexes |
@@ -65,6 +69,7 @@ agboss g workflow onboarding
 | `[guardrail.missing-handler]` & `[tool-interceptor.missing-handler]` | A `DecidedBy.Code` guardrail omits `check(text)`, or a `@ToolInterceptor` implements neither `BeforeToolCall` nor `AfterToolCall`. |
 | `[model-provider.both-modes]` | A `@ModelProvider` mixes HTTP `baseUrl` / `apiKey` options with a custom `ModelProviderHandler.complete(request)` implementation. |
 | `[vcr.stale-cassette]` & `[judge.same-model-family]` | A VCR cassette's recorded `promptHash` / `schemaHash` no longer matches current code, or a `DecidedBy.Model` `@Judge` uses the same model family as the judged `@Agent`. |
+| `[flow.conflicting-placement]` & `[application.in-memory-child-queue]` | Two paths to the same child workflow specify different `ChildPlacement` modes, or `ChildPlacement.AnyInstance` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`. |
 | `[federation.incompatible-schema]` & `[federation.missing-target]` | Cross-service `@A2AAgent` / `@McpServer` DTO schemas drifted from the producer's `@A2AExpose` / `@McpExpose` `schemaHash` in `agboss describe --json`. |
 
 ## Exporting a declarative revision snapshot with `agboss describe --json`

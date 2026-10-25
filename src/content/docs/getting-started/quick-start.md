@@ -5,7 +5,30 @@ description: Build, statically verify with agboss check, run, and unit-test your
 
 Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `agboss/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose **HarnessDSL (`HDSL`)** `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.
 
-## How to build and run your first workflow
+## Step 1: Set up a project (new or existing)
+
+### Option 1 — Create a new project from scratch
+
+```bash
+npx agboss create my-app
+cd my-app
+npm install
+```
+
+`npx agboss create my-app` (also available via `npx agboss-cli create my-app`) creates a project with `agboss` in `dependencies`, `agboss-cli` in `devDependencies`, `AGENTS.md`, and `CLAUDE.md` (`@AGENTS.md`). Running `npm install` runs `"postinstall": "npm run types"` (`agboss check`), which generates `.agboss/types.d.ts` and unpacks 13 AI coding skill references into `.claude/skills/agboss/` (`SKILL.md` + `references/01..13`).
+
+### Option 2 — Add to an existing project
+
+```bash
+npm install agboss
+npm install -D agboss-cli
+npx agboss check
+```
+
+- **`agboss` (`dependencies`)** is the lightweight production runtime (decorators, graph engine, DI, repository contracts, subpaths `agboss/dto`, `agboss/testing`, `agboss/eval`, `agboss/eslint`, and bundled AI skills) deployed in Docker / Kubernetes.
+- **`agboss-cli` (`devDependencies`)** is the static compiler (`agboss check`), generator (`agboss generate`), dev watcher (`agboss dev`), Studio bridge (`agboss studio`), and local UI toolkit (`agboss eval ui`, `agboss hub ui`) kept out of production images.
+
+## Step 2: Build and run your first workflow
 
 The example below defines a customer support workflow and its enclosing `@Application`, then executes a turn via `app.execute`:
 

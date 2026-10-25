@@ -461,10 +461,10 @@ Every `@Workflow` class name ends with `Workflow` and its `name` option ends wit
 | `start(StartClass)` | `"agboss"` | Begins a root path from a `@WorkflowStart` class. |
 | `agent(AgentClass)`, `router(RouterClass)`, `action(ActionClass)`, `workflow(ChildWorkflow)` | `"agboss"` | Begins a shared continuation path from a node reached by multiple upstream paths. |
 | `.returns(Dto, { about? })` | Flow chain | Declares one output DTO added to Path Scope; `{ about: TargetDto }` binds review verdicts to the artifact they judge. |
-| `.toAgent(A)`, `.toAction(A)`, `.toRouter(R)`, `.toWorkflow(W)`, `.toFinish(F)` | Flow chain | Transitions execution to the next node after verifying its `input` fields exist in Path Scope. |
-| `.chooseOne(route(Target)...)` | Flow chain | Branches after `.toRouter(R)` to exactly one chosen route target. |
+| `.toAgent(A)`, `.toAction(A)`, `.toRouter(R)`, `.toWorkflow(W, { placement? })`, `.toFinish(F)` | Flow chain | Transitions execution to the next node after verifying its `input` fields exist in Path Scope; `.toWorkflow` and `route(W, { placement? })` accept `placement: ChildPlacement.ParentInstance \| ChildPlacement.AnyInstance`. |
+| `.chooseOne(route(Target, { placement? })...)` | Flow chain | Branches after `.toRouter(R)` to exactly one chosen route target. |
 | `.switch(caseOf(Dto, { about? })...)` | Flow chain | Branches deterministically based on which union output variant (`oneOf(...)`) the preceding node produced. |
-| `.toParallelAgents(...)`, `.toParallelWorkflows(...)` | Flow chain | Fans out across multiple agents, ` { agent, count } ` copies, or ` { agent, each: ListDto } ` items with `{ maxItems, maxConcurrency }`. |
+| `.toParallelAgents(...)`, `.toParallelWorkflows(W, { maxItems?, maxConcurrency?, placement? })` | Flow chain | Fans out across multiple agents, `{ agent, count }` copies, or `{ agent, each: ListDto }` items with `{ maxItems, maxConcurrency, placement: ChildPlacement.AnyInstance }`. |
 | `.join()`, `.joinQuorum({ min, max?, deadline? })`, `.joinQuorumGroups(...)` | Flow chain | Joins all parallel branches or resolves early as soon as a quorum verified by `.acceptedBy(Arbiter)` is reached. |
 | `.onError(ErrorClass, sidePath)`, `.onJoinError(ErrorClass, sidePath)` | Flow chain | Catches step or parallel-join failures (`StepFailedError`, `VisitsLimitExceededError`, `QuorumNotReachedError`) onto a typed recovery path. |
 | `ThisWorkflow` | `"agboss"` | Sentinel target passed to `.toWorkflow(ThisWorkflow)` or `.toParallelWorkflows(ThisWorkflow)` for bounded self-recursion. |

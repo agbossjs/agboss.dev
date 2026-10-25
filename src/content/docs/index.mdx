@@ -23,10 +23,26 @@ hero:
 	<p class="agboss-sr-only">AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework, static graph compiler (<code>agboss check</code>), and production runtime layered on top of LangGraph (<code>npm i agboss</code>). Inside AGBoss, HarnessDSL (HDSL) is the declarative graph grammar and verification specification (just as JSX is to React or PSL is to Prisma) that defines how <code>*.workflow.ts</code> <code>flow</code> chains and contract decorators express narrow <code>@Dto</code> handoffs, Path Scope, <code>in-degree = 1</code> vs <code>in-degree &gt;= 2</code> canonical topology, <code>&#123; about &#125;</code> staleness tracking, quorums, and <code>compensateWith</code> / <code>committedBy</code> sagas. When AI coding agents decompose a complex problem into hundreds of nodes on raw orchestration libraries, they create a mutable God State Object with dozens of optional fields, mix LLM reasoning with non-idempotent side effects, break provider KV prefix caches, and lose rollback invariants. AGBoss embeds 7 classical distributed-systems patterns directly into its HarnessDSL grammar, static compiler (<code>agboss check</code> + <code>.agboss/types.d.ts</code>), and auto-synced <code>AGENTS.md</code> + 13 skill reference modules.</p>
 </div>
 
-<div class="agboss-install">
-	<span class="agboss-install-prompt">$</span>
-	<code>npx agboss create my-app --yes</code>
-	<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npx agboss create my-app --yes')" aria-label="Copy install command">⧉</button>
+<div class="agboss-install-grid">
+	<div class="agboss-install-card">
+		<div class="agboss-install-card-head">
+			<span class="agboss-install-label">New project</span>
+			<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npx agboss create my-app\ncd my-app\nnpm install')" aria-label="Copy new project commands">⧉</button>
+		</div>
+		<pre class="agboss-install-cmd"><code>npx agboss create my-app
+cd my-app
+npm install</code></pre>
+		<span class="agboss-install-note">Scaffolds <code>agboss</code> + <code>agboss-cli</code>, runs <code>agboss check</code> on postinstall, generates <code>.agboss/types.d.ts</code> &amp; unpacks 13 AI coding skills.</span>
+	</div>
+	<div class="agboss-install-card">
+		<div class="agboss-install-card-head">
+			<span class="agboss-install-label">Existing project</span>
+			<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npm install agboss\nnpm install -D agboss-cli')" aria-label="Copy existing project commands">⧉</button>
+		</div>
+		<pre class="agboss-install-cmd"><code>npm install agboss
+npm install -D agboss-cli</code></pre>
+		<span class="agboss-install-note">Lightweight <code>agboss</code> runtime in <code>dependencies</code>; static compiler, Studio &amp; UI servers in <code>agboss-cli</code> (<code>devDependencies</code>).</span>
+	</div>
 </div>
 
 ## What AGBoss can do
@@ -182,6 +198,29 @@ hero:
 		<h3>System-2 Mission Orchestrator</h3>
 		<p>Run multi-day enterprise sagas and robotics mission plans with multimodal <code>@Arbiter</code> quorums, two-phase <code>@ChannelRole</code> withdrawal, and LIFO rollbacks.</p>
 		<span class="agboss-pillar-cta">System-2 Missions →</span>
+	</a>
+</div>
+
+## Verified Engineering Proofs & Examples (`agbossjs/agboss-examples`)
+
+<div class="agboss-pillars">
+	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/path-scope-proof" target="_blank" rel="noopener">
+		<span class="agboss-mission-kicker">COMPILER PROOF · 4 GRAPH BUGS</span>
+		<h3><code>path-scope-proof</code></h3>
+		<p>Side-by-side proof where <code>[input.missing-on-path]</code>, <code>[input.outdated-on-path]</code>, <code>[launch.branch-outdates-sibling]</code>, and <code>[flow.uncompensated-action]</code> pass raw LangGraph <code>tsc</code> but are caught before runtime by <code>agboss check</code>.</p>
+		<span class="agboss-pillar-cta">Inspect Proof →</span>
+	</a>
+	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples" target="_blank" rel="noopener">
+		<span class="agboss-mission-kicker">SAGAS · EVALS · P2P MESH · WORK-STEALING</span>
+		<h3><code>support-refund-desk</code>, <code>travel-booking-saga</code>, <code>enterprise-agent-mesh</code> &amp; <code>cluster-work-stealing</code></h3>
+		<p>End-to-end reference apps covering HMAC <code>@PiiPolicy</code>, 5-loop <code>@EvalSuite</code>, LIFO sagas, signed A2A Mesh + <code>agboss hub</code>, and <code>ChildPlacement.AnyInstance</code> distributed child queues.</p>
+		<span class="agboss-pillar-cta">Browse 7 Verified Examples →</span>
+	</a>
+	<a class="agboss-mission-card agboss-pillar-link" href="/examples/job-scout/">
+		<span class="agboss-mission-kicker">STARTER &amp; MIGRATION</span>
+		<h3><code>hello-agboss</code>, <code>langgraph-migration-smoke</code> &amp; <code>job-scout</code></h3>
+		<p>Start from a minimal typed workflow or migrate an existing LangGraph <code>StateAnnotation</code> / <code>addConditionalEdges</code> graph step by step using skill <code>13-migrating-from-langgraph.md</code>.</p>
+		<span class="agboss-pillar-cta">Examples &amp; Architecture Guide →</span>
 	</a>
 </div>
 

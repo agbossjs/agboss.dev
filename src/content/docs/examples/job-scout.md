@@ -1,42 +1,35 @@
 ---
-title: "Examples: flow-patterns, job-scout & Two-Tier Showcase"
-description: Explore the $0 examples/flow-patterns verification suite in the core agboss repo alongside the two-tier agbossjs/examples showcase — 8 focused 15-minute tutorials (01–08) and 4 production reference architectures.
+title: "Examples: 7 Verified Applications, flow-patterns & job-scout"
+description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (including path-scope-proof, support-refund-desk, travel-booking-saga, enterprise-agent-mesh, cluster-work-stealing, and langgraph-migration-smoke) alongside examples/flow-patterns and examples/job-scout.
 ---
 
-AGBoss organizes runnable examples across two complementary layers so you can both verify every control-flow primitive in seconds for `$0` and study complete production reference architectures:
+AGBoss provides two complementary repositories of runnable, CI-verified examples so you can prove compile-time graph invariants in seconds for `$0` and inspect production-grade reference architectures:
 
-1. **In-repo `$0` verification (`examples/flow-patterns` & `examples/job-scout` in `agbossjs/agboss`):** `examples/flow-patterns` runs in `< 5 seconds` for `$0` on `mockLlm` to verify every Path Scope and concurrency pattern in CI, alongside `examples/job-scout`.
-2. **Two-Tier `agbossjs/examples` Showcase Repository:**
-   - **Tier 1 — Focused Step-by-Step Tutorials (`01` to `08`):** Self-contained 15-minute examples introducing 1–2 AGBoss concepts at a time.
-   - **Tier 2 — Production Reference Architectures (`production/`):** Four end-to-end production harnesses (`support-refund-evals`, `job-scout-reference`, `enterprise-agent-mesh`, and `kubernetes-postgres-scaling`).
+1. **7 Standalone Verified Examples ([`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)):** Seven self-contained applications — each with its own `package.json`, `.agboss/types.d.ts`, `npx agboss check`, and offline Vitest suite (`npm test`).
+2. **In-Repository Examples (`examples/flow-patterns` & `examples/job-scout` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss)):** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `ThisWorkflow` recursion in `< 5 seconds` for `$0`, alongside the interactive `examples/job-scout` career assistant.
 
 ---
 
-## Tier 1 & Tier 2: The `agbossjs/examples` Showcase Architecture
+## The 7 Verified Examples in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)
 
-### Tier 1: Focused 15-Minute Step-by-Step Tutorials (`01`–`08`)
-
-Each tutorial in Tier 1 focuses on 1–2 architectural concepts, compiles with `npx agboss check`, and passes `npm test` in milliseconds:
-
-| Tutorial | Concepts Introduced | Key Primitives |
+| Example | Architectural Proof & Capabilities Demonstrated | Key Primitives & CLI Commands |
 | :--- | :--- | :--- |
-| **`01-hello-typed-flow`** | Single-agent typed flow & Path Scope | `@Application`, `@Workflow`, `@WorkflowStart`, `@Agent`, `@WorkflowFinish`, `@Dto` |
-| **`02-code-and-model-routing`** | Deterministic vs LLM routing & unions | `@Router` (`DecidedBy.Code` & `DecidedBy.Model`), `.chooseOne(route())`, `.switch(caseOf())`, `oneOf` |
-| **`03-review-loop-and-judges`** | Bounded review cycles & quality gates | `.returns(Dto, { about })`, `historyOf(Dto, { limit })`, `maxVisits`, `@Judge` (`DecidedBy.Code` & `DecidedBy.Model`) |
-| **`04-parallel-quorum-and-arbiters`** | Parallel waves & quorum voting | `.toParallelAgents()`, `.toParallelWorkflows()`, `.joinQuorum()`, `@Arbiter`, `SpawnPolicy` |
-| **`05-tools-interceptors-and-mcp`** | Tool loops, interceptors & MCP | `@Tool`, `@ToolInterceptor` (`ToolCallDecision.replyToModel`), `@McpServer`, `@McpTool`, `@McpExpose` |
-| **`06-human-approval-and-sagas`** | Human-in-the-loop pauses & LIFO sagas | `@ChannelRole`, `@Channel`, `app.resume({ pauseId, decision })`, `@Action({ compensateWith, committedBy })` |
-| **`07-memory-compaction-and-pii`** | Thread compaction, RAG & PII boundaries | `@Compaction` (`SummaryQueue`, `CompactionStrategy.Custom`), `@Rag`, `@PiiPolicy` (`replaceWithToken`), `@InputGuardrail` |
-| **`08-eval-funnel-and-vcr`** | 5-Loop Verification Funnel & VCR | `testWith`, 10 unit runners, `toHaveCalledTools`, `VCRMode.RECORD_STALE`, `@EvalSuite` (`pass@k` / `pass^k`, Cohen's $\kappa$) |
+| **[`path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/path-scope-proof)** | **Compile-time Path Scope vs raw LangGraph:** Proves 4 fatal graph bugs that pass `tsc --noEmit` in raw LangGraph `Annotation.Root` (`prove:langgraph-compiles`) and are caught before runtime by `agboss check` (`prove:agboss-catches`). | `[input.missing-on-path]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`, `[flow.uncompensated-action]` |
+| **[`hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/hello-agboss)** | **Minimal starter application:** Cleanest entry point showing a typed `@Workflow`, `@Router`, `@Agent`, `@Tool`, `@Budget`, and deterministic `testWith(App)` test. | `@Application`, `@Workflow`, `@Agent`, `@Router`, `@Tool`, `testWith` |
+| **[`support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/support-refund-desk)** | **PII masking, guardrails, human approval & 5-loop evals:** Multi-step customer support desk with boundary HMAC pseudonymization, two-phase human-in-the-loop pause/resume, and an `@EvalSuite` cascade. | `@PiiPolicy` (`replaceWithToken`), `@InputGuardrail`, `@OutputGuardrail`, `@ChannelRole`, `app.resume`, `@EvalSuite` |
+| **[`travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/travel-booking-saga)** | **Transactional LIFO sagas & parallel quorums:** Books flights, hotels, and insurance with `step.idempotencyKey`, parallel quorum fan-out, and automatic reverse-order LIFO rollback when a downstream step fails. | `@Action({ compensateWith, committedBy })`, `.toParallelAgents().acceptedBy().joinQuorum()`, `.onError()` |
+| **[`enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/enterprise-agent-mesh)** | **Federated multi-service Agent Mesh & Mesh Hub:** Multiple `@Application` services communicating over A2A with Ed25519-signed `MeshEnvelope` (`agboss-mesh`), `caller-budget` propagation, cycle detection, and cross-service topology visualization. | `@A2AExpose`, `@A2AAgent`, `a2aHttpListener`, `A2ACallerResolver`, `agboss check --federation`, `agboss hub show --html` |
+| **[`cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/cluster-work-stealing)** | **Distributed child work-stealing & SQLite WAL leases:** Multi-instance worker cluster where parent workflows enqueue `ChildPlacement.AnyInstance` children into `SqliteChildExecutionQueueRepository`, yield parent leases while waiting, and recover crashed children individually. | `ChildPlacement.AnyInstance`, `SqliteChildExecutionQueueRepository`, `SqliteRateLimitRepository` (`SharedTreeSlots`), `SqliteExecutionLeaseRepository` |
+| **[`langgraph-migration-smoke`](https://github.com/agbossjs/agboss-examples/tree/main/langgraph-migration-smoke)** | **LangGraph-to-AGBoss migration reference:** Side-by-side migration of a raw LangGraph `StateAnnotation` / `addConditionalEdges` / `Send` / `interrupt` graph into typed AGBoss components using skill `13-migrating-from-langgraph.md`. | `@Dto`, `@Router`, `.switch(caseOf())`, `.toParallelAgents()`, `@ChannelRole` |
 
-### Tier 2: Production Reference Architectures (`production/`)
+### Spotlight: `path-scope-proof` (4 Graph Bugs Caught Before Runtime)
 
-| Reference Architecture | What It Demonstrates End-to-End |
-| :--- | :--- |
-| **`production/support-refund-evals`** | Full [5-Loop Verification Funnel](/concepts/verification-funnel/) in action: `@ToolInterceptor` tenant ACLs, LIFO refund sagas, VCR cassettes (`[vcr.stale-cassette]`), `@EvalSuite` Fail-Fast cascades (`pass^5` vs `--baseline`), and `agboss eval calibrate` ($\kappa \ge 0.80$). |
-| **`production/job-scout-reference`** | Multi-agent career assistant combining `MainRouter`, Greenhouse `@Tool` boards, `JobFitJudge` (`typesafe/jev-1.13`), SQLite FTS5 `@Rag` (`company_notes`), filesystem `@McpServer`, and interactive `@Channel` approval pauses. |
-| **`production/enterprise-agent-mesh`** | Multi-service Agent Mesh across 3 `@Application` services communicating via `@A2AAgent`, `a2aHttpListener(app, { start, callerResolver })`, Ed25519-signed `MeshEnvelope` (`agboss-mesh`), `caller-budget` propagation, `MeshLoopDetectedError`, and `$ agboss check --federation`. |
-| **`production/kubernetes-postgres-scaling`** | Multi-pod Kubernetes deployment with all 7 repository contracts, 30s execution leases, `SIGTERM` graceful drain, `@HealthCheck` (`checkLiveness` / `checkReadiness`), `maxConcurrentSteps` backpressure, and `OpenRouterProvider` quantization pinning. |
+In [`path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/path-scope-proof), the same four broken workflows are written twice — once in raw LangGraph (`src/langgraph/`) with `Annotation.Root` where every fields bag is optional/defaulted and `tsc --noEmit` exits `0`, and once in AGBoss (`src/agboss/`) where `npx agboss check` rejects all four before a single model call or side effect runs:
+
+1. **Missing input on a branch (`[input.missing-on-path]`):** Branch B of a router skips the step that produces `FraudScoreDto`, yet a downstream node reads `fraudScore`. Raw LangGraph silently receives `undefined` at runtime; `agboss check` halts at compile time.
+2. **Stale data after a review loop (`[input.outdated-on-path]`):** A draft is revised in a loop (`OfferDraftDto`), making the earlier `LegalReviewDto` (which was `{ about: OfferDraftDto }`) stale. Raw LangGraph ships the outdated approval; `agboss check` requires re-running the reviewer after revision.
+3. **Parallel branch outdating a sibling (`[launch.branch-outdates-sibling]`):** One parallel branch rewrites a DTO that a sibling branch is simultaneously reading or reviewing. `agboss check` rejects the race condition statically.
+4. **Uncompensated side effect (`[flow.uncompensated-action]`):** A payment or reservation `@Action` is followed by a step that can fail without declaring `compensateWith` or `committedBy` (or an explicit `.onError` rollback path). `agboss check` refuses to compile the dangling side effect.
 
 ---
 

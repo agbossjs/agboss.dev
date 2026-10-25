@@ -22,7 +22,7 @@ Engineering teams building production multi-agent systems face a fundamental arc
 - **Prompt Prefix Cache Invariance:** Static system prompt verification (`[prompt.input-in-instructions]`) and deterministic HMAC pseudonymization (`PiiAction.replaceWithToken()`) preserve LLM KV-cache hit rates across turns while keeping raw PII out of external model providers.
 - **Transactional LIFO Sagas & Idempotency:** Compensatable `@Action` nodes (`compensateWith`, `committedBy`) and deterministic `step.idempotencyKey` propagation guarantee clean rollback across errors, quorum `Surplus` aborts, and budget cutoffs.
 - **Zero-Leakage DI & 4-Stage Scaling:** Class-inheritance DI inside a single `@Application` root scales seamlessly from in-memory unit/integration tests (`testWith(App)`, 10 unit runners) to SQLite WAL durability and multi-pod 30-second execution lease handoff.
-- **Progressive Crystallization & Built-in Coding Skills:** Content-addressed revision snapshots (`agboss describe --json` with `configHash`, `promptHash`, `schemaHash`) let teams crystallize settled `DecidedBy.Model` paths into deterministic `DecidedBy.Code` and `@Action` nodes, while offline-synced `AGENTS.md` + 12 skill modules keep every coding agent aligned with the compiler.
+- **Progressive Crystallization & Built-in Coding Skills:** Content-addressed revision snapshots (`agboss describe --json` with `configHash`, `promptHash`, `schemaHash`) let teams crystallize settled `DecidedBy.Model` paths into deterministic `DecidedBy.Code` and `@Action` nodes, while offline-synced `AGENTS.md` + 13 skill modules keep every coding agent aligned with the compiler.
 
 ## How AGBoss relates to LangGraph
 

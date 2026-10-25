@@ -2282,9 +2282,9 @@
 			"scaling": {
 					"file": "src/cluster/distributed-scaling.application.ts",
 					"problem": "Traffic spikes overload single pods with deep parallel trees while sibling pods in the cluster sit idle.",
-					"solution": "<code>maxConcurrentSteps</code> queues work by priority (<code>checkReadiness() &rarr; Degraded</code>) while idle pods work-steal.",
+					"solution": "<code>ChildPlacement.AnyInstance</code> + <code>ChildExecutionQueueRepository</code> distribute child workflows across pods while parents yield their lease.",
 					"code": [
-							"import { Application, createApp } from \"agboss\";",
+							"import { Application, SqliteChildExecutionQueueRepository, createApp } from \"agboss\";",
 							"import { seconds } from \"agboss/units\";",
 							"import { durableStores } from \"../environments/store.environment.js\";",
 							"import { DeepResearchWorkflow, VerifyClaimWorkflow } from \"../workflows/research.workflow.js\";",
@@ -2293,7 +2293,7 @@
 							"  name: \"cluster-research-application\",",
 							"  version: \"0.0.2\",",
 							"  workflows: [DeepResearchWorkflow, VerifyClaimWorkflow],",
-							"  providers: [...durableStores],",
+							"  providers: [...durableStores, SqliteChildExecutionQueueRepository],",
 							"  // Pod-wide ceiling: Priority 1 = finishing .join()/.joinQuorum()/@WorkflowFinish,",
 							"  // Priority 2 = deeper in-flight steps, Priority 3 = new execute/parallel branches",
 							"  maxConcurrentSteps: 32,",
@@ -2310,22 +2310,23 @@
 							{
 									"file": "src/workflows/distributed-children.workflow.ts",
 									"code": [
-											"import { FailurePolicy, Workflow, start } from \"agboss\";",
+											"import { ChildPlacement, FailurePolicy, Workflow, start } from \"agboss\";",
 											"import { listOf } from \"agboss/dto\";",
 											"import { VerifyClaimWorkflow } from \"./verify-claim.workflow.js\";",
 											"",
 											"@Workflow({",
 											"  name: \"deep-research-workflow\",",
 											"  version: \"1.0.0\",",
-											"  maxConcurrentExecutions: 16,",
+											"  maxConcurrentExecutions: 16, // shared across pods via RateLimitRepository",
 											"  flow: [",
 											"    start(ResearchStart)",
 											"      .returns(listOf(ClaimDto))",
-											"      // Queued in shared storage & work-stolen by idle cluster instances;",
-											"      // parent checkpoints & yields its lease until the last child finishes:",
+											"      // Queued in ChildExecutionQueueRepository & work-stolen by any idle instance;",
+											"      // parent yields its tree lease while waiting; each child has its own 30s lease & crash recovery:",
 											"      .toParallelWorkflows(VerifyClaimWorkflow, {",
 											"        maxItems: 20,",
 											"        maxConcurrency: 8,",
+											"        placement: ChildPlacement.AnyInstance,",
 											"        failurePolicy: FailurePolicy.FailFast,",
 											"      })",
 											"      .join()",
@@ -2341,14 +2342,14 @@
 			"describe": {
 					"file": "src/routers/order-triage.router.ts",
 					"problem": "Keeping stabilized routing decisions on LLM calls forever wastes latency and budget long after patterns settle.",
-					"solution": "Join <code>agboss describe --json</code> (<code>configHash</code>, <code>promptHash</code>) with traces to crystallize routes into code.",
+					"solution": "Join <code>agboss describe --json</code> and <code>agboss records export</code> in <code>agboss hub</code> to crystallize routes into code.",
 					"code": [
 							"import { DecidedBy, Router, type InputOf, type Route, type RouterHandler } from \"agboss\";",
 							"import { ComplianceReviewAgent, FastTrackCaptureAction } from \"../agents/order.agents.js\";",
 							"import { OrderTriageDto } from \"../dto/order.dto.js\";",
 							"",
 							"// Crystallized from DecidedBy.Model ('typesafe/jev-1.13') -> DecidedBy.Code",
-							"// after agboss describe --json (promptHash + schemaHash) & trace audit:",
+							"// after agboss describe --json (promptHash + schemaHash) & agboss hub Crystallization Radar:",
 							"@Router({",
 							"  name: \"order-triage-router\",",
 							"  description: \"Deterministically routes international or high-value orders to compliance review\",",
@@ -2372,15 +2373,13 @@
 							{
 									"file": "scripts/inspect-revision-anatomy.sh",
 									"code": [
-											"# 1. Export declarative revision anatomy (configHash, promptHash, schemaHash):",
-											"npx agboss describe --json > revision-snapshot.json",
+											"# 1. Export declarative revision anatomy & execution records:",
+											"npx agboss describe --json > .artifacts/describe.json",
+											"npx agboss records export --all-tenants --out .artifacts/records.jsonl",
 											"",
-											"# 2. Join ExecutionRecord / StepRecord traces by (configHash, promptHash, schemaHash):",
-											"# - Identify DecidedBy.Model routers where routes correlate deterministically with DTO fields",
-											"#   -> Crystallize to DecidedBy.Code (0ms latency, $0.00 LLM cost)",
-											"# - Identify @Agent nodes calling the same @Tool sequence [ToolA -> ToolB] on >98% of runs",
-											"#   -> Extract deterministic @Action node with compensateWith saga guarantees",
-											"# - Verify zero regression on golden sets via `npx agboss compare --profiles base,crystallized --golden core`"
+											"# 2. Open AGBoss Mesh Hub (Global Mesh Graph, Cross-Service Trees, Crystallization Radar & Blast Radius):",
+											"npx agboss hub show .artifacts --html .artifacts/hub.html",
+											"npx agboss hub ui .artifacts"
 									]
 							},
 							{

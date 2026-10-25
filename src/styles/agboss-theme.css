@@ -310,6 +310,66 @@ h1[data-page-title] {
 	color: var(--sl-color-accent);
 }
 
+.agboss-install-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+	gap: 1rem;
+	max-width: 54rem;
+	margin: 0 auto 3rem;
+}
+
+.agboss-install-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	padding: 1rem 1.25rem;
+	border-radius: 1rem;
+	border: 1px solid var(--sl-color-hairline);
+	background: var(--sl-color-bg-nav);
+	box-shadow: 0 16px 40px -20px rgba(37, 140, 235, 0.35);
+	text-align: left;
+}
+
+.agboss-install-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.agboss-install-label {
+	font-size: 0.76rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--sl-color-accent-high);
+}
+
+.agboss-install-note {
+	font-size: 0.78rem;
+	color: var(--sl-color-gray-3);
+}
+
+.agboss-install-cmd {
+	margin: 0 !important;
+	padding: 0.65rem 0.85rem !important;
+	border-radius: 0.65rem;
+	border: 1px solid var(--sl-color-hairline);
+	background: rgba(15, 23, 42, 0.45);
+	font-family: var(--sl-font-mono);
+	font-size: 0.88rem;
+	line-height: 1.55;
+	overflow-x: auto;
+}
+
+.agboss-install-cmd code {
+	background: none !important;
+	padding: 0 !important;
+	border: none !important;
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+
 /* ---------- Built-in AI Coding-Agent Skills top callout ---------- */
 
 .agboss-skills-banner {
