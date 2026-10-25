@@ -3,11 +3,11 @@ title: "@WorkflowStart"
 description: Complete API reference for the @WorkflowStart decorator in AGBoss — input DTO shapes, start() flow chains, and app.execute() options.
 ---
 
-The `@WorkflowStart` decorator defines a typed entry point (`workflow-starts/*.workflow-start.ts`) for starting a `@Workflow`. A workflow can declare multiple `@WorkflowStart` classes (for example, an interactive chat start and a batch webhook start), each seeding its own initial DTOs into the workflow's Path Scope via `start(StartClass).returns(InputDto)`.
+The `@WorkflowStart` decorator defines a typed entry point (`workflows/<workflow-name>/<start-name>.workflow-start.ts`) for starting a `@Workflow`. A workflow can declare multiple `@WorkflowStart` classes (for example, an interactive chat start and a batch webhook start), each seeding its own initial DTOs into the workflow's Path Scope via `start(StartClass).returns(InputDto)`.
 
 ## Complete `@WorkflowStart` examples (single DTO, list input, and multi-field input)
 
-```ts title="src/workflow-starts/role-match.workflow-start.ts" file=src/workflow-starts/role-match.workflow-start.ts
+```ts title="src/workflows/role-match/role-match.workflow-start.ts" file=src/workflows/role-match/role-match.workflow-start.ts
 import { WorkflowStart, listOf, optional } from "agboss";
 import { Text, Url } from "agboss/dto";
 
@@ -52,12 +52,12 @@ export class BatchCandidatesWorkflowStart {}
 export class RoleMatchWorkflowStart {}
 ```
 
-```ts title="src/agents/matcher.agent.ts" file=src/agents/matcher.agent.ts
+```ts title="src/agents/matcher/matcher.agent.ts" file=src/agents/matcher/matcher.agent.ts
 import { Agent, optional } from "agboss";
 import {
   CandidateProfileDto,
   JobRoleDto,
-} from "../workflow-starts/role-match.workflow-start.js";
+} from "../../workflows/role-match/role-match.workflow-start.js";
 
 @Agent({
   name: "matcher-agent",
@@ -72,15 +72,15 @@ import {
 export class MatcherAgent {}
 ```
 
-```ts title="src/workflows/role-match.workflow.ts" file=src/workflows/role-match.workflow.ts
+```ts title="src/workflows/role-match/role-match.workflow.ts" file=src/workflows/role-match/role-match.workflow.ts
 import { Workflow, WorkflowFinish, optional, start } from "agboss";
 import { WorkflowFinishTextDto } from "agboss/dto";
 import {
   CandidateProfileDto,
   JobRoleDto,
   RoleMatchWorkflowStart,
-} from "../workflow-starts/role-match.workflow-start.js";
-import { MatcherAgent } from "../agents/matcher.agent.js";
+} from "./role-match.workflow-start.js";
+import { MatcherAgent } from "../../agents/matcher/matcher.agent.js";
 
 @WorkflowFinish({
   name: "match-workflow-finish",
@@ -107,7 +107,7 @@ export class RoleMatchWorkflow {}
 ```ts file=src/role-match.application.ts
 import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
 import { usd, type Usd } from "agboss/units";
-import { RoleMatchWorkflow } from "./workflows/role-match.workflow.js";
+import { RoleMatchWorkflow } from "./workflows/role-match/role-match.workflow.js";
 
 @Budget({ name: "rm-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class RmAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(20); } }
@@ -132,8 +132,8 @@ import { expect } from "vitest";
 import { ExecutionStatus } from "agboss";
 import { replyWith, testWith } from "agboss/testing";
 import { RoleMatchApplication } from "../src/role-match.application.js";
-import { MatcherAgent } from "../src/agents/matcher.agent.js";
-import { RoleMatchWorkflowStart } from "../src/workflow-starts/role-match.workflow-start.js";
+import { MatcherAgent } from "../src/agents/matcher/matcher.agent.js";
+import { RoleMatchWorkflowStart } from "../src/workflows/role-match/role-match.workflow-start.js";
 
 const test = testWith(RoleMatchApplication);
 

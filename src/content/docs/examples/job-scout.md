@@ -1,6 +1,6 @@
 ---
 title: "Examples: 7 Verified Applications, flow-patterns & job-scout"
-description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (including path-scope-proof, support-refund-desk, travel-booking-saga, enterprise-agent-mesh, cluster-work-stealing, and langgraph-migration-smoke) alongside examples/flow-patterns and examples/job-scout.
+description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (including path-scope-proof, support-refund-desk, travel-booking-saga, enterprise-agent-mesh, cluster-work-stealing, and langgraph-migration) alongside examples/flow-patterns and examples/job-scout.
 ---
 
 AGBoss provides two complementary repositories of runnable, CI-verified examples so you can prove compile-time graph invariants in seconds for `$0` and inspect production-grade reference architectures:
@@ -20,7 +20,7 @@ AGBoss provides two complementary repositories of runnable, CI-verified examples
 | **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)** | **Transactional LIFO sagas & parallel quorums:** Books flights, hotels, and insurance with `step.idempotencyKey`, parallel quorum fan-out, and automatic reverse-order LIFO rollback when a downstream step fails. | `@Action({ compensateWith, committedBy })`, `.toParallelAgents().acceptedBy().joinQuorum()`, `.onError()` |
 | **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)** | **Distributed child work-stealing & SQLite WAL leases:** Multi-instance worker cluster where parent workflows enqueue `ChildPlacement.AnyInstance` children into `SqliteChildExecutionQueueRepository`, yield parent leases while waiting, and recover crashed children individually. | `ChildPlacement.AnyInstance`, `SqliteChildExecutionQueueRepository`, `SqliteRateLimitRepository` (`SharedTreeSlots`), `SqliteExecutionLeaseRepository` |
 | **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)** | **Federated multi-service Agent Mesh & Mesh Hub:** Multiple `@Application` services communicating over A2A with Ed25519-signed `MeshEnvelope` (`agboss-mesh`), `caller-budget` propagation, cycle detection, and cross-service topology visualization. | `@A2AExpose`, `@A2AAgent`, `a2aHttpListener`, `A2ACallerResolver`, `agboss check --federation`, `agboss hub show --html` |
-| **[`07-langgraph-migration-smoke`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration-smoke)** | **LangGraph-to-AGBoss migration reference:** Side-by-side migration of a raw LangGraph `StateAnnotation` / `addConditionalEdges` / `Send` / `interrupt` graph into typed AGBoss components using skill `13-migrating-from-langgraph.md`. | `@Dto`, `@Router`, `.switch(caseOf())`, `.toParallelAgents()`, `@ChannelRole` |
+| **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration)** | **LangGraph-to-AGBoss migration reference:** Side-by-side migration of a raw LangGraph `StateAnnotation` / `addConditionalEdges` / `Send` / `interrupt` graph into typed AGBoss components using skill `13-migrating-from-langgraph.md`. | `@Dto`, `@Router`, `.switch(caseOf())`, `.toParallelAgents()`, `@ChannelRole` |
 
 ### Spotlight: `02-path-scope-proof` (4 Graph Bugs Caught Before Runtime)
 

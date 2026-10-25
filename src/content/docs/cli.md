@@ -16,7 +16,7 @@ npm install
 agboss c support-desk --yes --agents "triage:Sorts requests,answerer:Answers questions" --tools "answerer:search_orders" --mcp filesystem:/path/to/docs --rag notes --skip-install
 ```
 
-Generate components into an existing workflow module with `agboss generate` (alias `agboss g`) using their full names (including kind suffix) or single-letter/short kind aliases (`a` = `agent`, `r` = `router`, `t` = `tool`, `ar` = `arbiter`, `m` = `mcp`, `oa` = `openapi`, `w` = `workflow`, `ec` = `eval-case`). The CLI enforces a strict **`1 class = 1 file`** layout, placing prompt-capable components (`@Agent`, `@Router`, `@Judge`, `@Arbiter`, `@Compaction`, `@InputGuardrail` / `@OutputGuardrail`, `@ReplyInterpreter`) in their own component subdirectory (`src/<kind-plural>/<name>/<name>.<kind>.ts` + `<name>.prompt.md`) and all DTOs flat in `src/dto/<name>.dto.ts`:
+Generate components into an existing workflow module with `agboss generate` (alias `agboss g`) using their full names (including kind suffix) or single-letter/short kind aliases (`a` = `agent`, `r` = `router`, `t` = `tool`, `ar` = `arbiter`, `m` = `mcp`, `oa` = `openapi`, `w` = `workflow`, `ec` = `eval-case`). The CLI enforces a strict **`1 class = 1 file`** layout, placing each `@Workflow` in `src/workflows/<workflow-name>/` alongside its `@WorkflowStart` and `@WorkflowFinish` files, prompt-capable components (`@Agent`, `@Router`, `@Judge`, `@Arbiter`, `@Compaction`, `@InputGuardrail` / `@OutputGuardrail`, `@ReplyInterpreter`) in their own component subdirectory (`src/<kind-plural>/<name>/<name>.<kind>.ts` + `<name>.prompt.md`), and all DTOs flat in `src/dto/<name>.dto.ts`:
 
 ```bash
 agboss g a billing-agent --workflow support-desk-workflow --description "Handles invoices"
@@ -63,13 +63,11 @@ src/
 ├── reply-interpreters/<name>/
 │   ├── <name>.reply-interpreter.ts
 │   └── <name>.prompt.md
-├── workflows/                        # Group B: flat inside their kind folder (1 class = 1 file)
-│   └── <name>.workflow.ts
-├── workflow-starts/
-│   └── <name>.workflow-start.ts
-├── workflow-finishes/
-│   └── <name>.workflow-finish.ts
-├── tools/
+├── workflows/<workflow-name>/        # Each workflow folder owns its starts & finishes
+│   ├── <workflow-name>.workflow.ts
+│   ├── <start-name>.workflow-start.ts
+│   └── <finish-name>.workflow-finish.ts
+├── tools/                            # Group B: flat inside their kind folder (1 class = 1 file)
 │   └── <name>.tool.ts
 ├── actions/
 │   └── <name>.action.ts

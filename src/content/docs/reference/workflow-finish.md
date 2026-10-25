@@ -3,11 +3,11 @@ title: "@WorkflowFinish"
 description: Complete API reference for the @WorkflowFinish decorator in AGBoss — pass-through finishes, FinishHandler<Self> transformations, and DI support.
 ---
 
-The `@WorkflowFinish` decorator defines a terminal node (`workflow-finishes/*.workflow-finish.ts`) where a `@Workflow` path completes and returns a typed `output` DTO to the caller of `app.execute()` (or to a parent workflow calling `.toWorkflow(Child)`). A finish can be a **pass-through** (returning the latest `output` DTO already in Path Scope) or a **handled finish** implementing `FinishHandler<Self>` to assemble its `output` from multiple scoped DTOs and injected services.
+The `@WorkflowFinish` decorator defines a terminal node (`workflows/<workflow-name>/<finish-name>.workflow-finish.ts`) where a `@Workflow` path completes and returns a typed `output` DTO to the caller of `app.execute()` (or to a parent workflow calling `.toWorkflow(Child)`). A finish can be a **pass-through** (returning the latest `output` DTO already in Path Scope) or a **handled finish** implementing `FinishHandler<Self>` to assemble its `output` from multiple scoped DTOs and injected services.
 
 ## Complete `@WorkflowFinish` examples (pass-through and `FinishHandler`)
 
-```ts title="src/workflow-finishes/offer-package.workflow-finish.ts" file=src/workflow-finishes/offer-package.workflow-finish.ts
+```ts title="src/workflows/offer-package/offer-package.workflow-finish.ts" file=src/workflows/offer-package/offer-package.workflow-finish.ts
 import {
   Clock,
   ExecutionContext,
@@ -82,14 +82,14 @@ export class OfferSummaryWorkflowFinish implements FinishHandler<OfferSummaryWor
 }
 ```
 
-```ts title="src/workflows/offer-package.workflow.ts" file=src/workflows/offer-package.workflow.ts
+```ts title="src/workflows/offer-package/offer-package.workflow.ts" file=src/workflows/offer-package/offer-package.workflow.ts
 import { Agent, Workflow, WorkflowStart, listOf, start } from "agboss";
 import { WorkflowStartTextDto } from "agboss/dto";
 import {
   AuditVerdictDto,
   OfferDraftDto,
   OfferSummaryWorkflowFinish,
-} from "../workflow-finishes/offer-package.workflow-finish.js";
+} from "./offer-package.workflow-finish.js";
 
 @WorkflowStart({
   name: "offer-workflow-start",
@@ -138,7 +138,7 @@ export class OfferPackageWorkflow {}
 ```ts file=src/offer.application.ts
 import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
 import { usd, type Usd } from "agboss/units";
-import { OfferPackageWorkflow } from "./workflows/offer-package.workflow.js";
+import { OfferPackageWorkflow } from "./workflows/offer-package/offer-package.workflow.js";
 
 @Budget({ name: "wf-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class WfAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(20); } }
@@ -166,12 +166,12 @@ import { OfferApplication } from "../src/offer.application.js";
 import {
   AuditVerdictDto,
   OfferDraftDto,
-} from "../src/workflow-finishes/offer-package.workflow-finish.js";
+} from "../src/workflows/offer-package/offer-package.workflow-finish.js";
 import {
   OfferAuditorAgent,
   OfferDrafterAgent,
   OfferStart,
-} from "../src/workflows/offer-package.workflow.js";
+} from "../src/workflows/offer-package/offer-package.workflow.js";
 
 const test = testWith(OfferApplication);
 
