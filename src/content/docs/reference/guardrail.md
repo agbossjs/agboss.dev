@@ -1,6 +1,6 @@
 ---
 title: "@InputGuardrail & @OutputGuardrail"
-description: Complete API reference for @InputGuardrail, @OutputGuardrail, DecidedBy.Model vs DecidedBy.Code, GuardrailHandler, GuardrailVerdict, GuardrailRefusal, and testGuardrail() in AGBoss.
+description: "Complete API reference for @InputGuardrail, @OutputGuardrail, DecidedBy.Model vs DecidedBy.Code handlers, GuardrailVerdict, and testGuardrail in AGBoss."
 ---
 
 `@InputGuardrail` and `@OutputGuardrail` (`"agboss"`) define boundary safety checks on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), and [`@Router`](/reference/router/). Unlike [`@Judge`](/reference/judge/) (which retries an agent with feedback), a guardrail **blocks** execution immediately (`GuardFailedError`) when a message or reply violates the guardrail.

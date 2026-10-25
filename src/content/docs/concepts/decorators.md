@@ -1,6 +1,6 @@
 ---
 title: Component Decorators
-description: Overview of AGBoss and HarnessDSL decorators for applications, workflows, agents, actions, routers, arbiters, tools, DTOs, model providers, budgets, guardrails, compaction, and PII policies.
+description: "Overview of AGBoss and HarnessDSL decorators for applications, workflows, agents, routers, tools, actions, guardrails, interceptors, and A2A mesh endpoints."
 ---
 
 In **AGBoss** (*Agent Graph Builder Open Source System*) and its declarative specification grammar **HarnessDSL**, every part of a multi-agent harness is organized as a decorated TypeScript class with a single, clear computational role ([Principle 1: Computational Role Segregation](/concepts/architecture/#1-computational-role-segregation)). Instead of mixing prompt templates, HTTP calls, branching logic, and safety filters inside monolithic functions, you declare dedicated classes and let `@Workflow` (`HarnessDSL`) and `@Application` wire and verify them at compile time via `agboss check`.

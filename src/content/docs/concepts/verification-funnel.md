@@ -1,6 +1,6 @@
 ---
 title: The 5-Loop Verification Funnel & Production Feedback Loops
-description: How AGBoss structures agent testing and evaluation as a 5-loop cost and determinism funnel — from $0 static proofs (agboss check) and VCR-locked unit tests (npm test) to cascading PR evals (pass^k vs baseline), nightly chaos/metamorphic suites, and two production feedback loops.
+description: "How AGBoss structures agent verification as a 5-loop cost and determinism funnel — from $0 static agboss check and VCR unit tests to calibrated @EvalSuite."
 ---
 
 **AGBoss** (**Agent Graph Builder Open Source System**) replaces the traditional `Unit -> Integration -> E2E` testing pyramid with a **5-loop cost and determinism verification funnel** closed by **two production feedback loops**. In classical software engineering, every function is deterministic (`f(x) = y`); in a multi-agent system, an LLM node costs money, takes seconds, and exhibits variance even at `temperature: 0`. AGBoss therefore enforces one foundational rule across [`agboss check`](/cli/), `agboss/testing`, and `agboss/eval`: **never verify with a paid language model what can be proven by the compiler or checked by deterministic TypeScript; and when you invoke a model, check $0 trajectory invariants and code judges first before calling a calibrated LLM judge.**

@@ -1,6 +1,6 @@
 ---
 title: Channels, Pauses & HTTP Webhook Execution
-description: Pause workflows for human approval without blocking Node.js threads and trigger or resume workflows safely from HTTP webhooks using @ChannelRole, @Channel, @ReplyInterpreter, and two-phase app.resume().
+description: "Pause workflows for human approval without blocking Node.js threads and trigger active Channel.withdraw() compensation across @Agent, @Tool, and @Action."
 ---
 
 Production workflows often start from incoming HTTP webhooks (Stripe events, GitHub webhooks, Slack slash commands, CRM triggers) and pause mid-run for human sign-off before executing high-stakes tool calls. AGBoss handles human-in-the-loop pauses **out-of-process**: when a tool's `@Channel` returns `ChannelOutcome.awaitReply()`, the branch pauses while sibling parallel branches continue until nothing else can move, persisting a `PendingPause` record and releasing the worker's 30-second execution lease.

@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install the AGBoss TypeScript framework (agboss) and CLI compiler (agboss-cli) in Node.js 22+ to scaffold projects with 13 AI coding skills, typecheck Path Scope graphs, and run LangGraph workflows.
+description: "Install the AGBoss TypeScript runtime (agboss) and static compiler (agboss-cli) in a new or existing Node.js 24+ project with auto-synced AI coding skills."
 ---
 
 Installing AGBoss gives you the lightweight production runtime (`agboss`), focused subpath entries (`agboss/dto`, `agboss/units`, `agboss/models`, `agboss/testing`, `agboss/eval`, `agboss/mcp`, `agboss/rag`, `agboss/a2a`, `agboss/memory`, `agboss/eslint`), 13 bundled AI coding-agent reference modules (`node_modules/agboss/skills/agboss/`), and the `agboss-cli` static compiler and developer toolkit (`agboss` / `agb`). Importing `agboss` has zero side effects: tracing, MCP, and SQLite load only when an application uses them.

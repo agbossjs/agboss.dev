@@ -1,6 +1,6 @@
 ---
 title: AI-Assisted Engineering & Coding Skills (AGENTS.md)
-description: How AGBoss keeps every AI coding agent (OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Aider, and Claude Code) 100% aligned with HarnessDSL and the Path Scope compiler via AGENTS.md and 13 offline-synced skill reference modules (including LangGraph migration).
+description: "How AGBoss keeps AI coding agents (Codex, Cursor, Windsurf, Copilot, Claude Code) in sync via AGENTS.md, .agboss/types.d.ts, and 13 offline skill modules."
 ---
 
 In modern engineering teams, Senior, Staff, and Principal engineers rarely type multi-agent boilerplate by hand. Instead, they act as **systems architects** who specify domain boundaries, DTO contracts, and failure invariants while **AI coding agents — OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Cline, Aider, or Claude Code —** generate and refactor the implementation.

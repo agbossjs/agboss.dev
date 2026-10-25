@@ -1,6 +1,6 @@
 ---
 title: "Loop 2–4: Live Evals, pass^k, Nightly Polygon & Judge Calibration"
-description: "Run Loops 2–4 of the AGBoss 5-Loop Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k reliability against cached baselines, Nightly metamorphic & compaction drift polygons, Cohen's kappa judge calibration, and production feedback loops."
+description: "Run Loops 2–4 of the AGBoss Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k, Cohen's kappa calibration, and RFC 8785 Tern profiling."
 ---
 
 In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), once [Loop 0 (`agboss check`) and Loop 1 (`npm test`)](/guides/testing-agents/) have verified your topology and TypeScript harness for `$0`, **Loops 2–4** evaluate live model trajectories, memory compaction survival, and production telemetry. AGBoss combines in-loop [`@Judge`](/reference/judge/) gates (`DecidedBy.Code` and `DecidedBy.Model`), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmarks (`agboss/eval`), Fail-Fast `$0 → $$$` cascades, `pass@k` vs `pass^k` baseline gates (`flaky-on-baseline` quarantine), nightly `--metamorphic` and `--chaos` polygons, Cohen's $\kappa$ calibration (`agboss eval calibrate`), and two production feedback loops (`agboss golden` & [Progressive Crystallization](/concepts/progressive-crystallization/)).

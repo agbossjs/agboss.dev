@@ -1,6 +1,6 @@
 ---
 title: Workflow HDSL — HarnessDSL & Canonical Topology
-description: Master HarnessDSL (HDSL) — the declarative graph grammar and verification specification inside AGBoss, enforcing canonical topology isomorphism (in-degree = 1 vs >= 2), one-call-per-line paths, narrow DTO contracts, review loops with about and historyOf, parallel waves, and quorums.
+description: "Master HarnessDSL (HDSL) — the declarative workflow grammar inside AGBoss for canonical topology, Path Scope DTOs, parallel quorums, and LIFO sagas."
 ---
 
 In **AGBoss** (*Agent Graph Builder Open Source System*), a workflow is written in **HarnessDSL (`HDSL`)** — the declarative graph grammar and verification specification built into `AGBoss` (analogous to JSX in React or PSL in Prisma). While `AGBoss` is the framework, static compiler (`agboss check`), and production runtime on LangGraph (`npm i agboss`), `HarnessDSL` is the grammar used inside `*.workflow.ts` and contract decorators to specify `flow` chains, narrow `@Dto` contracts, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas. In a `@Workflow` class, `flow` is a list of **paths**. Each path reads like a sentence starting at a source (`start(StartClass)`, `agent(AgentClass)`, `router(RouterClass)`, `action(ActionClass)`, `workflow(ChildWorkflow)`), with **strictly one chained call per line** (`@stylistic/newline-per-chained-call`), and every value produced on an edge declared explicitly via `.returns(...)`.

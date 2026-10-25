@@ -1,6 +1,6 @@
 ---
 title: About AGBoss
-description: What AGBoss (Agent Graph Builder Open Source System) and its built-in HarnessDSL (HDSL) grammar are, why they bring distributed-systems invariants and compiler-verified Path Scope to LangGraph in TypeScript, and how the Apache 2.0 open-source model works.
+description: "Learn what AGBoss (Agent Graph Builder Open Source System) and HarnessDSL are, who maintains the Apache 2.0 TypeScript framework, and how to contribute."
 ---
 
 **AGBoss** (**Agent Graph Builder Open Source System**) is an Apache 2.0 licensed TypeScript framework, static graph compiler (`agboss check`), and production runtime layered on top of [LangGraph](https://www.langchain.com/langgraph) (`npm i agboss`). Inside AGBoss, **HarnessDSL (`HDSL`)** is the declarative graph grammar and verification specification (much like JSX in React or PSL in Prisma) that defines how `*.workflow.ts` `flow` chains and contract decorators specify narrow `@Dto` handoffs, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas.

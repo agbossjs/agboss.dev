@@ -1,6 +1,6 @@
 ---
 title: Security, Guardrails & PII Policies
-description: Protect prompts, tool calls, and logs in AGBoss using @PiiPolicy rules, KV-cache-friendly HMAC replaceWithToken() pseudonymization, @InputGuardrail, @OutputGuardrail, and secret() masking.
+description: "Protect prompts, tool calls, and logs in AGBoss using @PiiPolicy HMAC tokenization, @InputGuardrail, @OutputGuardrail, and @ToolInterceptor policies."
 ---
 
 When enterprise workflows process customer tickets, financial records, or medical notes, personal data and credentials must never leak into external LLM prompts or observability logs. AGBoss provides three defense-in-depth mechanisms: [`@PiiPolicy`](/reference/pii-policy/) for declarative or custom PII masking and reversible pseudonymization at the model boundary, [`@InputGuardrail` and `@OutputGuardrail`](/reference/guardrail/) for pre-model and post-model safety enforcement, and `secret()` for environment credential masking.

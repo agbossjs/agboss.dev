@@ -1,6 +1,6 @@
 ---
 title: "Loop 0–1: Deterministic Harness, 10 Unit Runners & VCR Lock"
-description: "Verify Graph & Mesh Contracts in Loop 0 (agboss check --federation) and Harness Code in Loop 1 (npm test) for $0 in seconds using agboss/testing — testWith(Application), 10 isolated unit runners, VirtualClock, TestConcurrency.inOrder, ModelFailure chaos, and [vcr.stale-cassette] hash locks."
+description: "Verify graph and mesh contracts in Loop 0 (agboss check --federation) and harness logic in Loop 1 (npm test) with testWith, 10 unit runners, and VCR locks."
 ---
 
 In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), **Loop 0 (`$ agboss check --federation`, `< 1s`, `$0`)** proves graph topology and cross-service mesh contracts at compile time, while **Loop 1 (`npm test`, `~3s`, `$0`)** tests your entire TypeScript harness (`@Action`, `@Tool`, `@ToolInterceptor`, `DecidedBy.Code` `@Router` and `@Arbiter`, `@PiiPolicy`, `@Compaction`, queues, retries, and LIFO sagas) without calling a live LLM. Together, `agboss/testing` provides `testWith(Application)` on a deterministic `VirtualClock`, ten isolated component runners, `ModelFailure` chaos injection, and VCR cassettes locked to [Loop 2 live PR evals](/guides/evaluation-and-profiles/) via `promptHash` and `schemaHash` (`[vcr.stale-cassette]`).

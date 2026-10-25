@@ -1,6 +1,6 @@
 ---
 title: "@ModelProvider"
-description: Complete API reference for @ModelProvider in agboss/models — OpenRouterProvider, OpenAiCompatibleProvider, custom ModelProviderHandler transport, RateLimitPolicy, RetryPolicy, CircuitBreakerPolicy, and PromptCaching.
+description: "Complete API reference for @ModelProvider in agboss/models — OpenRouterModelProvider, custom chat/decision/embedding adapters, and automatic yield rules."
 ---
 
 The `@ModelProvider` decorator (`"agboss/models"`) defines an application-level LLM gateway registered in [`@Application({ providers })`](/reference/application/). Every model string referenced by an `@Agent`, `@Router`, `@Arbiter`, `@Judge`, `@Compaction`, `@InputGuardrail`, `@OutputGuardrail`, or `@PiiPolicy` is matched at startup against the `serves` regular expressions of your registered `@ModelProvider` classes (`[model.unserved]` or `[model.ambiguous-provider]` if zero or multiple custom providers match).

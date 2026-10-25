@@ -1,6 +1,6 @@
 ---
 title: Multi-Instance Distribution, Leases, SQLite & Custom Stores
-description: Run AGBoss across multiple processes and machines using the 7 shared repository contracts, SQLite WAL stores, 30-second execution leases, cross-instance cancellation, distributed rate limits, and custom store overrides.
+description: "Scale AGBoss from in-memory unit tests to SQLite WAL and Kubernetes pods using shared repositories, 30s execution leases, fencing, and @HealthCheck probes."
 ---
 
 An AGBoss `@Application` can run as **multiple instances (processes, containers, or Kubernetes pods)** over shared storage: any instance can resume a pause created on another instance, recover an execution whose worker process died mid-step, or cancel a running thread across the cluster — while 30-second execution-tree leases guarantee that two instances never advance the same execution tree simultaneously.

@@ -1,6 +1,6 @@
 ---
 title: "@ChannelRole"
-description: Complete API reference for the @ChannelRole decorator in AGBoss — declaring tool-approval and question/answer pause contracts with PauseAnswerer and replyInterpreter.
+description: "Complete API reference for the @ChannelRole decorator in AGBoss — declaring tool-approval and question/answer pause contracts with PauseAnswerer."
 ---
 
 The `@ChannelRole` decorator (`"agboss"`) defines a transport-independent **human-in-the-loop pause contract**. Tools (`@Tool({ channel: RefundApprovalChannel })`) reference the abstract `@ChannelRole` class, while [`@Application({ providers })`](/reference/application/) binds the concrete [`@Channel`](/reference/channel/) implementation (such as Slack, webhook, or `AutoApproveChannel` in tests) by class inheritance.

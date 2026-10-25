@@ -1,6 +1,6 @@
 ---
 title: Parallel, Quorums & Child Workflows
-description: Fan out parallel agents and child workflows, evaluate quorum consensus with @Arbiter, joinQuorum(), and joinQuorumGroups(group().priority()), and run bounded recursive workflows with ThisWorkflow.
+description: "Fan out parallel agents and child workflows, evaluate quorum consensus with @Arbiter, and distribute child workflows across workers with AnyInstance."
 ---
 
 AGBoss provides first-class **HarnessDSL (`HDSL`)** flow primitives for deterministic fan-out/fan-in (`.toParallelAgents()`, `.toParallelWorkflows()`), deadline-bounded quorum consensus (`.acceptedBy()`, `.joinQuorum()`, `.joinQuorumGroups(group(...).priority(1))`, [`@Arbiter`](/reference/arbiter/)), modular child workflows (`.toWorkflow(Child)`), and depth-bounded recursion (`ThisWorkflow`).

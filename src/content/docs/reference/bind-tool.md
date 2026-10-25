@@ -85,7 +85,7 @@ it("executes default tool handler and bound EU override method", async () => {
 });
 ```
 
-## Signature and options
+## How to configure `@BindTool` options and signatures
 
 | Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |

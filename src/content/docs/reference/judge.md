@@ -1,6 +1,6 @@
 ---
 title: "@Judge"
-description: Complete API reference for the @Judge decorator in AGBoss — DecidedBy.Model vs DecidedBy.Code quality gates, JudgeHandler<TReply>, toolCallsOf(), JudgeVerdict, JudgeModel, and testJudge().
+description: "Complete API reference for the @Judge decorator in AGBoss — DecidedBy.Model vs DecidedBy.Code, JudgeVerdict, toolCalls inspection, and testJudge runner."
 ---
 
 The `@Judge` decorator (`"agboss"`) defines an independent quality gate attached to an `@Agent` via `@Agent({ judges: [MyJudge], maxRetries: 2 })` or to an `@EvalSuite` case via `judgedBy: [MyJudge]`. Every time the agent produces a reply, its judges inspect `{ reply, variant, task, attempt, toolCalls }` and return a `JudgeVerdict` built via `JudgeVerdict.passed({ metrics? })` or `JudgeVerdict.failed({ reason, metrics? })`. When an in-loop judge fails, AGBoss feeds `reason` back into the agent and retries up to `maxRetries` times before letting the output leave the step.

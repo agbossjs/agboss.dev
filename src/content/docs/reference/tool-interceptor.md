@@ -1,6 +1,6 @@
 ---
 title: "@ToolInterceptor"
-description: Complete API reference for @ToolInterceptor, BeforeToolCall, AfterToolCall, ToolCallDecision, and testToolInterceptor() in AGBoss — cross-cutting authorization, self-correcting model feedback, and post-call redaction for @Tool and @McpTool.
+description: Complete API reference for @ToolInterceptor, BeforeToolCall, AfterToolCall, ToolCallDecision, and testToolInterceptor() for @Tool and @McpTool in AGBoss.
 ---
 
 `@ToolInterceptor` (`"agboss"`) declares a reusable pre-call and/or post-call interceptor around [`@Tool`](/reference/tool/) and [`@McpTool`](/reference/mcp-tool/) invocations. While [`@InputGuardrail` and `@OutputGuardrail`](/reference/guardrail/) guard the outer text boundary of an `@Agent` or `@Router`, `@ToolInterceptor` guards every individual tool call inside the agent's tool loop (`app.execute` / `app.stream`) as well as direct `app.tool(ToolClass).invoke(input)` calls.
@@ -157,7 +157,7 @@ it("replies to the model when an order belongs to another tenant and scrubs inte
 | `ToolCallDecision.replyToModel({ message })` | **Self-correcting tool feedback:** `tool.run()` and `channel` approval do **not** execute; inside an `@Agent` loop, `message` is returned to the model as the tool call's observation so the agent can self-correct its arguments. On direct `app.tool(T).invoke()`, throws `ToolBlockedError`. |
 | `ToolCallDecision.block({ reason })` | **Hard abort:** `tool.run()` does **not** execute and the step fails immediately with `ToolBlockedError` (a subclass of `StepFailedError`, catchable by `.onError()` in workflow flows). |
 
-## Cascading hierarchy & execution order
+## How the cascading interceptor hierarchy works
 
 Interceptors attach via `toolInterceptors: [...]` on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), [`@Tool`](/reference/tool/), and [`@McpTool`](/reference/mcp-tool/), and can be opted out at any inner scope via `excludeToolInterceptors: [...]`:
 

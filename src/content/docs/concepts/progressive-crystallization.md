@@ -1,6 +1,6 @@
 ---
 title: Progressive Crystallization
-description: How to evolve stochastic DecidedBy.Model routers and multi-tool @Agent loops into deterministic DecidedBy.Code routers and @Action steps using agboss describe --json (configHash, promptHash, schemaHash) and execution traces.
+description: "Evolve DecidedBy.Model routers and multi-tool @Agent loops into 0ms, $0 DecidedBy.Code handlers and @Action steps using agboss describe and trace telemetry."
 ---
 
 One of the costliest anti-patterns in production AI engineering is **permanent stochasticity**: keeping every routing decision and multi-step tool sequence inside an LLM call long after the underlying domain patterns have stabilized.

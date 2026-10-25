@@ -1,6 +1,6 @@
 ---
 title: Dependency Injection, Custom Implementations & Overrides
-description: How @Injectable constructor injection, custom @Rag / @ModelProvider / @Channel / Store implementations, class-inheritance overrides, and lifecycle hooks work in AGBoss.
+description: "How @Injectable constructor injection, custom @Rag / @ModelProvider / @Channel / Store adapters, class overrides, and lifecycle hooks work in AGBoss."
 ---
 
 AGBoss includes a deterministic dependency injection container modeled on Angular and NestJS. Every component (`@Injectable`, `@Tool`, `@ToolInterceptor`, `@Action`, `@Router`, `@Arbiter`, `@Judge`, `@Compaction`, `@InputGuardrail`, `@OutputGuardrail`, `@PiiPolicy`, `@ModelProvider`, `@Channel`, `@ReplyInterpreter`, `@Rag`, `@Budget`, `@HealthCheck`) declares its constructor dependencies in `deps: [...]`, and the container resolves them at application startup.

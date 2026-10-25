@@ -1,6 +1,6 @@
 ---
 title: Distributed-Systems Architecture (7 Core Invariants)
-description: How AGBoss (Agent Graph Builder Open Source System) and its built-in HarnessDSL (HDSL) grammar enforce 7 distributed-systems architectural invariants at compile time so Senior/Staff/Principal engineers and AI coding agents can scale LangGraph graphs to hundreds of nodes without structural entropy.
+description: How AGBoss and HarnessDSL enforce 7 distributed-systems invariants at compile time so engineers and AI coding agents scale LangGraph graphs without entropy.
 ---
 
 **AGBoss** (**Agent Graph Builder Open Source System**) is built on a foundational premise: **a multi-agent system that scales to hundreds of nodes is a distributed dataflow system, not a prompt script.** In this engineering model (much like React and JSX, or Prisma and PSL), **AGBoss** is the TypeScript framework, static graph compiler (`agboss check`), and production runtime on top of LangGraph (`npm i agboss`), while **HarnessDSL (`HDSL`)** is the declarative graph grammar and verification specification **inside `AGBoss`** — defining how `*.workflow.ts` `flow` chains and contract decorators express narrow `@Dto` handoffs, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas. Furthermore, in modern engineering organizations, the bulk of orchestration code is generated and refactored by **AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code)** under the architectural direction of a Senior, Staff, or Principal engineer.
@@ -11,7 +11,7 @@ AGBoss replaces convention with **7 compile-time and runtime architectural invar
 
 ---
 
-## Overview of the 7 Architectural Invariants
+## How the 7 Architectural Invariants Work Together
 
 | # | Architectural Principle | Core Primitives & Compiler Rules | Failure Mode Prevented |
 | :--- | :--- | :--- | :--- |

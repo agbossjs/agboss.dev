@@ -1,6 +1,6 @@
 ---
 title: "@A2AAgent, @A2AExpose, a2aHttpListener & A2ACallerResolver"
-description: Complete API reference for @A2AAgent, @A2AExpose, A2AClient, a2aHttpListener, A2ACallerResolver, A2ACallerResolution, a2aServer, and the signed Agent Mesh Envelope in agboss/a2a.
+description: "Complete API reference for @A2AAgent, @A2AExpose, A2AClient, a2aHttpListener, A2ACallerResolver, and wireCode error handling in the AGBoss Agent Mesh."
 ---
 
 The `@A2AAgent` and `@A2AExpose` decorators, `a2aHttpListener`, and `A2ACallerResolver` (`"agboss/a2a"`) provide both the client and server sides of the multi-tenant Agent-to-Agent (A2A) and federated Agent Mesh protocol in AGBoss, enabling strongly typed cross-service workflow calls with signed `MeshEnvelope` budget, deadline, and call-chain propagation:

@@ -1,9 +1,9 @@
 ---
 title: "Examples: 7 Verified Applications (01–07), flow-patterns & job-scout"
-description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (01-hello-agboss through 07-langgraph-migration) alongside examples/flow-patterns and examples/job-scout.
+description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (01–07) alongside examples/flow-patterns and examples/job-scout in agbossjs/agboss.
 ---
 
-AGBoss provides two complementary repositories of runnable, CI-verified examples so you can prove compile-time and runtime guarantees in seconds for `$0` and inspect production-grade reference architectures:
+AGBoss provides two complementary repositories of runnable, CI-verified examples so you can prove compile-time and runtime guarantees in seconds for `$0` and inspect production-grade reference architectures.
 
 1. **7 Standalone Verified Examples ([`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)):** Seven self-contained applications (`01-hello-agboss` through `07-langgraph-migration`) following the **`Promise → Failure Injection → Reproducible Proof`** discipline — each with its own `package.json`, canonical `1 class = 1 file` component subfolder layout, symmetric Spring-style `tests/` mirroring `src/`, `.claude/skills/agboss/`, `npx agboss check`, and `$0` offline test & demo suites.
 2. **In-Repository Examples (`examples/flow-patterns` & `examples/job-scout` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss)):** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `ThisWorkflow` recursion in `< 5 seconds` for `$0`, alongside the interactive `examples/job-scout` career assistant.

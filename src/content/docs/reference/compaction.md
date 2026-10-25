@@ -216,7 +216,7 @@ test("compacts aged-out turns using GraphMemoryCompaction across a multi-turn th
 | `summaryMaxTokens` | `number \| TokenLimit.MODEL_MAX` | For `SummaryQueue` and `SingleSummary` | `max_tokens` limit for each summary call. Forbidden on `Custom` and `None`. |
 | `prompt` / `promptUrls` | `string` / `readonly string[]` | No (`SummaryQueue` / `SingleSummary`) | Custom summarization instructions (defaults to the built-in factual summarization prompt). Forbidden on `Custom` and `None`. |
 
-## `CompactionHandler` & `CompactionInput` contracts
+## How `CompactionHandler` & `CompactionInput` work
 
 When `strategy: CompactionStrategy.Custom` is selected, the decorated class must implement `CompactionHandler` (enforced by TypeScript and at `agboss check` / assembly time via `[compaction.missing-handler]`):
 

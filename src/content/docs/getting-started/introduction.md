@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: Learn what AGBoss (Agent Graph Builder Open Source System) and HarnessDSL are, why they exist, and how their 7 distributed-systems invariants, compile-time Path Scope, and built-in AI coding skills keep LangGraph systems scaling to hundreds of nodes deterministic in TypeScript.
+description: "What AGBoss and HarnessDSL are, why multi-agent systems require a static graph compiler on LangGraph, and how the 7 invariants prevent structural entropy."
 ---
 
 **AGBoss** — short for **A**gent **G**raph **B**uilder **O**pen **S**ource **S**ystem — is the TypeScript framework, static graph compiler (`agboss check`), and production runtime for building, testing, and operating [LangGraph](https://www.langchain.com/langgraph) multi-agent systems (`npm i agboss`). Inside AGBoss, **HarnessDSL (`HDSL`)** is the built-in declarative graph grammar and verification specification (analogous to JSX in React or PSL in Prisma) — defining how `*.workflow.ts` `flow` chains and contract decorators express narrow `@Dto` contracts, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` topology rules, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas.
