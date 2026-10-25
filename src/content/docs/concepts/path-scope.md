@@ -238,3 +238,9 @@ In cyclic review graphs (`DraftAgent -> ReviewerAgent -> EditorAgent -> Reviewer
 | **Automatic invalidation** | `OutdatedReason.AboutReplaced` & `OutdatedReason.TransitiveOutdated` | When `EditorAgent` runs and replaces `OfferDraftDto`, any value bound `{ about: OfferDraftDto }` (and anything transitively `{ about }` that value) is immediately marked outdated and evicted from current slots. |
 | **Compile-time guard** | `[input.outdated-on-path]` & `[input.missing-on-path]` | `agboss check` rejects any workflow path where a downstream step tries to read a slot that was not produced on every incoming branch or was invalidated along that path. |
 | **Bounded loop history** | `historyOf(ChangesRequestedDto, { limit: 3 })` | Gives the revising agent `{ current, previous }` over the last `limit` versions of a slot in chronological order, including values that were later outdated when a new draft was written. |
+
+---
+
+## Standalone Executable Proof: [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof)
+
+To see all four static dataflow & compensation diagnostics reproduced side by side against raw LangGraph (`cases/01-missing-input`, `02-outdated-data`, `03-parallel-invalidation`, `04-uncompensated-action`), inspect **[`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof)** and **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration)** in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (see [7 Verified Examples](/examples/job-scout/)).

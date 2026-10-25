@@ -300,7 +300,7 @@ When an engineer or coding agent migrates an existing raw LangGraph (`StateGraph
 | `PostgresSaver` / `SqliteSaver` checkpointer | [7 repository contracts](/guides/persistence-and-scaling/) (`SqliteCheckpointRepository`, `ExecutionLeaseRepository`, etc.) |
 
 3. **Step 3 — Expose hidden bugs in the legacy graph with `npx agboss check`:**
-   Running `npx agboss check` on the migrated topology immediately catches latent bugs that raw LangGraph only surfaces in production: branches where a downstream node read a field that was never populated (`[input.missing-on-path]`), review loops where an agent read a stale draft from 2 iterations ago (`[input.outdated-on-path]`), side-effecting nodes lacking rollback handlers (`[flow.uncompensated-action]`), and dead state writes (`[flow.unused-output]`).
+   Running `npx agboss check` on the migrated topology immediately catches latent bugs that raw LangGraph only surfaces in production: branches where a downstream node read a field that was never populated (`[input.missing-on-path]`), review loops where an agent read a stale draft from 2 iterations ago (`[input.outdated-on-path]`), side-effecting nodes lacking rollback handlers (`[flow.uncompensated-action]`), and dead state writes (`[flow.unused-output]`). For a complete runnable side-by-side comparison (`before-langgraph/support.graph.ts` vs `after-agboss/src/`), inspect **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration)** in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).
 
 ---
 

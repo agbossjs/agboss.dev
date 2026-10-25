@@ -160,3 +160,10 @@ npx agboss hub ui snapshots/ .artifacts/records.jsonl
 ```
 
 If an upstream service changes an exposed DTO without updating consumers, `npx agboss check --federation` fails before deployment and prints the cross-service blast radius.
+
+---
+
+## Standalone Executable Proofs: [`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh) & [`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)
+
+- **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh):** Demonstrates a 3-service microservice mesh (`apps/1-order-gateway`, `apps/2-billing-a2a` with `@A2AExpose`, and `apps/3-catalog-mcp` with `@McpExpose`), Ed25519 `agboss-mesh` JWS signatures, `MeshLoopDetectedError` / `HopsLimitExceededError` fallback routing, MCP `_meta.callId` deduplication via `SqliteMeshRequestRepository`, and `agboss check --federation` Blast Radius over `federation/` snapshots.
+- **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk):** Demonstrates an in-memory BM25/TF-IDF section indexer (`InMemoryKnowledgeIndexService` + `RefundPolicyRetriever`) wired into `@Rag({ mode: RagMode.Context })` alongside `PolicyAwareCompaction` (see [7 Verified Examples](/examples/job-scout/)).

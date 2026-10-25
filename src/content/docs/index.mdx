@@ -200,20 +200,20 @@ npm install -D agboss-cli</code></pre>
 <div class="agboss-pillars">
 	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof" target="_blank" rel="noopener">
 		<span class="agboss-mission-kicker">COMPILER PROOF · 4 GRAPH BUGS</span>
-		<h3><code>path-scope-proof</code></h3>
-		<p>Side-by-side proof where <code>[input.missing-on-path]</code>, <code>[input.outdated-on-path]</code>, <code>[launch.branch-outdates-sibling]</code>, and <code>[flow.uncompensated-action]</code> pass raw LangGraph <code>tsc</code> but are caught before runtime by <code>agboss check</code>.</p>
+		<h3><code>02-path-scope-proof</code></h3>
+		<p>Side-by-side proof where <code>[input.missing-on-path]</code>, <code>[input.outdated-on-path]</code>, <code>[launch.branch-outdates-sibling]</code>, and <code>[flow.uncompensated-action]</code> pass raw LangGraph <code>tsc</code> (<code>langgraph-broken/</code>) but are caught before runtime by <code>agboss check</code>.</p>
 		<span class="agboss-pillar-cta">Inspect Proof →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples" target="_blank" rel="noopener">
-		<span class="agboss-mission-kicker">SAGAS · EVALS · P2P MESH · WORK-STEALING</span>
-		<h3><code>support-refund-desk</code>, <code>travel-booking-saga</code>, <code>enterprise-agent-mesh</code> &amp; <code>cluster-work-stealing</code></h3>
-		<p>End-to-end reference apps covering HMAC <code>@PiiPolicy</code>, 5-loop <code>@EvalSuite</code>, LIFO sagas, signed A2A Mesh + <code>agboss hub</code>, and <code>ChildPlacement.AnyInstance</code> distributed child queues.</p>
+		<span class="agboss-mission-kicker">SAGAS · EVALS · 3-SERVICE MESH · WORK-STEALING</span>
+		<h3><code>03-support-refund-desk</code>, <code>04-travel-booking-saga</code>, <code>05-cluster-work-stealing</code> &amp; <code>06-enterprise-agent-mesh</code></h3>
+		<p>Executable proofs covering reversible HMAC <code>@PiiPolicy</code>, BM25/TF-IDF <code>@Rag</code>, 5-loop <code>@EvalSuite</code> + compact git baselines, LIFO sagas, <code>ChildPlacement.AnyInstance</code> work-stealing, and a 3-service A2A + MCP mesh.</p>
 		<span class="agboss-pillar-cta">Browse 7 Verified Examples →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="/examples/job-scout/">
-		<span class="agboss-mission-kicker">STARTER &amp; MIGRATION</span>
-		<h3><code>hello-agboss</code>, <code>langgraph-migration-smoke</code> &amp; <code>job-scout</code></h3>
-		<p>Start from a minimal typed workflow or migrate an existing LangGraph <code>StateAnnotation</code> / <code>addConditionalEdges</code> graph step by step using skill <code>13-migrating-from-langgraph.md</code>.</p>
+		<span class="agboss-mission-kicker">STARTER, HTTP SERVER &amp; MIGRATION</span>
+		<h3><code>01-hello-agboss</code>, <code>07-langgraph-migration</code> &amp; <code>job-scout</code></h3>
+		<p>Start with real HTTP service DI, production <code>src/http/server.ts</code> pause/health adapters, canonical <code>1 class = 1 file</code> + symmetric <code>tests/</code> layout, or compare <code>before-langgraph/</code> vs <code>after-agboss/</code> side by side.</p>
 		<span class="agboss-pillar-cta">Examples &amp; Architecture Guide →</span>
 	</a>
 </div>

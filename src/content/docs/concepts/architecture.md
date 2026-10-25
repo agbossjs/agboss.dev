@@ -295,3 +295,16 @@ AGBoss is designed for **[Progressive Crystallization](/concepts/progressive-cry
 - `npx agboss describe --json` exports the complete static revision snapshot of your application, including content-addressed `configHash` (workflow topology), `promptHash` (per-agent/router prompt), and `schemaHash` (per-DTO schema) for every node.
 - Correlating this snapshot with `ExecutionRecord` and spans in Langfuse / OpenTelemetry exposes settled paths so you can crystallize `DecidedBy.Model` $\to$ `DecidedBy.Code`, repetitive `@Tool` chains $\to$ `@Action`, and `ChannelOutcome.awaitReply()` $\to$ `ChannelOutcome.decided(...)` without changing neighbor contracts in the graph.
 - Using **[`AGENTS.md` and the 13 offline-synced skill modules](/concepts/ai-coding-skills/)**, an engineer can instruct Codex, Cursor, Windsurf, Copilot, or Claude Code to perform this crystallization and immediately prove equivalence on golden datasets via `npx agboss compare`.
+
+---
+
+## Executable Proofs for All 7 Invariants (`agbossjs/agboss-examples`)
+
+Every invariant above is proven offline for `$0` in the 7 standalone applications of **[`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)** (see [7 Verified Examples](/examples/job-scout/)):
+- **[`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss)** — Canonical `1 class = 1 file` component layout, real async HTTP service DI (`PricingCatalogService`), production `src/http/server.ts`, and symmetric `tests/`.
+- **[`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof)** — Static detection of `[input.missing-on-path]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`, and `[flow.uncompensated-action]` vs raw LangGraph.
+- **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** — Reversible `@PiiPolicy`, `@ToolInterceptor`, `DecidedBy.Code` guardrails, in-memory BM25/TF-IDF `@Rag`, `PolicyAwareCompaction`, and 5-layer `@EvalSuite`.
+- **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)** — Reverse-order LIFO saga compensation (`compensateWith`, `committedBy`), `.joinQuorum()`, SQLite WAL crash recovery, and HITL `Channel.withdraw()`.
+- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)** — `ChildPlacement.AnyInstance`, recursive `ThisWorkflow`, 30s SQLite leases & fencing, `maxConcurrentSteps` backpressure, and `@HealthCheck`.
+- **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)** — 3-service mesh (`1-order-gateway`, `2-billing-a2a`, `3-catalog-mcp`) over A2A + MCP, Ed25519 `agboss-mesh` JWS envelope, `MeshLoopDetectedError`, and `agboss check --federation`.
+- **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration)** — Side-by-side comparison of `before-langgraph/` (`Annotation.Root` God State) vs `after-agboss/` (`@Dto`, `@Router`, `@Action`, `@Channel`, and `agboss check --strict`).

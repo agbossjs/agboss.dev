@@ -295,3 +295,9 @@ One lease exists per execution tree, keyed by `(tenantId, rootExecutionId)`, hel
 ## Extending SQLite stores or writing custom Postgres/Redis stores
 
 You can either subclass a built-in `Sqlite*` store (injecting `SqliteConnection`, `Clock`, `ApplicationContext`, `IdGenerator`) to add custom audit logging, or subclass any of the 7 base repository contracts (`extends ExecutionLeaseRepository`, `extends PausedExecutionRepository`, `extends RateLimitRepository`, etc.) to back AGBoss with Postgres, Redis, or DynamoDB. Every store contract includes `ping(): Promise<void>`, which `await app.checkReadiness()` calls under a 2-second timeout to verify database connectivity.
+
+---
+
+## Standalone Executable Proof: [`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)
+
+Inspect **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)** in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) for a multi-instance cluster harness proving `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository`, bounded recursive `ThisWorkflow` (`maxDepth: 2`), 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck` liveness/readiness probes, and cross-instance pause/resume/cancel (see [7 Verified Examples](/examples/job-scout/)).

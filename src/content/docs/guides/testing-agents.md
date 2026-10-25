@@ -307,3 +307,9 @@ Each recorded cassette (version 2) embeds the component's **`promptHash`** and *
 
 1. **`npx agboss check --cassettes` (in Loop 0) and `VCRMode.REPLAY` (in Loop 1)** fail immediately with `StaleCassetteError` (**`[vcr.stale-cassette]`**, reporting `CassetteChange.Prompt`, `Schema`, or `Removed`) instead of silently passing against an outdated prompt snapshot.
 2. **Surgical re-recording (`VCRMode.RECORD_STALE`):** Run `AGBOSS_VCR_MODE=RECORD_STALE npm test` to replay all unchanged steps from the cassette while re-recording **only** the components whose `promptHash` or `schemaHash` changed, then trigger [Loop 2 (`agboss eval run`)](/guides/evaluation-and-profiles/) to verify the updated behavior.
+
+---
+
+## Symmetric Spring-Style `tests/` Layout & Reference Examples
+
+All 7 reference applications in **[`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)** (`01-hello-agboss` through `07-langgraph-migration`) organize `tests/` as a 1-to-1 mirror of `src/` (`tests/services/`, `tests/tools/`, `tests/actions/`, `tests/routers/`, `tests/guardrails/`, `tests/interceptors/`, `tests/http/`, `tests/workflows/<name>/`). Inspect [`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss) and [`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk) for complete unit runner and `testWith` suites (see [7 Verified Examples](/examples/job-scout/)).

@@ -462,3 +462,9 @@ npx agboss eval ui --dir .artifacts/eval
 | **Chaos (`--chaos <rate> --chaos-seed <n>`) & Metamorphic (`--metamorphic`)** | `--chaos` injects transient provider faults (`429`, timeouts, truncated answers) below `ProviderFetch` to verify retry and `.onError()` resilience; `--metamorphic` runs case `variants` and verifies that the tool-call trajectory (`metamorphic` check) remains invariant across prompt rewordings. |
 | **Production Flywheel (`generate eval-case --from-execution` & `records export`)** | Reads an `ExecutionRecord` from `ExecutionHistoryRepository` (`SqliteExecutionHistoryRepository`), turns its conversation history, input, and required tool calls into a typed `evalCase(...)` in your `@EvalSuite`, and exports JSONL records (`agboss records export`) for offline auditing and `agboss hub`. |
 | **HTML Report (`eval show --html`) & Interactive Workbench (`eval ui`)** | Generates a self-contained single-file HTML report for CI artifacts (`eval run --html` or `eval show <run.json> --html`), or launches a local web workbench (`127.0.0.1`) to inspect multi-turn trajectories, tag failure modes, label runs with live $\kappa$ recalculation, and promote production traces into `@EvalSuite` cases. |
+
+---
+
+## Standalone Executable Proof: [`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)
+
+Inspect **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) for a complete runnable `@EvalSuite` (`src/eval-suites/refund-desk.eval-suite.ts`), compact git-diff-friendly baseline (`eval/baseline/main-baseline.json`), human label calibration (`eval/human-labels/refund-desk-eval-suite.jsonl`), and PII-safe `generate eval-case` promotion (see [7 Verified Examples](/examples/job-scout/)).

@@ -228,7 +228,7 @@ export default defineConfig({
 						{
 							label: 'Examples',
 							paths: ['examples/**'],
-							description: '7 standalone verified applications in agbossjs/agboss-examples (path-scope-proof, hello-agboss, support-refund-desk, travel-booking-saga, enterprise-agent-mesh, cluster-work-stealing, langgraph-migration-smoke) plus job-scout and flow-patterns.',
+							description: '7 standalone verified applications in agbossjs/agboss-examples (01-hello-agboss, 02-path-scope-proof, 03-support-refund-desk, 04-travel-booking-saga, 05-cluster-work-stealing, 06-enterprise-agent-mesh, 07-langgraph-migration) plus job-scout and flow-patterns.',
 						},
 					],
 					optionalLinks: [
@@ -240,7 +240,7 @@ export default defineConfig({
 						{
 							label: 'AGBoss Verified Examples Repository',
 							url: 'https://github.com/agbossjs/agboss-examples',
-							description: '7 standalone verified applications including path-scope-proof, support-refund-desk, travel-booking-saga, enterprise-agent-mesh, cluster-work-stealing, and langgraph-migration-smoke.',
+							description: '7 standalone verified applications (01-hello-agboss, 02-path-scope-proof, 03-support-refund-desk, 04-travel-booking-saga, 05-cluster-work-stealing, 06-enterprise-agent-mesh, and 07-langgraph-migration).',
 						},
 						{
 							label: 'Why AGBoss',
