@@ -18,6 +18,21 @@ const pageTitle = isHome
 	? 'AGBoss — Build Complex AI Workflows. Catch Graph Errors Before Runtime.'
 	: `${title} | AGBoss Docs`;
 
+if (isHome && entry?.data) {
+	const bannerPrefix = RELEASE_META.isPublishedToRegistry
+		? `AGBoss ${RELEASE_META.displayVersion}:`
+		: `Pre-Release ${RELEASE_META.displayVersion}:`;
+	if (entry.data.banner) {
+		entry.data.banner.content = `<strong>${bannerPrefix}</strong> <a href="#executable-proof">Executable Path Scope Proof</a> · <a href="/features/">Interactive Feature Explorer</a> · <a href="/examples/job-scout/">7 Verified Examples</a> · <a href="/getting-started/quick-start/">Quickstart →</a>`;
+	}
+	const heroBadge = RELEASE_META.isPublishedToRegistry
+		? RELEASE_META.displayVersion
+		: `${RELEASE_META.displayVersion} (${RELEASE_META.releaseChannelLabel})`;
+	if (entry.data.hero) {
+		entry.data.hero.title = `<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · ${heroBadge}</span><span class="hero-headline">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>`;
+	}
+}
+
 if (route?.head) {
 	for (const item of route.head) {
 		if (item.tag === 'title') {

@@ -100,9 +100,12 @@ jobs:
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: 6. Build Astro/Starlight site (npm run build)
+      - name: 6. Build Astro/Starlight site & verify release metadata consistency (npm run build + verify:release-meta)
         run: |
+          npm run verify:release-meta
           npm run build
+          npm run verify:release-meta
+          echo "- **\`npm run verify:release-meta\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **\`npm run build\`:** \`PASSED\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: 7. Upload built site artifact

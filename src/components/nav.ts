@@ -1,5 +1,6 @@
 // Site navigation — shared by the header mega menu and the footer sitemap.
 // Items without `href` render as "soon" (visible in the design, not clickable yet).
+import { RELEASE_META } from '../config/release';
 
 export interface NavLink {
 	label: string;
@@ -92,7 +93,7 @@ export const NAV: NavItem[] = [
 	},
 	{
 		label: 'Docs',
-		blurb: 'Core concepts, HarnessDSL (HDSL) syntax, categorized decorator reference, CLI, and release notes (v0.1.0-rc).',
+		blurb: `Core concepts, HarnessDSL (HDSL) syntax, categorized decorator reference, CLI, and release notes (${RELEASE_META.displayVersion}).`,
 		groups: [
 			{
 				title: 'Core Concepts',
@@ -155,7 +156,7 @@ export const NAV: NavItem[] = [
 					{ label: '@McpExpose', href: '/reference/mcp-expose/' },
 					{ label: '@A2AAgent', href: '/reference/a2a-agent/' },
 					{ label: 'CLI (agboss)', href: '/cli/' },
-					{ label: 'v0.1.0-rc Changelog', href: '/changelog/' },
+					{ label: `${RELEASE_META.displayVersion} Changelog`, href: '/changelog/' },
 				],
 			},
 		],
