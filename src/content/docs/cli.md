@@ -16,17 +16,93 @@ npm install
 agboss c support-desk --yes --agents "triage:Sorts requests,answerer:Answers questions" --tools "answerer:search_orders" --mcp filesystem:/path/to/docs --rag notes --skip-install
 ```
 
-Generate components into an existing workflow module with `agboss generate` (alias `agboss g`) using their full names (including kind suffix). The CLI uses the TypeScript Compiler API to wire new components into `@Workflow` / `@Router` / `@EvalSuite` arrays and regenerate `.agboss/types.d.ts`:
+Generate components into an existing workflow module with `agboss generate` (alias `agboss g`) using their full names (including kind suffix) or single-letter/short kind aliases (`a` = `agent`, `r` = `router`, `t` = `tool`, `ar` = `arbiter`, `m` = `mcp`, `oa` = `openapi`, `w` = `workflow`, `ec` = `eval-case`). The CLI enforces a strict **`1 class = 1 file`** layout, placing prompt-capable components (`@Agent`, `@Router`, `@Judge`, `@Arbiter`, `@Compaction`, `@InputGuardrail` / `@OutputGuardrail`, `@ReplyInterpreter`) in their own component subdirectory (`src/<kind-plural>/<name>/<name>.<kind>.ts` + `<name>.prompt.md`) and all DTOs flat in `src/dto/<name>.dto.ts`:
 
 ```bash
-agboss g agent billing-agent --workflow support-desk-workflow --description "Handles invoices"
-agboss g router escalation-router --workflow support-desk-workflow
-agboss g tool refund-tool --workflow support-desk-workflow --agent billing-agent
-agboss g mcp tickets-mcp --workflow support-desk-workflow --command tickets-mcp --tool search-tool --agent billing-agent
+agboss g a billing-agent --workflow support-desk-workflow --description "Handles invoices"
+agboss g r escalation-router --workflow support-desk-workflow
+agboss g t refund-tool --workflow support-desk-workflow --agent billing-agent
+agboss g ar quorum-arbiter --workflow support-desk-workflow
+agboss g m tickets-mcp --workflow support-desk-workflow --command tickets-mcp --tool search-tool --agent billing-agent
 agboss g rag policies-rag --workflow support-desk-workflow --folder policies --agent billing-agent
-agboss g openapi pets --url ./pets.yaml --workflow support-desk-workflow --agent billing-agent
-agboss g workflow onboarding-workflow
-agboss g eval-case refund-edge-eval-case --suite support-desk-eval-suite --from-execution exec-9102
+agboss g oa pets --url ./pets.yaml --workflow support-desk-workflow --agent billing-agent
+agboss g w onboarding-workflow
+agboss g ec refund-edge-eval-case --suite support-desk-eval-suite --from-execution exec-9102
+```
+
+### Standard `1 class = 1 file` project layout
+
+```text
+src/
+├── <app>.application.ts
+├── environments/
+│   ├── app.environment.ts
+│   ├── dev.environment.ts
+│   ├── prod.environment.ts
+│   └── test.environment.ts
+├── dto/                              # All *Dto contracts (1 DTO class = 1 file)
+│   └── <name>.dto.ts
+├── agents/<name>/                    # Group A: prompt-capable components (always in subfolder)
+│   ├── <name>.agent.ts
+│   └── <name>.prompt.md
+├── routers/<name>/
+│   ├── <name>.router.ts
+│   └── <name>.prompt.md              # (when DecidedBy.Model)
+├── judges/<name>/
+│   ├── <name>.judge.ts
+│   └── <name>.prompt.md
+├── arbiters/<name>/
+│   ├── <name>.arbiter.ts
+│   └── <name>.prompt.md
+├── compactions/<name>/
+│   ├── <name>.compaction.ts
+│   └── <name>.prompt.md
+├── guardrails/<name>/
+│   ├── <name>.guardrail.ts
+│   └── <name>.prompt.md
+├── reply-interpreters/<name>/
+│   ├── <name>.reply-interpreter.ts
+│   └── <name>.prompt.md
+├── workflows/                        # Group B: flat inside their kind folder (1 class = 1 file)
+│   └── <name>.workflow.ts
+├── workflow-starts/
+│   └── <name>.workflow-start.ts
+├── workflow-finishes/
+│   └── <name>.workflow-finish.ts
+├── tools/
+│   └── <name>.tool.ts
+├── actions/
+│   └── <name>.action.ts
+├── interceptors/
+│   └── <name>.interceptor.ts
+├── services/
+│   └── <name>.service.ts
+├── observers/
+│   └── <name>.observer.ts
+├── channels/
+│   ├── <name>.channel-role.ts
+│   └── <name>.channel.ts
+├── pii-policies/
+│   └── <name>.pii-policy.ts
+├── rag/
+│   └── <name>.rag.ts
+├── retrievers/
+│   └── <name>.retriever.ts
+├── mcp/
+│   ├── <name>.mcp-server.ts
+│   ├── <name>.mcp-tool.ts
+│   └── <name>.mcp-expose.ts
+├── a2a/
+│   ├── <name>.a2a-agent.ts
+│   └── <name>.a2a-expose.ts
+├── model-providers/
+│   └── <name>.model-provider.ts
+├── budgets/
+│   └── <name>.budget.ts
+├── health-checks/
+│   └── <name>.health-check.ts
+└── eval-suites/
+    └── <name>.eval-suite.ts
 ```
 
 ## All `agboss` CLI commands
