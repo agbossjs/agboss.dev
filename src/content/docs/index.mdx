@@ -17,28 +17,9 @@ hero:
       variant: secondary
 ---
 
-<div class="agboss-install-grid">
-	<div class="agboss-install-card">
-		<div class="agboss-install-card-head">
-			<span class="agboss-install-label">New project</span>
-			<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npx agboss create my-app\ncd my-app\nnpm install')" aria-label="Copy new project commands">⧉</button>
-		</div>
-		<pre class="agboss-install-cmd"><code>npx agboss create my-app
-cd my-app
-npm install</code></pre>
-		<span class="agboss-install-note">Scaffolds the project, generates <code>.agboss/types.d.ts</code> &amp; syncs 13 AI coding skills. (<a href="/getting-started/installation/">Pre-release v0.1.0-rc setup →</a>)</span>
-	</div>
-	<div class="agboss-install-card">
-		<div class="agboss-install-card-head">
-			<span class="agboss-install-label">Existing project</span>
-			<button class="agboss-copy" type="button" onclick="navigator.clipboard.writeText('npm install agboss\nnpm install -D agboss-cli\nnpx agboss check')" aria-label="Copy existing project commands">⧉</button>
-		</div>
-		<pre class="agboss-install-cmd"><code>npm install agboss
-npm install -D agboss-cli
-npx agboss check</code></pre>
-		<span class="agboss-install-note">Production runtime in <code>dependencies</code>; static compiler &amp; UI tools in <code>devDependencies</code>.</span>
-	</div>
-</div>
+import InstallCards from '../../components/InstallCards.astro';
+
+<InstallCards />
 
 <div id="executable-proof"></div>
 

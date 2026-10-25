@@ -8,7 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "check:docs": "node ../agboss/scripts/check-docs.mjs --no-cli-sources --docs $(find src/content/docs -type f \\( -name '*.md' -o -name '*.mdx' \\) -print | paste -sd, -)"
+    "check:docs": "node ${AGBOSS_REPO_DIR:-../agboss}/scripts/check-docs.mjs --no-cli-sources --docs $(find src/content/docs -type f \\( -name '*.md' -o -name '*.mdx' \\) -print | paste -sd, -)"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.6",
