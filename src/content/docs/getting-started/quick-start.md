@@ -5,7 +5,7 @@ description: Build, statically verify with agboss check, run, and unit-test your
 
 Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `agboss/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose **HarnessDSL (`HDSL`)** `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.
 
-> **Pre-Release Status (`v0.1.0-rc`):** The current repository source in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) targets **`0.1.0` (`v0.1.0-rc`)**, while `agboss@0.0.1` and `agboss-cli@0.0.1` on `registry.npmjs.org` are initial placeholder packages. To run a verified starter today before `0.1.0` is published to npm, clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs && cd 01-hello-agboss`) or install local tarballs packed from [`agbossjs/agboss`](https://github.com/agbossjs/agboss).
+> **Current Release (`v0.1.0`):** `agboss@0.1.0` and `agboss-cli@0.1.0` are published on `registry.npmjs.org`. Run `npx agboss create my-app` to scaffold a new project or clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`cd 01-hello-agboss && npm install`) to run the verified starter.
 
 ### Progressive Learning Path
 

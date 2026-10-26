@@ -87,7 +87,7 @@ export default defineConfig({
 		starlight({
 			title: 'AGBoss',
 			description:
-				'AGBoss is an open-source TypeScript framework with static verification for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed dataflow, and build-time graph checking.',
+				'Spring-style architecture for LangGraph AI agents. Build reliable, testable AI agents in TypeScript with dependency injection, static workflow validation, and deterministic testing.',
 			logo: {
 				light: './src/assets/agboss-mark-light.svg',
 				dark: './src/assets/agboss-mark-dark.svg',
@@ -106,7 +106,7 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://agboss.dev/og-image.png' } },
 				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
 				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
-				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss — Open-Source TypeScript Framework with Static Verification for Multi-Agent Workflows on LangGraph' } },
+				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss — TypeScript AI Agent Framework for LangGraph' } },
 				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://agboss.dev/og-image.png' } },
 			],

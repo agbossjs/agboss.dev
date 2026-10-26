@@ -3,7 +3,7 @@ title: CLI Reference
 description: Complete reference for the agboss CLI (agboss-cli) — project scaffolding, component generators, static flow checking, interactive chat, and evaluation.
 ---
 
-The `agboss-cli` package provides the `agboss` command-line interface for scaffolding projects (`agboss create`), generating and wiring components (`agboss generate`), generating `.agboss/types.d.ts` and checking assembly rules (`agboss check`), inspecting workflows (`agboss describe`), running interactive or one-shot turns (`agboss chat`, `agboss run`), and evaluating prompt profiles (`agboss eval`, `agboss compare`).
+The [`agboss-cli`](https://www.npmjs.com/package/agboss-cli) package (paired with the [`agboss`](https://www.npmjs.com/package/agboss) runtime) provides the `agboss` command-line interface (short alias `agb`) for scaffolding projects (`agboss create`), generating and wiring components (`agboss generate`), generating `.agboss/types.d.ts` and checking assembly rules (`agboss check`), inspecting workflows (`agboss describe`), running interactive or one-shot turns (`agboss chat`, `agboss run`), and evaluating prompt profiles (`agboss eval`, `agboss compare`).
 
 ## How to scaffold projects and generate components
 

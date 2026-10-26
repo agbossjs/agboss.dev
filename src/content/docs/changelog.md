@@ -5,11 +5,11 @@ description: Release history, architectural milestones, and npm package versioni
 
 This page tracks releases and architectural milestones of the AGBoss framework. Every code snippet in the AGBoss documentation is compiled and verified against the current public package exports by `check:docs` in CI.
 
-## What is in AGBoss `v0.1.0-rc` (Pre-Release Source)
+## What is in AGBoss `v0.1.0` (Latest Release)
 
-> **Release status notice:** The current repository source targets **`0.1.0` (`v0.1.0-rc` pre-release)**. On the public npm registry (`registry.npmjs.org`), `agboss@0.0.1` and `agboss-cli@0.0.1` are currently initial placeholder packages while `0.1.0` completes pre-release verification. Until `0.1.0` is published to npm, build and pack tarballs from [`github.com/agbossjs/agboss`](https://github.com/agbossjs/agboss) (`make check && npm pack --workspaces`).
+> **Release status:** `agboss@0.1.0` and `agboss-cli@0.1.0` are published on the public npm registry (`registry.npmjs.org`) under the `latest` dist-tag.
 
-AGBoss is organized as two Apache 2.0 packages — `agboss` (the core runtime, decorators, **HarnessDSL (`HDSL`)** flow syntax, SQLite stores, testing harness, and bundled coding-agent skills) and `agboss-cli` (the `agboss` / `agb` CLI). Key capabilities in `v0.1.0-rc` include:
+AGBoss is organized as two Apache 2.0 packages — `agboss` (the core runtime, decorators, **HarnessDSL (`HDSL`)** flow syntax, SQLite stores, testing harness, and bundled coding-agent skills) and `agboss-cli` (the `agboss` / `agb` CLI). Key capabilities in `v0.1.0` include:
 
 | Area | Shipped Capabilities |
 | :--- | :--- |
@@ -26,9 +26,9 @@ AGBoss is organized as two Apache 2.0 packages — `agboss` (the core runtime, d
 
 ## Package naming and version history
 
-AGBoss uses the unscoped `agboss` and `agboss-cli` package names on `registry.npmjs.org`:
+AGBoss uses the unscoped [`agboss`](https://www.npmjs.com/package/agboss) and [`agboss-cli`](https://www.npmjs.com/package/agboss-cli) package names on `registry.npmjs.org`:
 
-- **`0.1.0-rc` (Current Pre-Release in Source):** Full v0.1.0 framework and CLI implementation on `main` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss), verified against the 7-project executable proof suite in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).
-- **`0.0.1` (Published npm Placeholder):** Initial package-name reservation currently published on `registry.npmjs.org`. Do not depend on `0.0.1` for application development; use packed `0.1.0` tarballs from source until `0.1.0` is published.
+- **`0.1.0` (Latest Published Release):** First substantive public release of the `agboss` framework and `agboss-cli` toolkit on `registry.npmjs.org`, verified against the 7-project executable proof suite in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).
+- **`0.0.1` (Historical npm Placeholder):** Initial package-name reservation published during repository setup; superseded by `0.1.0`.
 
 When upgrading from earlier pre-release layouts that imported subpath entry points such as `agboss/core` or `agboss/graph`, run `npx agboss migrate imports` to rewrite imports to the canonical entry points (`agboss`, `agboss/dto`, `agboss/models`, `agboss/units`, `agboss/rag`, `agboss/mcp`, `agboss/a2a`, `agboss/testing`, `agboss/eval`, `agboss/eslint`).

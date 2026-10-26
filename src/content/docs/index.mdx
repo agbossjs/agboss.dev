@@ -1,12 +1,12 @@
 ---
 title: AGBoss
-description: "AGBoss is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification."
+description: "Spring-style architecture for LangGraph AI agents. Build reliable, testable AI agents in TypeScript with dependency injection, static workflow validation, and deterministic testing."
 template: splash
 banner:
-  content: '<strong>Pre-Release v0.1.0-rc:</strong> <a href="#executable-proof">Executable Path Scope Proof</a> · <a href="/features/">Interactive Feature Explorer</a> · <a href="/examples/job-scout/">7 Verified Examples</a> · <a href="/getting-started/quick-start/">Quickstart →</a>'
+  content: '<strong>New in v0.1.0:</strong> <a href="#executable-proof">Executable Path Scope Proof</a> · <a href="/features/">Interactive Feature Explorer</a> · <a href="/examples/job-scout/">7 Verified Examples</a> · <a href="/getting-started/quick-start/">Quickstart →</a>'
 hero:
-  title: '<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class="hero-headline">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>'
-  tagline: '<p class="hero-lead-copy"><strong>AGBoss</strong> is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification.</p>'
+  title: '<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class="hero-headline">Build AI agents.<br/>Verify workflows before runtime.</span>'
+  tagline: '<p class="hero-lead-copy"><strong>Spring-style architecture for LangGraph AI agents.</strong> Build reliable, testable AI agents in TypeScript with dependency injection, static workflow validation, and deterministic testing.</p>'
   actions:
     - text: Get Started
       link: /getting-started/quick-start/
@@ -20,6 +20,25 @@ hero:
 import InstallCards from '../../components/InstallCards.astro';
 
 <InstallCards />
+
+## What is AGBoss and why is it built on LangGraph?
+
+**AGBoss** is an open-source, Spring-style TypeScript framework for building multi-agent applications on top of [LangGraph](https://www.langchain.com/langgraph). LangGraph provides the durable state-graph execution runtime and checkpointing substrate; AGBoss adds a declarative component architecture (`@Application`, `@Workflow`, `@Agent`, `@Router`, `@Arbiter`, `@Action`, `@Tool`), constructor dependency injection (`@Injectable`), explicit `@Dto` data contracts, and a static workflow compiler (`agboss check`).
+
+- **Why dependency injection matters:** Components remain stateless and single-responsibility, so you can swap real external services, SQLite repositories, and test mocks at the `@Application` boundary without rewriting workflow logic.
+- **Why static validation matters:** `npx agboss check` analyzes every workflow route before runtime—catching missing upstream DTO inputs, stale data after revision loops, and uncompensated side effects that pass standard TypeScript (`tsc`) checks in raw shared-state graphs.
+- **Why deterministic testing matters:** With `testWith()`, dedicated unit runners (`testAgent`, `testRouter`, `testTool`, `testAction`), VCR cassettes, and `VirtualClock`, you can test individual components and full multi-agent workflows offline in milliseconds without live LLM calls.
+
+<p>
+  <strong>Official npm packages:</strong>{' '}
+  <a href="https://www.npmjs.com/package/agboss" target="_blank" rel="noopener"><code>agboss</code></a>{' '}
+  (production runtime) &amp;{' '}
+  <a href="https://www.npmjs.com/package/agboss-cli" target="_blank" rel="noopener"><code>agboss-cli</code></a>{' '}
+  (CLI &amp; static compiler)
+  &nbsp;·&nbsp;
+  <strong>Working examples:</strong>{' '}
+  <a href="https://github.com/agbossjs/agboss-examples" target="_blank" rel="noopener"><code>agbossjs/agboss-examples</code></a>
+</p>
 
 <div id="executable-proof"></div>
 

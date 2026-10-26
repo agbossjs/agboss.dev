@@ -61,8 +61,8 @@ export function buildReleaseMeta(isPublishedToRegistry: boolean): ReleaseMetaCon
 
 export const RELEASE_META: ReleaseMetaConfig = {
 	...buildReleaseMeta(false),
-	isPublishedToRegistry: false,
-	displayVersion: 'v0.1.0-rc',
-	releaseChannelLabel: 'pre-release',
-	softwareVersion: '0.1.0-rc',
+	isPublishedToRegistry: true,
+	displayVersion: 'v0.1.0',
+	releaseChannelLabel: 'latest',
+	softwareVersion: '0.1.0',
 };

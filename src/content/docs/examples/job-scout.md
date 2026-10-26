@@ -42,7 +42,7 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 ## Detailed Guide to All 7 Standalone Examples (`01–07`)
 
-> **Pre-Release Setup (`v0.1.0-rc`):** From the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root, run `node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs` once to build and install the `0.1.0` release-candidate tarballs into all 7 projects before running per-project commands.
+> **Setup (`v0.1.0`):** `agboss@0.1.0` and `agboss-cli@0.1.0` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.0` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.
 
 ### 1. [`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss) — Starter, Constructor DI, Budgets & HTTP Server (`P0`)
 

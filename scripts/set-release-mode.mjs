@@ -48,13 +48,13 @@ const TRANSFORMS = [
       "banner:",
       "  content: '<strong>Pre-Release v0.1.0-rc:</strong> <a href=\"#executable-proof\">Executable Path Scope Proof</a> · <a href=\"/features/\">Interactive Feature Explorer</a> · <a href=\"/examples/job-scout/\">7 Verified Examples</a> · <a href=\"/getting-started/quick-start/\">Quickstart →</a>'",
       "hero:",
-      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class=\"hero-headline\">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>'",
+      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class=\"hero-headline\">Build AI agents.<br/>Verify workflows before runtime.</span>'",
     ].join("\n"),
     published: [
       "banner:",
       "  content: '<strong>New in v0.1.0:</strong> <a href=\"#executable-proof\">Executable Path Scope Proof</a> · <a href=\"/features/\">Interactive Feature Explorer</a> · <a href=\"/examples/job-scout/\">7 Verified Examples</a> · <a href=\"/getting-started/quick-start/\">Quickstart →</a>'",
       "hero:",
-      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class=\"hero-headline\">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>'",
+      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class=\"hero-headline\">Build AI agents.<br/>Verify workflows before runtime.</span>'",
     ].join("\n"),
   },
   {
@@ -109,7 +109,7 @@ const TRANSFORMS = [
     preRelease:
       "> **Pre-Release Setup (`v0.1.0-rc`):** From the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root, run `node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs` once to build and install the `0.1.0` release-candidate tarballs into all 7 projects before running per-project commands.",
     published:
-      "> **Setup (`v0.1.0`):** From the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root, run `npm run install:published -- --live-registry --version 0.1.0` (or `npm install` inside any example directory) to install `agboss@0.1.0` and `agboss-cli@0.1.0` before running per-project commands.",
+      "> **Setup (`v0.1.0`):** `agboss@0.1.0` and `agboss-cli@0.1.0` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.0` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.",
   },
   {
     file: "SECURITY.md",
