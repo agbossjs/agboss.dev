@@ -24,7 +24,7 @@ import {
   SqlitePausedExecutionRepository,
   SqliteRateLimitRepository,
   env,
-} from "agboss";
+} from "@agboss/core";
 
 export class StoreEnvironment {
   sqlitePath!: string;
@@ -51,9 +51,9 @@ export const durableStores = [
 ```
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 import { StoreEnvironment } from "./environments/prod.environment.js";
 
 export { WorkflowStartTextDto };
@@ -89,8 +89,8 @@ import {
   SqliteExecutionTreeRepository,
   SqlitePausedExecutionRepository,
   SqliteRateLimitRepository,
-} from "agboss";
-import { seconds } from "agboss/units";
+} from "@agboss/core";
+import { seconds } from "@agboss/core/units";
 
 @Application({
   name: "support-application",
@@ -119,8 +119,8 @@ import {
   ExecutionLeaseRepository,
   Injectable,
   type ExecutionLease,
-} from "agboss";
-import type { Milliseconds } from "agboss/units";
+} from "@agboss/core";
+import type { Milliseconds } from "@agboss/core/units";
 
 @Injectable()
 export class LeaseTableService {
@@ -181,10 +181,10 @@ export class TableExecutionLeaseRepository extends ExecutionLeaseRepository {
 ```
 
 ```ts title="test/multi-instance.test.ts" file=test/multi-instance.test.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import { expect } from "vitest";
-import { testWith } from "agboss/testing";
-import { seconds } from "agboss/units";
+import { testWith } from "@agboss/core/testing";
+import { seconds } from "@agboss/core/units";
 import { SupportFinish, SupportStart, SupportWorkflow } from "../src/support.application.js";
 
 @Application({

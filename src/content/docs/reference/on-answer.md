@@ -3,7 +3,7 @@ title: "@OnAnswer"
 description: Complete API reference for the @OnAnswer(AgentClass) method decorator in AGBoss — evaluating arriving parallel branch answers inside a DecidedBy.Code @Arbiter.
 ---
 
-The `@OnAnswer(AgentClass)` method decorator (`"agboss"`) marks the per-agent evaluation method inside a `DecidedBy.Code` [`@Arbiter`](/reference/arbiter/) class. During a `.joinQuorum()` or `.joinQuorumGroups()` step, AGBoss invokes the matching `@OnAnswer(AgentClass)` method as each parallel branch finishes so your arbiter can return `true` (count toward quorum) or `false` (reject the branch answer) in real time.
+The `@OnAnswer(AgentClass)` method decorator (`"@agboss/core"`) marks the per-agent evaluation method inside a `DecidedBy.Code` [`@Arbiter`](/reference/arbiter/) class. During a `.joinQuorum()` or `.joinQuorumGroups()` step, AGBoss invokes the matching `@OnAnswer(AgentClass)` method as each parallel branch finishes so your arbiter can return `true` (count toward quorum) or `false` (reject the branch answer) in real time.
 
 ## Complete `@OnAnswer` example
 
@@ -25,9 +25,9 @@ import {
   type ActionHandler,
   type BudgetHandler,
   type InputOf,
-} from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { seconds, usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { seconds, usd, type Usd } from "@agboss/core/units";
 
 // @snippet
 
@@ -108,8 +108,8 @@ import {
   ExecutionContext,
   Injectable,
   OnAnswer,
-} from "agboss";
-import { Integer, Text } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class PricingQuoteDto {
   @Text({ prompt: "Pricing tier name" })
@@ -170,7 +170,7 @@ export class MarginThresholdArbiter {
 
 ```ts title="test/margin-threshold.arbiter.test.ts" file=test/margin-threshold.arbiter.test.ts
 import { expect, it } from "vitest";
-import { testArbiter } from "agboss/testing";
+import { testArbiter } from "@agboss/core/testing";
 import {
   EnterprisePricingAgent,
   MarginThresholdArbiter,

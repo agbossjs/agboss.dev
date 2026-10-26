@@ -19,8 +19,8 @@ import {
   PauseResolution,
   type ChannelAsk,
   type ChannelWithdrawal,
-} from "agboss";
-import { Integer, Text } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class RefundInputDto {
   @Text({ prompt: "Order ID to refund" })
@@ -113,7 +113,7 @@ export class SlackRefundApprovalChannel extends RefundApprovalChannel {
 ```
 
 ```ts title="src/tools/refund-card-payment.tool.ts" file=src/tools/refund-card-payment.tool.ts
-import { Tool, type ToolHandler } from "agboss";
+import { Tool, type ToolHandler } from "@agboss/core";
 import {
   RefundApprovalChannel,
   RefundInputDto,
@@ -136,9 +136,9 @@ export class RefundCardPaymentTool implements ToolHandler<RefundInputDto, Refund
 
 <!--
 ```ts file=src/support.application.ts
-import { Agent, Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+import { Agent, Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 import { RefundReceiptDto, SlackRefundApprovalChannel, SlackService } from "./channels/slack-refund-approval.channel.js";
 import { RefundCardPaymentTool } from "./tools/refund-card-payment.tool.js";
 
@@ -192,8 +192,8 @@ export class SupportApplication {}
 
 ```ts title="test/slack-refund-approval.test.ts" file=test/slack-refund-approval.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { callTool, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { callTool, testWith } from "@agboss/core/testing";
 import { SupportApplication, RefundAgent, SupportStart } from "../src/support.application.js";
 import { RefundCardPaymentTool } from "../src/tools/refund-card-payment.tool.js";
 
@@ -226,10 +226,10 @@ test("pauses on RefundCardPaymentTool and resumes with human approval", async ({
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `ChannelOf<Role>` & `ChannelAsk<Role>` | `"agboss"` | Base class extended by `@ChannelRole` and typed payload passed to `send(ask)` (`ask.pauseId`, `ask.value.arguments`). |
-| `ChannelWithdrawal<Role>` & `PauseResolution` | `"agboss"` | Payload passed to optional `withdraw(withdrawal)` when a paused branch is cancelled due to `FailFast` / quorum `Surplus` (`PauseResolution.Withdrawn`) or `app.cancel` (`PauseResolution.Cancelled`). |
-| `ChannelOutcome` (`awaitReply()`, `decided(...)`) | `"agboss"` | Return value of `send(ask)`: either suspends the branch out-of-process (`awaitReply()`) or resolves inline (`decided({ approved })`). |
-| `PauseAnswerer` (`Channel`, `ThreadOwner`) | `"agboss"` | Enforces who is allowed to resume the pause (`answeredBy` vs `ownerId`). |
-| `app.resume({ pauseId, decision }, options)` | `"agboss"` | Two-phase atomic resume: transitions `Pending → Resolved` via CAS in `PausedExecutionRepository` before acquiring the execution-tree lease. |
-| `AutoApproveChannel`, `AutoRejectChannel`, `TerminalUserChannel` | `"agboss"` | Built-in channel implementations for automated tests and interactive CLI sessions. |
-| `PausedExecutionRepository` & `SqlitePausedExecutionRepository` | `"agboss"` | Durable store persisting `PendingPause` records across restarts and worker pods. |
+| `ChannelOf<Role>` & `ChannelAsk<Role>` | `"@agboss/core"` | Base class extended by `@ChannelRole` and typed payload passed to `send(ask)` (`ask.pauseId`, `ask.value.arguments`). |
+| `ChannelWithdrawal<Role>` & `PauseResolution` | `"@agboss/core"` | Payload passed to optional `withdraw(withdrawal)` when a paused branch is cancelled due to `FailFast` / quorum `Surplus` (`PauseResolution.Withdrawn`) or `app.cancel` (`PauseResolution.Cancelled`). |
+| `ChannelOutcome` (`awaitReply()`, `decided(...)`) | `"@agboss/core"` | Return value of `send(ask)`: either suspends the branch out-of-process (`awaitReply()`) or resolves inline (`decided({ approved })`). |
+| `PauseAnswerer` (`Channel`, `ThreadOwner`) | `"@agboss/core"` | Enforces who is allowed to resume the pause (`answeredBy` vs `ownerId`). |
+| `app.resume({ pauseId, decision }, options)` | `"@agboss/core"` | Two-phase atomic resume: transitions `Pending → Resolved` via CAS in `PausedExecutionRepository` before acquiring the execution-tree lease. |
+| `AutoApproveChannel`, `AutoRejectChannel`, `TerminalUserChannel` | `"@agboss/core"` | Built-in channel implementations for automated tests and interactive CLI sessions. |
+| `PausedExecutionRepository` & `SqlitePausedExecutionRepository` | `"@agboss/core"` | Durable store persisting `PendingPause` records across restarts and worker pods. |

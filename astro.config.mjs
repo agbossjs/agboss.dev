@@ -87,7 +87,7 @@ export default defineConfig({
 		starlight({
 			title: 'AGBoss',
 			description:
-				'AGBoss is an open-source TypeScript framework with static verification for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed dataflow, and build-time graph checking.',
+				'Spring-style architecture for LangGraph AI agents. Build reliable, testable AI agents in TypeScript with dependency injection, static workflow validation, and deterministic testing.',
 			logo: {
 				light: './src/assets/agboss-mark-light.svg',
 				dark: './src/assets/agboss-mark-dark.svg',
@@ -106,7 +106,7 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://agboss.dev/og-image.png' } },
 				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
 				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
-				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss — Open-Source TypeScript Framework with Static Verification for Multi-Agent Workflows on LangGraph' } },
+				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'AGBoss — TypeScript AI Agent Framework for LangGraph' } },
 				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://agboss.dev/og-image.png' } },
 			],
@@ -238,7 +238,7 @@ export default defineConfig({
 					description:
 						'AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework with static verification (agboss check) for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed DTO dataflow, and HarnessDSL (HDSL) — its declarative workflow grammar enforcing 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, 30s leases, ChildPlacement.AnyInstance work-stealing, health probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join + agboss hub Crystallization Radar from DecidedBy.Model to DecidedBy.Code).',
 					details:
-						'AGBoss is designed for TypeScript engineers building multi-agent workflows with or without AI coding assistants. Instead of relying on an untyped mutable shared state object where missing branch inputs or stale loop outputs fail at runtime, AGBoss verifies workflow topology and Path Scope before runtime via `agboss check` (emitting `.agboss/types.d.ts`) and ships with auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`) and `agboss/eslint`. Workflows use one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`agboss/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
+						'AGBoss is designed for TypeScript engineers building multi-agent workflows with or without AI coding assistants. Instead of relying on an untyped mutable shared state object where missing branch inputs or stale loop outputs fail at runtime, AGBoss verifies workflow topology and Path Scope before runtime via `agboss check` (emitting `.agboss/types.d.ts`) and ships with auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`) and `@agboss/core/eslint`. Workflows use one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`@agboss/core/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
 					customSets: [
 						{
 							label: 'Core Concepts & HarnessDSL (HDSL)',

@@ -3,7 +3,7 @@ title: "@Compaction"
 description: API reference for the @Compaction decorator, CompactionStrategy (SummaryQueue, SingleSummary, Custom, None), and CompactionHandler in AGBoss.
 ---
 
-`@Compaction` (`"agboss"`) declares how completed conversation turns older than a reader's `uncompactedTurns` window are summarized in multi-turn threads. A `@Compaction` class is bound via `compaction: MyCompaction` on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), or [`@Router`](/reference/router/) (the most specific level that sets `compaction` wins).
+`@Compaction` (`"@agboss/core"`) declares how completed conversation turns older than a reader's `uncompactedTurns` window are summarized in multi-turn threads. A `@Compaction` class is bound via `compaction: MyCompaction` on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), or [`@Router`](/reference/router/) (the most specific level that sets `compaction` wins).
 
 ## Complete `@Compaction` example
 
@@ -31,9 +31,9 @@ import {
   type CompactionHandler,
   type CompactionInput,
   type CompactionTurn,
-} from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 // 1. FIFO SummaryQueue strategy (model-backed)
 @Compaction({
@@ -169,8 +169,8 @@ export class SupportChatApplication {}
 
 ```ts title="test/support.compaction.test.ts" file=test/support.compaction.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { replyWith, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { replyWith, testWith } from "@agboss/core/testing";
 import {
   KnowledgeGraphService,
   SupportChatApplication,

@@ -10,8 +10,8 @@ AGBoss enforces strict 12-factor dev/prod parity: workflows and components never
 At `createApp(Application, { environment })` startup, AGBoss validates every required environment variable and secret before initializing services or running workflows, throwing `EnvironmentError` immediately if any variable is missing or invalid:
 
 ```ts title="src/environments/app.environment.ts" file=src/environments/app.environment.ts
-import type { Secret } from "agboss";
-import type { Milliseconds, Usd } from "agboss/units";
+import type { Secret } from "@agboss/core";
+import type { Milliseconds, Usd } from "@agboss/core/units";
 
 export class AppEnvironment {
   openRouterApiKey!: Secret;
@@ -24,8 +24,8 @@ export class AppEnvironment {
 ```
 
 ```ts title="src/environments/prod.environment.ts" file=src/environments/prod.environment.ts
-import { env, secret } from "agboss";
-import { seconds, usd } from "agboss/units";
+import { env, secret } from "@agboss/core";
+import { seconds, usd } from "@agboss/core/units";
 import type { AppEnvironment } from "./app.environment.js";
 
 export const environment: AppEnvironment = {
@@ -41,8 +41,8 @@ export const environment: AppEnvironment = {
 ```
 
 ```ts title="src/environments/test.environment.ts" file=src/environments/test.environment.ts
-import { secret } from "agboss";
-import { seconds, usd } from "agboss/units";
+import { secret } from "@agboss/core";
+import { seconds, usd } from "@agboss/core/units";
 import type { AppEnvironment } from "./app.environment.js";
 
 export const environment: AppEnvironment = {
@@ -56,7 +56,7 @@ export const environment: AppEnvironment = {
 
 ```ts title="test/environments.test.ts" file=test/environments.test.ts
 import { expect, it } from "vitest";
-import { hours, minutes, seconds, usd } from "agboss/units";
+import { hours, minutes, seconds, usd } from "@agboss/core/units";
 import { environment as testEnv } from "../src/environments/test.environment.js";
 
 it("validates explicit unit factories and masks Secret instances in string serialization", () => {
@@ -72,14 +72,14 @@ it("validates explicit unit factories and masks Secret instances in string seria
 
 | Helper | Import | Behavior |
 | :--- | :--- | :--- |
-| `secret("ENV_VAR")` | `"agboss"` | Reads a required secret into a `Secret` instance that prints as `"***"` in `String()`, `JSON.stringify()`, `util.inspect`, and logs; call `.reveal()` only when passing to a wire client. |
-| `env("ENV_VAR", { default? })` | `"agboss"` | Reads a required string variable (or falls back to `default` when unset). |
-| `env.optional("ENV_VAR")` | `"agboss"` | Returns `string \| undefined` without failing startup when the variable is unset. |
-| `EmptyEnvironment` | `"agboss"` | Built-in empty contract class for applications that do not require environment variables. |
+| `secret("ENV_VAR")` | `"@agboss/core"` | Reads a required secret into a `Secret` instance that prints as `"***"` in `String()`, `JSON.stringify()`, `util.inspect`, and logs; call `.reveal()` only when passing to a wire client. |
+| `env("ENV_VAR", { default? })` | `"@agboss/core"` | Reads a required string variable (or falls back to `default` when unset). |
+| `env.optional("ENV_VAR")` | `"@agboss/core"` | Returns `string \| undefined` without failing startup when the variable is unset. |
+| `EmptyEnvironment` | `"@agboss/core"` | Built-in empty contract class for applications that do not require environment variables. |
 
-## Why AGBoss requires explicit unit factories (`agboss/units`)
+## Why AGBoss requires explicit unit factories (`@agboss/core/units`)
 
-Raw numbers in configuration are a major source of production bugs (confusing `30` seconds with `30` milliseconds, or passing negative/NaN floats as dollar budgets). Every timeout, TTL, retention window, and dollar amount in AGBoss uses branded unit factories from `agboss/units`:
+Raw numbers in configuration are a major source of production bugs (confusing `30` seconds with `30` milliseconds, or passing negative/NaN floats as dollar budgets). Every timeout, TTL, retention window, and dollar amount in AGBoss uses branded unit factories from `@agboss/core/units`:
 
 | Factory | Return Type | Validation & Usage |
 | :--- | :--- | :--- |

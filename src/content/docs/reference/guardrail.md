@@ -3,7 +3,7 @@ title: "@InputGuardrail & @OutputGuardrail"
 description: "Complete API reference for @InputGuardrail, @OutputGuardrail, DecidedBy.Model vs DecidedBy.Code handlers, GuardrailVerdict, and testGuardrail in AGBoss."
 ---
 
-`@InputGuardrail` and `@OutputGuardrail` (`"agboss"`) define boundary safety checks on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), and [`@Router`](/reference/router/). Unlike [`@Judge`](/reference/judge/) (which retries an agent with feedback), a guardrail **blocks** execution immediately (`GuardFailedError`) when a message or reply violates the guardrail.
+`@InputGuardrail` and `@OutputGuardrail` (`"@agboss/core"`) define boundary safety checks on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), and [`@Router`](/reference/router/). Unlike [`@Judge`](/reference/judge/) (which retries an agent with feedback), a guardrail **blocks** execution immediately (`GuardFailedError`) when a message or reply violates the guardrail.
 
 Both `@InputGuardrail` and `@OutputGuardrail` support two execution modes via `decidedBy`:
 - **`DecidedBy.Model` (default):** Evaluates a yes/no `prompt` against `model` (such as `"typesafe/jev-1.13"`) and blocks when $P(\text{yes}) \ge \text{threshold}$.
@@ -23,8 +23,8 @@ import {
   TenantContext,
   type GuardrailHandler,
   type GuardrailRefusal,
-} from "agboss";
-import { OneOf } from "agboss/dto";
+} from "@agboss/core";
+import { OneOf } from "@agboss/core/dto";
 
 export class ClinicTenantContext extends TenantContext {
   @OneOf({ values: ["pediatrics", "general"] })
@@ -124,7 +124,7 @@ export class TriageNurseAgent {}
 
 ```ts title="test/clinic.guardrails.test.ts" file=test/clinic.guardrails.test.ts
 import { expect, it } from "vitest";
-import { decideWith, testGuardrail } from "agboss/testing";
+import { decideWith, testGuardrail } from "@agboss/core/testing";
 import {
   ClinicTenantContext,
   NoDiagnosisOutputGuardrail,

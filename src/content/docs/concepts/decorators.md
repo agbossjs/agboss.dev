@@ -22,15 +22,15 @@ In **AGBoss** (*Agent Graph Builder Open Source System*) and its declarative spe
 | [`@Compaction`](/reference/compaction/) | `agboss` (`*.compaction.ts`) | Conversation history compaction strategy (`SummaryQueue`, `SingleSummary`, `Custom` with `CompactionHandler`, or `None`) |
 | [`@Injectable`](/reference/injectable/) | `agboss` (`*.service.ts`) | Injectable service or `ExecutionObserver` with `OnInit`, `OnStart`, `OnStop`, `OnDestroy` hooks |
 | [`@HealthCheck`](/reference/health-check/) | `agboss` (`*.health-check.ts`) | Liveness and readiness probe component (`HealthCheckHandler`, `checkLiveness()`, `checkReadiness()`) |
-| [`@ModelProvider`](/reference/model-provider/) | `agboss/models` (`*.model-provider.ts`) | Model vendor pool (`-model-provider` suffix) with HTTP or custom `ModelProviderHandler` transport, `serves`, `promptCaching`, `rateLimitPolicy`, and `circuitBreakerPolicy` |
+| [`@ModelProvider`](/reference/model-provider/) | `@agboss/core/models` (`*.model-provider.ts`) | Model vendor pool (`-model-provider` suffix) with HTTP or custom `ModelProviderHandler` transport, `serves`, `promptCaching`, `rateLimitPolicy`, and `circuitBreakerPolicy` |
 | [`@Budget`](/reference/budget/) | `agboss` (`*.config.ts`) | Spend ceiling (`BudgetHandler`, `maxSpend(): Usd`) for `Application`, `Tenant`, or `Execution` scope |
 | [`@PiiPolicy`](/reference/pii-policy/) | `agboss` (`*.pii-policy.ts`) | Declarative `rules: [pii(...)]` or custom `PiiPolicyHandler.findMatches(text)` with deterministic HMAC `replaceWithToken()` |
 | [`@InputGuardrail` & `@OutputGuardrail`](/reference/guardrail/) | `agboss` (`*.guardrail.ts`) | Input/output guardrails (`DecidedBy.Model` with `threshold` or `DecidedBy.Code` with `GuardrailHandler`) across `Application`, `Workflow`, and `Agent` scopes |
 | [`@ChannelRole`](/reference/channel-role/) / [`@Channel`](/reference/channel/) / [`@ReplyInterpreter`](/reference/reply-interpreter/) | `agboss` (`*.channel.ts`) | Out-of-process pause role (`approves`), free-text `@ReplyInterpreter`, and transport implementation (`send(ask)`, `withdraw(info)`) |
-| [`@Rag`](/reference/rag/) | `agboss` / `agboss/rag` (`*.rag.ts`) | Knowledge base (`RagConnector`, `SqliteFtsConnector`) |
-| [`@McpServer`](/reference/mcp/) / [`@McpTool`](/reference/mcp-tool/) / [`@McpExpose`](/reference/mcp-expose/) | `agboss` / `agboss/mcp` (`*.mcp.ts`) | Model Context Protocol client servers, typed tools, and server exposure |
-| [`@A2AAgent` & `a2aHttpListener`](/reference/a2a-agent/) | `agboss` / `agboss/a2a` (`*.a2a.ts`) | Remote Agent-to-Agent protocol client (`A2AClient`), `@Injectable()` `A2ACallerResolver`, and multi-tenant `a2aHttpListener` |
-| [`@Text`, `@ListOf`, `@Nested`, …](/reference/dto/) | `agboss/dto` (`*.dto.ts`) | Field decorators on plain DTO classes compiled to JSON Schema and checked by `agboss check` |
+| [`@Rag`](/reference/rag/) | `agboss` / `@agboss/core/rag` (`*.rag.ts`) | Knowledge base (`RagConnector`, `SqliteFtsConnector`) |
+| [`@McpServer`](/reference/mcp/) / [`@McpTool`](/reference/mcp-tool/) / [`@McpExpose`](/reference/mcp-expose/) | `agboss` / `@agboss/core/mcp` (`*.mcp.ts`) | Model Context Protocol client servers, typed tools, and server exposure |
+| [`@A2AAgent` & `a2aHttpListener`](/reference/a2a-agent/) | `agboss` / `@agboss/core/a2a` (`*.a2a.ts`) | Remote Agent-to-Agent protocol client (`A2AClient`), `@Injectable()` `A2ACallerResolver`, and multi-tenant `a2aHttpListener` |
+| [`@Text`, `@ListOf`, `@Nested`, …](/reference/dto/) | `@agboss/core/dto` (`*.dto.ts`) | Field decorators on plain DTO classes compiled to JSON Schema and checked by `agboss check` |
 
 ## Naming & suffix invariant (`[name.kind-suffix]`)
 
@@ -42,12 +42,12 @@ This guarantees that both humans and AI coding agents can tell a class's computa
 
 ## How DTO classes and explicit units work
 
-In AGBoss, DTOs are plain TypeScript classes decorated with field decorators from `agboss/dto` (`@Text`, `@ListOf`, `@Integer`, `@Decimal`, `@Flag`). Runtime values returned from tools and actions are plain object literals `{ ... }` (never `new MyDto()`), and all currency and duration values use factory functions from `agboss/units` (`usd()`, `seconds()`, `minutes()`, `hours()`):
+In AGBoss, DTOs are plain TypeScript classes decorated with field decorators from `@agboss/core/dto` (`@Text`, `@ListOf`, `@Integer`, `@Decimal`, `@Flag`). Runtime values returned from tools and actions are plain object literals `{ ... }` (never `new MyDto()`), and all currency and duration values use factory functions from `@agboss/core/units` (`usd()`, `seconds()`, `minutes()`, `hours()`):
 
 ```ts title="src/tools/lookup-order.tool.ts" file=src/tools/lookup-order.tool.ts
-import { Budget, BudgetScope, ExecutionContext, Tool, type BudgetHandler, type ToolHandler } from "agboss";
-import { Integer, Text } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetScope, ExecutionContext, Tool, type BudgetHandler, type ToolHandler } from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 export class OrderLookupInput {
   @Text({ prompt: "the order identifier to look up" })
@@ -95,7 +95,7 @@ export class LookupOrderTool
 ```
 
 ```ts title="src/agents/order-assistant.agent.ts" file=src/agents/order-assistant.agent.ts
-import { Agent } from "agboss";
+import { Agent } from "@agboss/core";
 import { LookupOrderTool } from "../tools/lookup-order.tool.js";
 
 @Agent({
@@ -110,7 +110,7 @@ export class OrderAssistantAgent {}
 
 ```ts title="test/lookup-order.tool.test.ts" file=test/lookup-order.tool.test.ts
 import { expect, it } from "vitest";
-import { testTool } from "agboss/testing";
+import { testTool } from "@agboss/core/testing";
 import { LookupOrderTool } from "../src/tools/lookup-order.tool.js";
 
 it("executes LookupOrderTool in isolation without booting the workflow", async () => {

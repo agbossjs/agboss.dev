@@ -3,7 +3,7 @@ title: "@ToolInterceptor"
 description: Complete API reference for @ToolInterceptor, BeforeToolCall, AfterToolCall, ToolCallDecision, and testToolInterceptor() for @Tool and @McpTool in AGBoss.
 ---
 
-`@ToolInterceptor` (`"agboss"`) declares a reusable pre-call and/or post-call interceptor around [`@Tool`](/reference/tool/) and [`@McpTool`](/reference/mcp-tool/) invocations. While [`@InputGuardrail` and `@OutputGuardrail`](/reference/guardrail/) guard the outer text boundary of an `@Agent` or `@Router`, `@ToolInterceptor` guards every individual tool call inside the agent's tool loop (`app.execute` / `app.stream`) as well as direct `app.tool(ToolClass).invoke(input)` calls.
+`@ToolInterceptor` (`"@agboss/core"`) declares a reusable pre-call and/or post-call interceptor around [`@Tool`](/reference/tool/) and [`@McpTool`](/reference/mcp-tool/) invocations. While [`@InputGuardrail` and `@OutputGuardrail`](/reference/guardrail/) guard the outer text boundary of an `@Agent` or `@Router`, `@ToolInterceptor` guards every individual tool call inside the agent's tool loop (`app.execute` / `app.stream`) as well as direct `app.tool(ToolClass).invoke(input)` calls.
 
 A `@ToolInterceptor` class implements `BeforeToolCall`, `AfterToolCall`, or both (`[tool-interceptor.missing-handler]` if neither is implemented), and cascades across `@Application` $\to$ `@Workflow` $\to$ `@Agent` $\to$ `@Tool` / `@McpTool` via `toolInterceptors: [...]` and `excludeToolInterceptors: [...]`.
 
@@ -21,8 +21,8 @@ import {
   type ToolCallContext,
   type ToolCallResultContext,
   type ToolHandler,
-} from "agboss";
-import { Integer, Text } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class OrderInputDto {
   @Text({ prompt: "Order ID to inspect or refund" })
@@ -103,8 +103,8 @@ export class TenantOrderToolInterceptor implements BeforeToolCall, AfterToolCall
 
 ```ts title="test/tenant-order.tool-interceptor.test.ts" file=test/tenant-order.tool-interceptor.test.ts
 import { expect, it } from "vitest";
-import { ToolCallDecision } from "agboss";
-import { testToolInterceptor } from "agboss/testing";
+import { ToolCallDecision } from "@agboss/core";
+import { testToolInterceptor } from "@agboss/core/testing";
 import {
   GetOrderTool,
   TenantOrderToolInterceptor,

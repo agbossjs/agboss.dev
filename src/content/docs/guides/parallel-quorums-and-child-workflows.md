@@ -30,9 +30,9 @@ import {
   type BudgetHandler,
   type InputOf,
   type OutputOf,
-} from "agboss";
-import { Flag, Integer, Text } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { Flag, Integer, Text } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 export class ProposalDto {
   @Text({ prompt: "proposal title" })
@@ -172,8 +172,8 @@ export class ReviewExecBudget implements BudgetHandler { maxSpend(): Usd { retur
 export class ReviewApplication {}
 -->
 ```ts title="src/workflows/parallel-review.workflow.ts" file=src/parallel-review.workflow.ts
-import { QuorumNotReachedError, Workflow, group, start, toAction } from "agboss";
-import { seconds } from "agboss/units";
+import { QuorumNotReachedError, Workflow, group, start, toAction } from "@agboss/core";
+import { seconds } from "@agboss/core/units";
 
 @Workflow({
   name: "parallel-review-workflow",
@@ -212,8 +212,8 @@ export class ParallelReviewWorkflow {}
 
 ```ts title="test/parallel-review.workflow.test.ts" file=test/parallel-review.workflow.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { TestConcurrency, replyWith, step, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { TestConcurrency, replyWith, step, testWith } from "@agboss/core/testing";
 import {
   ReviewApplication,
   ProposalStart,
@@ -245,8 +245,8 @@ test("reaches priority-2 quorum when SecurityAgent and BackupAuditAgent finish f
 A workflow can invoke a modular child workflow (`.toWorkflow(ChildWorkflow)`) or recursively invoke itself (`ThisWorkflow`) either deterministically or as a model-driven tool call:
 
 <!-- snippet-context
-import { Action, Agent, WorkflowFinish, WorkflowStart, oneOf, type ActionHandler, type InputOf, type OutputOf } from "agboss";
-import { ListOf, Text } from "agboss/dto";
+import { Action, Agent, WorkflowFinish, WorkflowStart, oneOf, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
+import { ListOf, Text } from "@agboss/core/dto";
 export class TopicDto { @Text() topic!: string; }
 export class SubTopicsDto { @ListOf(TopicDto) items!: TopicDto[]; }
 export class ResolvedDto { @Text() draft!: string; }
@@ -301,7 +301,7 @@ export class MergeFindingsAction implements ActionHandler<MergeFindingsAction> {
 // @snippet
 -->
 ```ts title="src/workflows/recursive-research.workflow.ts" file=src/recursive-research.workflow.ts
-import { ChildPlacement, ThisWorkflow, Workflow, caseOf, listOf, start } from "agboss";
+import { ChildPlacement, ThisWorkflow, Workflow, caseOf, listOf, start } from "@agboss/core";
 
 @Workflow({
   name: "recursive-research-workflow",
@@ -341,7 +341,7 @@ export class RecursiveResearchWorkflow {}
 
 ```ts title="test/recursive-research.workflow.test.ts" file=test/recursive-research.workflow.test.ts
 import { expect, it } from "vitest";
-import { testAction } from "agboss/testing";
+import { testAction } from "@agboss/core/testing";
 import {
   DecomposeTopicAgent,
   ExtractSubTopicsAction,

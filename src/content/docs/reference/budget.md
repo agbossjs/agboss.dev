@@ -16,9 +16,9 @@ import {
   ExecutionContext,
   TenantContext,
   type BudgetHandler,
-} from "agboss";
-import { Text } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { Text } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 import { DeepResearchWorkflow } from "../workflows/support.workflow.js";
 
 export class SupportTenantContext extends TenantContext {
@@ -84,7 +84,7 @@ export class DeepResearchExecutionBudget implements BudgetHandler {
 ```
 
 ```ts title="src/support.application.ts" file=src/support.application.ts
-import { Application, EmptyEnvironment, SqliteCostLedgerRepository } from "agboss";
+import { Application, EmptyEnvironment, SqliteCostLedgerRepository } from "@agboss/core";
 import {
   ApplicationDailyBudget,
   DeepResearchExecutionBudget,
@@ -113,8 +113,8 @@ export class SupportApplication {}
 
 <!--
 ```ts file=src/workflows/support.workflow.ts
-import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 
 @WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class SupportStart {}
@@ -156,9 +156,9 @@ export class DeepResearchWorkflow {}
 
 ```ts title="test/budget-cap.test.ts" file=test/budget-cap.test.ts
 import { expect } from "vitest";
-import { BudgetExceededError } from "agboss";
-import { replyWith, testWith } from "agboss/testing";
-import { usd } from "agboss/units";
+import { BudgetExceededError } from "@agboss/core";
+import { replyWith, testWith } from "@agboss/core/testing";
+import { usd } from "@agboss/core/units";
 import { SupportApplication } from "../src/support.application.js";
 import { SupportAgent, SupportStart } from "../src/workflows/support.workflow.js";
 
@@ -194,9 +194,9 @@ Every `@Budget` class implements `BudgetHandler` (`maxSpend(): Usd | Promise<Usd
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `BudgetHandler` | `"agboss"` | Interface implemented by every `@Budget` class (`maxSpend(): Usd \| Promise<Usd>`). |
-| `BudgetScope` & `BudgetPeriod` | `"agboss"` | Enums specifying what is capped (`Application`, `Tenant`, `Execution`) and over which UTC period (`Day`, `Week`, `Month`). |
-| `usd(amount)` & `Usd` | `"agboss/units"` | Exact monetary unit factory required for all budget caps and spend reporting. |
-| `SpendRecorder` | `"agboss"` | Injected into `@Tool` and `@Action` classes via `deps: [SpendRecorder]` to count paid external API calls toward `@Budget` caps. |
-| `CostLedgerRepository` & `SqliteCostLedgerRepository` | `"agboss"` | Atomic multi-instance ledger storing period and execution spend counters; required in production (`agboss check --strict`). |
-| `BudgetExceededError` | `"agboss"` | Thrown when a pre-call reservation or post-call spend exceeds any active `@Budget` ceiling. |
+| `BudgetHandler` | `"@agboss/core"` | Interface implemented by every `@Budget` class (`maxSpend(): Usd \| Promise<Usd>`). |
+| `BudgetScope` & `BudgetPeriod` | `"@agboss/core"` | Enums specifying what is capped (`Application`, `Tenant`, `Execution`) and over which UTC period (`Day`, `Week`, `Month`). |
+| `usd(amount)` & `Usd` | `"@agboss/core/units"` | Exact monetary unit factory required for all budget caps and spend reporting. |
+| `SpendRecorder` | `"@agboss/core"` | Injected into `@Tool` and `@Action` classes via `deps: [SpendRecorder]` to count paid external API calls toward `@Budget` caps. |
+| `CostLedgerRepository` & `SqliteCostLedgerRepository` | `"@agboss/core"` | Atomic multi-instance ledger storing period and execution spend counters; required in production (`agboss check --strict`). |
+| `BudgetExceededError` | `"@agboss/core"` | Thrown when a pre-call reservation or post-call spend exceeds any active `@Budget` ceiling. |

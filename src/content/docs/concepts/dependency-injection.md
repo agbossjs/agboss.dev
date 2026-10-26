@@ -12,9 +12,9 @@ Because AGBoss resolves infrastructure contracts by **class inheritance** or typ
 ## Complete example: DI, custom `@Rag`, custom `@ModelProvider` & `override()` test
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import type { Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import type { Usd } from "@agboss/core/units";
 // @snippet
 @WorkflowStart({ name: "di-audit-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class DiAuditStart {}
@@ -44,10 +44,10 @@ import {
   type OnStart,
   type OnStop,
   type ToolHandler,
-} from "agboss";
-import { Rag, type RagConnector, type RagRetrieval } from "agboss/rag";
-import { Text } from "agboss/dto";
-import { minutes, seconds, usd } from "agboss/units";
+} from "@agboss/core";
+import { Rag, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
+import { Text } from "@agboss/core/dto";
+import { minutes, seconds, usd } from "@agboss/core/units";
 import {
   DecisionsModelProvider,
   ModelCost,
@@ -56,7 +56,7 @@ import {
   PromptCaching,
   Reasoning,
   RetryPolicy,
-} from "agboss/models";
+} from "@agboss/core/models";
 
 export class JobQueryDto {
   @Text({ prompt: "Search query for indexed jobs" })
@@ -200,7 +200,7 @@ export class SearchJobsTool
 ```
 
 ```ts title="src/audit.application.ts" file=src/audit.application.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import {
   AuditWorkflow,
   DiAppBudget,
@@ -220,7 +220,7 @@ export class AuditApplication {}
 
 ```ts title="test/custom-overrides.test.ts" file=test/custom-overrides.test.ts
 import { expect, it } from "vitest";
-import { override, testRag, testTool } from "agboss/testing";
+import { override, testRag, testTool } from "@agboss/core/testing";
 import {
   ConnectionPool,
   CustomVectorDocsRag,

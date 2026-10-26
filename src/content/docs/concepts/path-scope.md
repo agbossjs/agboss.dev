@@ -31,8 +31,8 @@ import {
 } from "./offer.components.js";
 -->
 ```ts title="src/workflows/offer-scope.workflow.ts" file=offer-scope.workflow.ts
-import { Workflow, agent, caseOf, start } from "agboss";
-import { oneOf } from "agboss/dto";
+import { Workflow, agent, caseOf, start } from "@agboss/core";
+import { oneOf } from "@agboss/core/dto";
 
 @Workflow({
   name: "offer-scope-workflow",
@@ -62,8 +62,8 @@ export class OfferScopeWorkflow {}
 ```
 
 ```ts title="src/workflows/offer.components.ts" file=offer.components.ts
-import { Action, Agent, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "agboss";
-import { Text, historyOf, oneOf } from "agboss/dto";
+import { Action, Agent, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
+import { Text, historyOf, oneOf } from "@agboss/core/dto";
 
 export class CandidateBriefDto {
   @Text({ prompt: "Candidate summary and target role" })
@@ -165,8 +165,8 @@ export class SendOfferAction implements ActionHandler<SendOfferAction> {
 ```
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 @Budget({ name: "offer-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class OfferAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
 @Budget({ name: "offer-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
@@ -176,9 +176,9 @@ export class OfferExecBudget implements BudgetHandler { maxSpend(): Usd { return
 // @snippet
 -->
 ```ts title="test/offer-scope.workflow.test.ts" file=offer-scope.workflow.test.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import { expect } from "vitest";
-import { replyWith, testWith } from "agboss/testing";
+import { replyWith, testWith } from "@agboss/core/testing";
 import { OfferScopeWorkflow } from "./offer-scope.workflow.js";
 import {
   ChangesRequestedDto,

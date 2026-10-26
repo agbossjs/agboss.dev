@@ -42,7 +42,7 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 ## Detailed Guide to All 7 Standalone Examples (`01–07`)
 
-> **Pre-Release Setup (`v0.1.0-rc`):** From the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root, run `node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs` once to build and install the `0.1.0` release-candidate tarballs into all 7 projects before running per-project commands.
+> **Setup (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.0` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.
 
 ### 1. [`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss) — Starter, Constructor DI, Budgets & HTTP Server (`P0`)
 
@@ -188,8 +188,8 @@ import {
 } from "./job-scout.components.js";
 -->
 ```ts title="src/job-scout.workflow.ts" file=job-scout.workflow.ts
-import { Workflow, route, start } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
+import { Workflow, route, start } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
 
 @Workflow({
   name: "job-scout-workflow",
@@ -218,8 +218,8 @@ export class JobScout {}
 ```
 
 ```ts title="src/job-scout.components.ts" file=job-scout.components.ts
-import { Agent, DecidedBy, Injectable, Router, WorkflowFinish, WorkflowStart } from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { Agent, DecidedBy, Injectable, Router, WorkflowFinish, WorkflowStart } from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 
 @WorkflowStart({ name: "chat-workflow-start", description: "A message", input: WorkflowStartTextDto })
 export class ChatWorkflowStart {}
@@ -255,8 +255,8 @@ export class JobFitJudge {}
 ```
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 @Budget({ name: "js-ex-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class JsExAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
 @Budget({ name: "js-ex-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
@@ -266,9 +266,9 @@ export class JsExExecBudget implements BudgetHandler { maxSpend(): Usd { return 
 // @snippet
 -->
 ```ts title="test/job-scout.workflow.test.ts" file=job-scout.workflow.test.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import { expect } from "vitest";
-import { replyWith, routeTo, testWith } from "agboss/testing";
+import { replyWith, routeTo, testWith } from "@agboss/core/testing";
 import { JobScout } from "./job-scout.workflow.js";
 import {
   ChatWorkflowFinish,

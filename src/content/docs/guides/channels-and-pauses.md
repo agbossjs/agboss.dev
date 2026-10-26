@@ -23,9 +23,9 @@ import {
   WorkflowStart,
   start,
   type BudgetHandler,
-} from "agboss";
-import { Integer, Text, WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { Integer, Text, WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 export class RefundCardInputDto {
   @Text({ prompt: "the order id" })
@@ -93,7 +93,7 @@ import {
   type ChannelAsk,
   type ChannelWithdrawal,
   type ToolHandler,
-} from "agboss";
+} from "@agboss/core";
 
 // 1. Role contract: what it approves and who may answer
 @ChannelRole({
@@ -170,7 +170,7 @@ import {
   type InputOf,
   type OutputOf,
   type ReplyInterpreterHandler,
-} from "agboss";
+} from "@agboss/core";
 
 @ReplyInterpreter({
   name: "refund-reply-interpreter",
@@ -203,7 +203,7 @@ import {
   UninterpretableReplyError,
   UnknownPauseError,
   type App,
-} from "agboss";
+} from "@agboss/core";
 import { RefundWorkflowStart } from "../refunds.js";
 
 // 1. Trigger a workflow from an incoming HTTP webhook (e.g. POST /webhooks/refund-request)
@@ -266,8 +266,8 @@ export async function handleSlackReplyWebhook(
 
 ```ts title="test/refund-pause.test.ts" file=test/refund-pause.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { callTool, replyWith, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { callTool, replyWith, testWith } from "@agboss/core/testing";
 import {
   RefundAgent,
   RefundApplication,

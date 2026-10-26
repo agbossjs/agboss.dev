@@ -8,14 +8,14 @@ const entry = route?.entry;
 const title = entry?.data?.title ?? 'AGBoss';
 const description =
 	entry?.data?.description ??
-	'AGBoss is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification.';
+	'Spring-style architecture for LangGraph AI agents. Build reliable, testable AI agents in TypeScript with dependency injection, static workflow validation, and deterministic testing.';
 
 const siteOrigin = 'https://agboss.dev';
 const pathname = Astro.url.pathname;
 const canonicalUrl = new URL(pathname, siteOrigin).toString();
 const isHome = pathname === '/' || pathname === '';
 const pageTitle = isHome
-	? 'AGBoss — Build Complex AI Workflows. Catch Graph Errors Before Runtime.'
+	? 'AGBoss — TypeScript AI Agent Framework for LangGraph'
 	: `${title} | AGBoss Docs`;
 
 if (isHome && entry?.data) {
@@ -25,11 +25,9 @@ if (isHome && entry?.data) {
 	if (entry.data.banner) {
 		entry.data.banner.content = `<strong>${bannerPrefix}</strong> <a href="#executable-proof">Executable Path Scope Proof</a> · <a href="/features/">Interactive Feature Explorer</a> · <a href="/examples/job-scout/">7 Verified Examples</a> · <a href="/getting-started/quick-start/">Quickstart →</a>`;
 	}
-	const heroBadge = RELEASE_META.isPublishedToRegistry
-		? RELEASE_META.displayVersion
-		: `${RELEASE_META.displayVersion} (${RELEASE_META.releaseChannelLabel})`;
+	const heroBadge = `${RELEASE_META.displayVersion} (${RELEASE_META.releaseChannelLabel})`;
 	if (entry.data.hero) {
-		entry.data.hero.title = `<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · ${heroBadge}</span><span class="hero-headline">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>`;
+		entry.data.hero.title = `<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · ${heroBadge}</span><span class="hero-headline">Build AI agents.<br/>Verify workflows before runtime.</span>`;
 	}
 }
 
@@ -130,6 +128,9 @@ const orgSchema = {
 	},
 	sameAs: [
 		'https://github.com/agbossjs',
+		'https://github.com/agbossjs/agboss',
+		'https://www.npmjs.com/package/@agboss/core',
+		'https://www.npmjs.com/package/@agboss/cli',
 		'https://x.com/agbossjs',
 		'https://www.linkedin.com/company/agbossjs',
 	],
@@ -141,7 +142,7 @@ const websiteSchema = {
 	name: 'AGBoss',
 	url: siteOrigin,
 	description:
-		'AGBoss is an open-source TypeScript framework for multi-agent applications on LangGraph, combining dependency injection, typed dataflow, and static workflow verification.',
+		'Spring-style architecture for LangGraph AI agents. Build reliable, testable AI agents in TypeScript with dependency injection, static workflow validation, and deterministic testing.',
 	publisher: { '@id': `${siteOrigin}/#organization` },
 };
 

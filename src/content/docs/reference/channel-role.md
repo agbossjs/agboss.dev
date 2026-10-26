@@ -3,7 +3,7 @@ title: "@ChannelRole"
 description: "Complete API reference for the @ChannelRole decorator in AGBoss — declaring tool-approval and question/answer pause contracts with PauseAnswerer."
 ---
 
-The `@ChannelRole` decorator (`"agboss"`) defines a transport-independent **human-in-the-loop pause contract**. Tools (`@Tool({ channel: RefundApprovalChannel })`) reference the abstract `@ChannelRole` class, while [`@Application({ providers })`](/reference/application/) binds the concrete [`@Channel`](/reference/channel/) implementation (such as Slack, webhook, or `AutoApproveChannel` in tests) by class inheritance.
+The `@ChannelRole` decorator (`"@agboss/core"`) defines a transport-independent **human-in-the-loop pause contract**. Tools (`@Tool({ channel: RefundApprovalChannel })`) reference the abstract `@ChannelRole` class, while [`@Application({ providers })`](/reference/application/) binds the concrete [`@Channel`](/reference/channel/) implementation (such as Slack, webhook, or `AutoApproveChannel` in tests) by class inheritance.
 
 ## Complete `@ChannelRole` example
 
@@ -18,8 +18,8 @@ import {
   Tool,
   type ChannelAsk,
   type ToolHandler,
-} from "agboss";
-import { Flag, Integer, Text } from "agboss/dto";
+} from "@agboss/core";
+import { Flag, Integer, Text } from "@agboss/core/dto";
 
 export class RefundCardInputDto {
   @Text({ prompt: "charge id" })
@@ -128,9 +128,9 @@ import {
   WorkflowStart,
   start,
   type BudgetHandler,
-} from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 import {
   RefundCardPaymentTool,
   SlackRefundApprovalChannel,
@@ -185,8 +185,8 @@ export class RefundSupportApplication {}
 
 ```ts title="test/refund-approval.channel-role.test.ts" file=test/refund-approval.channel-role.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { callTool, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { callTool, testWith } from "@agboss/core/testing";
 import { RefundCardPaymentTool } from "../src/channels/refund-approval.channel-role.js";
 import {
   RefundSupportAgent,
@@ -225,7 +225,7 @@ Every `@ChannelRole` class extends `ChannelOf<Self>`, has a `name` ending with `
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| [`@Channel`](/reference/channel/) & `ChannelOf<Role>` | `"agboss"` | Concrete transport implementation bound in `@Application({ providers })` by extending the `@ChannelRole` class. |
-| [`@ReplyInterpreter`](/reference/reply-interpreter/) | `"agboss"` | Parses free-text human replies (`app.resume({ pauseId, reply })`) into the role's typed decision. |
-| `AutoApproveChannel` & `AutoRejectChannel` | `"agboss"` | Built-in test channels for automated approval or rejection. |
-| `ToolCallApprovalAskDto` & `ToolCallApprovalDecisionDto` | `"agboss/dto"` | Standard DTOs used by `@ChannelRole({ approves })`. |
+| [`@Channel`](/reference/channel/) & `ChannelOf<Role>` | `"@agboss/core"` | Concrete transport implementation bound in `@Application({ providers })` by extending the `@ChannelRole` class. |
+| [`@ReplyInterpreter`](/reference/reply-interpreter/) | `"@agboss/core"` | Parses free-text human replies (`app.resume({ pauseId, reply })`) into the role's typed decision. |
+| `AutoApproveChannel` & `AutoRejectChannel` | `"@agboss/core"` | Built-in test channels for automated approval or rejection. |
+| `ToolCallApprovalAskDto` & `ToolCallApprovalDecisionDto` | `"@agboss/core/dto"` | Standard DTOs used by `@ChannelRole({ approves })`. |

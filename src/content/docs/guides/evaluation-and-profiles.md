@@ -3,15 +3,15 @@ title: "Loop 2–4: Live Evals, pass^k, Nightly Polygon & Judge Calibration"
 description: "Run Loops 2–4 of the AGBoss Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k, Cohen's kappa calibration, and RFC 8785 Tern profiling."
 ---
 
-In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), once [Loop 0 (`agboss check`) and Loop 1 (`npm test`)](/guides/testing-agents/) have verified your topology and TypeScript harness for `$0`, **Loops 2–4** evaluate live model trajectories, memory compaction survival, and production telemetry. AGBoss combines in-loop [`@Judge`](/reference/judge/) gates (`DecidedBy.Code` and `DecidedBy.Model`), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmarks (`agboss/eval`), Fail-Fast `$0 → $$$` cascades, `pass@k` vs `pass^k` baseline gates (`flaky-on-baseline` quarantine), nightly `--metamorphic` and `--chaos` polygons, Cohen's $\kappa$ calibration (`agboss eval calibrate`), and two production feedback loops (`agboss golden` & [Progressive Crystallization](/concepts/progressive-crystallization/)).
+In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), once [Loop 0 (`agboss check`) and Loop 1 (`npm test`)](/guides/testing-agents/) have verified your topology and TypeScript harness for `$0`, **Loops 2–4** evaluate live model trajectories, memory compaction survival, and production telemetry. AGBoss combines in-loop [`@Judge`](/reference/judge/) gates (`DecidedBy.Code` and `DecidedBy.Model`), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmarks (`@agboss/core/eval`), Fail-Fast `$0 → $$$` cascades, `pass@k` vs `pass^k` baseline gates (`flaky-on-baseline` quarantine), nightly `--metamorphic` and `--chaos` polygons, Cohen's $\kappa$ calibration (`agboss eval calibrate`), and two production feedback loops (`agboss golden` & [Progressive Crystallization](/concepts/progressive-crystallization/)).
 
 ---
 
 ## Complete example: `@Judge` quality gates, `oneOf` narrowing, YAML profile & eval test
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 @Budget({ name: "eval-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class EvalAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
 @Budget({ name: "eval-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
@@ -37,8 +37,8 @@ import {
   type JudgeHandler,
   type JudgeInput,
   type ToolHandler,
-} from "agboss";
-import { Integer, Text, isVariant, oneOf } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text, isVariant, oneOf } from "@agboss/core/dto";
 
 export class OpeningsDto {
   @Text({ prompt: "Verified job openings with [source] citations" })
@@ -212,7 +212,7 @@ defaults:
 
 ```ts title="test/eval-and-judges.test.ts" file=test/eval-and-judges.test.ts
 import { expect } from "vitest";
-import { decideWith, replyWith, testJudge, testWith } from "agboss/testing";
+import { decideWith, replyWith, testJudge, testWith } from "@agboss/core/testing";
 import {
   AnswerGroundedJudge,
   FairDecisionJudge,
@@ -340,11 +340,11 @@ scout-low-thinking | 1.0.0-low-thinking | 0.62 | 1/0/1           | $0.0115 | $0.
 You can also invoke `compareProfiles` programmatically inside custom benchmark scripts or Vitest evaluation suites:
 
 <!-- snippet-context
-declare class JobScout { settings(): import("agboss").WorkflowSettings }
+declare class JobScout { settings(): import("@agboss/core").WorkflowSettings }
 declare class ChatWorkflowStart {}
 -->
 ```ts title="src/evals/compare-profiles.ts"
-import { compareProfiles } from "agboss";
+import { compareProfiles } from "@agboss/core";
 
 export async function runComparison() {
   const comparison = await compareProfiles(JobScout, {
@@ -368,7 +368,7 @@ export async function runComparison() {
 
 ## Principle 5: Declarative `@EvalSuite`, `pass@k` / `pass^k`, Calibration & Eval UI
 
-In addition to scoring recorded `Tern`s, `agboss/eval` lets you declare typed, multi-turn evaluation suites (`@EvalSuite`) with trajectory expectations (`checkTrajectory()`, `toolCall`, `toolInvariant`) and Fail-Fast cascading judges (`EvalCascade.StopAtFirstFailure`, running `$0` `DecidedBy.Code` judges before `DecidedBy.Model` judges):
+In addition to scoring recorded `Tern`s, `@agboss/core/eval` lets you declare typed, multi-turn evaluation suites (`@EvalSuite`) with trajectory expectations (`checkTrajectory()`, `toolCall`, `toolInvariant`) and Fail-Fast cascading judges (`EvalCascade.StopAtFirstFailure`, running `$0` `DecidedBy.Code` judges before `DecidedBy.Model` judges):
 
 ```ts title="src/evals/job-scout.eval-suite.ts" file=src/evals/job-scout.eval-suite.ts
 import {
@@ -381,7 +381,7 @@ import {
   toolCall,
   toolInvariant,
   turn,
-} from "agboss/eval";
+} from "@agboss/core/eval";
 import {
   AnswerGroundedJudge,
   CitationFormatJudge,

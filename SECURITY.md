@@ -4,7 +4,7 @@
 
 | Version | Supported |
 | ------- | --------- |
-| `0.1.0-rc` (pre-release) | Yes |
+| `0.1.0` (latest) | Yes |
 | `< 0.1.0` | No |
 
 ## Reporting a Vulnerability

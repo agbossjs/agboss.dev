@@ -48,44 +48,44 @@ const TRANSFORMS = [
       "banner:",
       "  content: '<strong>Pre-Release v0.1.0-rc:</strong> <a href=\"#executable-proof\">Executable Path Scope Proof</a> · <a href=\"/features/\">Interactive Feature Explorer</a> · <a href=\"/examples/job-scout/\">7 Verified Examples</a> · <a href=\"/getting-started/quick-start/\">Quickstart →</a>'",
       "hero:",
-      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class=\"hero-headline\">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>'",
+      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class=\"hero-headline\">Build AI agents.<br/>Verify workflows before runtime.</span>'",
     ].join("\n"),
     published: [
       "banner:",
       "  content: '<strong>New in v0.1.0:</strong> <a href=\"#executable-proof\">Executable Path Scope Proof</a> · <a href=\"/features/\">Interactive Feature Explorer</a> · <a href=\"/examples/job-scout/\">7 Verified Examples</a> · <a href=\"/getting-started/quick-start/\">Quickstart →</a>'",
       "hero:",
-      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class=\"hero-headline\">Build complex AI workflows.<br/>Catch graph errors before runtime.</span>'",
+      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class=\"hero-headline\">Build AI agents.<br/>Verify workflows before runtime.</span>'",
     ].join("\n"),
   },
   {
     file: "src/content/docs/getting-started/installation.md",
     preRelease:
-      "> **Pre-Release Status (`v0.1.0-rc`):** The current repository source in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) targets **`0.1.0` (`v0.1.0-rc` pre-release)**. On the public npm registry (`registry.npmjs.org`), `agboss@0.0.1` and `agboss-cli@0.0.1` are currently initial placeholder packages while `0.1.0` completes pre-release verification. Until `0.1.0` is published to npm, run the examples via [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs`) or pack local tarballs from [`agbossjs/agboss`](https://github.com/agbossjs/agboss) (`npm run build && npm pack --workspaces`).",
+      "> **Pre-Release Status (`v0.1.0-rc`):** The current repository source in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) targets **`0.1.0` (`v0.1.0-rc` pre-release)**. On the public npm registry (`registry.npmjs.org`), `@agboss/core@0.0.1` and `@agboss/cli@0.0.1` are currently initial placeholder packages while `0.1.0` completes pre-release verification. Until `0.1.0` is published to npm, run the examples via [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs`) or pack local tarballs from [`agbossjs/agboss`](https://github.com/agbossjs/agboss) (`npm run build && npm pack --workspaces`).",
     published:
-      "> **Current Release (`v0.1.0`):** `agboss@0.1.0` and `agboss-cli@0.1.0` are published on the public npm registry (`registry.npmjs.org`). Scaffold a new project with `npx agboss create my-app` or explore the 7 verified architecture examples in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).",
+      "> **Current Release (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on the public npm registry (`registry.npmjs.org`). Scaffold a new project with `npx --yes --package=@agboss/cli agboss create my-app` or explore the 7 verified architecture examples in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).",
   },
   {
     file: "src/content/docs/getting-started/quick-start.md",
     preRelease:
-      "> **Pre-Release Status (`v0.1.0-rc`):** The current repository source in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) targets **`0.1.0` (`v0.1.0-rc`)**, while `agboss@0.0.1` and `agboss-cli@0.0.1` on `registry.npmjs.org` are initial placeholder packages. To run a verified starter today before `0.1.0` is published to npm, clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs && cd 01-hello-agboss`) or install local tarballs packed from [`agbossjs/agboss`](https://github.com/agbossjs/agboss).",
+      "> **Pre-Release Status (`v0.1.0-rc`):** The current repository source in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) targets **`0.1.0` (`v0.1.0-rc`)**, while `@agboss/core@0.0.1` and `@agboss/cli@0.0.1` on `registry.npmjs.org` are initial placeholder packages. To run a verified starter today before `0.1.0` is published to npm, clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs && cd 01-hello-agboss`) or install local tarballs packed from [`agbossjs/agboss`](https://github.com/agbossjs/agboss).",
     published:
-      "> **Current Release (`v0.1.0`):** `agboss@0.1.0` and `agboss-cli@0.1.0` are published on `registry.npmjs.org`. Run `npx agboss create my-app` to scaffold a new project or clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`cd 01-hello-agboss && npm install`) to run the verified starter.",
+      "> **Current Release (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on `registry.npmjs.org`. Run `npx --yes --package=@agboss/cli agboss create my-app` to scaffold a new project or clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`cd 01-hello-agboss && npm install`) to run the verified starter.",
   },
   {
     file: "src/content/docs/changelog.md",
     preRelease: [
       "## What is in AGBoss `v0.1.0-rc` (Pre-Release Source)",
       "",
-      "> **Release status notice:** The current repository source targets **`0.1.0` (`v0.1.0-rc` pre-release)**. On the public npm registry (`registry.npmjs.org`), `agboss@0.0.1` and `agboss-cli@0.0.1` are currently initial placeholder packages while `0.1.0` completes pre-release verification. Until `0.1.0` is published to npm, build and pack tarballs from [`github.com/agbossjs/agboss`](https://github.com/agbossjs/agboss) (`make check && npm pack --workspaces`).",
+      "> **Release status notice:** The current repository source targets **`0.1.0` (`v0.1.0-rc` pre-release)**. On the public npm registry (`registry.npmjs.org`), `@agboss/core@0.0.1` and `@agboss/cli@0.0.1` are currently initial placeholder packages while `0.1.0` completes pre-release verification. Until `0.1.0` is published to npm, build and pack tarballs from [`github.com/agbossjs/agboss`](https://github.com/agbossjs/agboss) (`make check && npm pack --workspaces`).",
       "",
-      "AGBoss is organized as two Apache 2.0 packages — `agboss` (the core runtime, decorators, **HarnessDSL (`HDSL`)** flow syntax, SQLite stores, testing harness, and bundled coding-agent skills) and `agboss-cli` (the `agboss` / `agb` CLI). Key capabilities in `v0.1.0-rc` include:",
+      "AGBoss is organized as two Apache 2.0 packages — `@agboss/core` (the core runtime, decorators, **HarnessDSL (`HDSL`)** flow syntax, SQLite stores, testing harness, and bundled coding-agent skills) and `@agboss/cli` (the `agboss` / `agb` CLI). Key capabilities in `v0.1.0-rc` include:",
     ].join("\n"),
     published: [
       "## What is in AGBoss `v0.1.0` (Latest Release)",
       "",
-      "> **Release status:** `agboss@0.1.0` and `agboss-cli@0.1.0` are published on the public npm registry (`registry.npmjs.org`) under the `latest` dist-tag.",
+      "> **Release status:** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on the public npm registry (`registry.npmjs.org`) under the `latest` dist-tag.",
       "",
-      "AGBoss is organized as two Apache 2.0 packages — `agboss` (the core runtime, decorators, **HarnessDSL (`HDSL`)** flow syntax, SQLite stores, testing harness, and bundled coding-agent skills) and `agboss-cli` (the `agboss` / `agb` CLI). Key capabilities in `v0.1.0` include:",
+      "AGBoss is organized as two Apache 2.0 packages — `@agboss/core` (the core runtime, decorators, **HarnessDSL (`HDSL`)** flow syntax, SQLite stores, testing harness, and bundled coding-agent skills) and `@agboss/cli` (the `agboss` / `agb` CLI). Key capabilities in `v0.1.0` include:",
     ].join("\n"),
   },
   {
@@ -95,7 +95,7 @@ const TRANSFORMS = [
       "- **`0.0.1` (Published npm Placeholder):** Initial package-name reservation currently published on `registry.npmjs.org`. Do not depend on `0.0.1` for application development; use packed `0.1.0` tarballs from source until `0.1.0` is published.",
     ].join("\n"),
     published: [
-      "- **`0.1.0` (Latest Published Release):** First substantive public release of the `agboss` framework and `agboss-cli` toolkit on `registry.npmjs.org`, verified against the 7-project executable proof suite in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).",
+      "- **`0.1.0` (Latest Published Release):** First substantive public release of the `@agboss/core` framework and `@agboss/cli` toolkit on `registry.npmjs.org`, verified against the 7-project executable proof suite in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).",
       "- **`0.0.1` (Historical npm Placeholder):** Initial package-name reservation published during repository setup; superseded by `0.1.0`.",
     ].join("\n"),
   },
@@ -109,7 +109,7 @@ const TRANSFORMS = [
     preRelease:
       "> **Pre-Release Setup (`v0.1.0-rc`):** From the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root, run `node ./scripts/pack-framework.mjs && node ./scripts/install-packed.mjs` once to build and install the `0.1.0` release-candidate tarballs into all 7 projects before running per-project commands.",
     published:
-      "> **Setup (`v0.1.0`):** From the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root, run `npm run install:published -- --live-registry --version 0.1.0` (or `npm install` inside any example directory) to install `agboss@0.1.0` and `agboss-cli@0.1.0` before running per-project commands.",
+      "> **Setup (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.0` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.",
   },
   {
     file: "SECURITY.md",

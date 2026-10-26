@@ -3,15 +3,15 @@ title: "@BindTool"
 description: Complete API reference for the @BindTool method decorator in AGBoss — binding service methods to @Tool or @McpTool invocations.
 ---
 
-The `@BindTool(ToolClass, options?)` method decorator (`"agboss"`) binds a method on a workflow provider class to a [`@Tool`](/reference/tool/) or [`@McpTool`](/reference/mcp-tool/) (optionally scoped to a specific [`@Agent`](/reference/agent/) via `{ agent: MyAgent }`).
+The `@BindTool(ToolClass, options?)` method decorator (`"@agboss/core"`) binds a method on a workflow provider class to a [`@Tool`](/reference/tool/) or [`@McpTool`](/reference/mcp-tool/) (optionally scoped to a specific [`@Agent`](/reference/agent/) via `{ agent: MyAgent }`).
 
 ## `@BindTool` example
 
 <!--
 ```ts file=src/tools/bind-tool-ambient.d.ts
-import type { BindToolOptions, Class } from "agboss";
+import type { BindToolOptions, Class } from "@agboss/core";
 
-declare module "agboss" {
+declare module "@agboss/core" {
   export function BindTool(
     tool: Class | string,
     options?: BindToolOptions,
@@ -21,8 +21,8 @@ declare module "agboss" {
 -->
 
 ```ts title="src/tools/bound-search.service.ts" file=src/tools/bound-search.service.ts
-import { Agent, BindTool, Injectable, Tool, type ToolHandler } from "agboss";
-import { ListOf, Text } from "agboss/dto";
+import { Agent, BindTool, Injectable, Tool, type ToolHandler } from "@agboss/core";
+import { ListOf, Text } from "@agboss/core/dto";
 
 export class RegionalSearchInputDto {
   @Text({ prompt: "Role keywords, e.g. Staff TypeScript" })
@@ -68,7 +68,7 @@ export class EuJobSearchBindings {
 
 ```ts title="test/bound-search.service.test.ts" file=test/bound-search.service.test.ts
 import { expect, it } from "vitest";
-import { testTool } from "agboss/testing";
+import { testTool } from "@agboss/core/testing";
 import {
   EuJobSearchBindings,
   SearchRegionalJobsTool,

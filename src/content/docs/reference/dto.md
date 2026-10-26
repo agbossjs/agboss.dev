@@ -3,14 +3,14 @@ title: "DTO Field Decorators (@Text, @ListOf, @Nested…)"
 description: "Complete API reference for DTO classes and field decorators in agboss/dto — @Text, @Integer, @Floating, @Flag, @Choice, @ListOf, @OneOf, and @RecordOf."
 ---
 
-In AGBoss, every payload crossing a workflow path, `@Agent`, `@Action`, `@Router`, `@Tool`, or `@ChannelRole` boundary is a **DTO class** (`*Dto`) whose properties each carry a single field decorator from `agboss/dto` (`[dto.missing-decorator]`, `[dto.multiple-decorators]`). A single DTO class serves simultaneously as the compile-time TypeScript type, the runtime validator, the deterministic JSON Schema generator for LLM structured outputs, and the field-level PII masking contract. Runtime values are always plain object literals `{ ... }` — never instantiate DTOs with `new`.
+In AGBoss, every payload crossing a workflow path, `@Agent`, `@Action`, `@Router`, `@Tool`, or `@ChannelRole` boundary is a **DTO class** (`*Dto`) whose properties each carry a single field decorator from `@agboss/core/dto` (`[dto.missing-decorator]`, `[dto.multiple-decorators]`). A single DTO class serves simultaneously as the compile-time TypeScript type, the runtime validator, the deterministic JSON Schema generator for LLM structured outputs, and the field-level PII masking contract. Runtime values are always plain object literals `{ ... }` — never instantiate DTOs with `new`.
 
 ## Complete DTO example with nested objects, lists, formats, and `sensitive: PiiAction.*`
 
 Every scalar field decorator accepts `sensitive?: MaskingPiiAction` (`PiiAction.replaceWithKind()`, `PiiAction.replaceWithToken()`, or `PiiAction.replacePart({ keepFirst?, keepLast?, maskChar? })`):
 
 ```ts title="src/dto/candidate-offer.dto.ts" file=src/dto/candidate-offer.dto.ts
-import { Agent, PiiAction } from "agboss";
+import { Agent, PiiAction } from "@agboss/core";
 import {
   CountryCode,
   CurrencyCode,
@@ -27,7 +27,7 @@ import {
   Text,
   Url,
   Uuid,
-} from "agboss/dto";
+} from "@agboss/core/dto";
 
 export class CompensationLineItemDto {
   @OneOf({ values: ["base", "bonus", "equity"], prompt: "Compensation component type" })
@@ -118,9 +118,9 @@ import {
   WorkflowStart,
   start,
   type BudgetHandler,
-} from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 import { OfferDrafterAgent, OfferPackageDto } from "./dto/candidate-offer.dto.js";
 
 @WorkflowStart({ name: "offer-draft-workflow-start", description: "Start", input: WorkflowStartTextDto })
@@ -162,8 +162,8 @@ export class OfferDraftApplication {}
 
 ```ts title="test/candidate-offer.dto.test.ts" file=test/candidate-offer.dto.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { replyWith, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { replyWith, testWith } from "@agboss/core/testing";
 import { OfferDrafterAgent, OfferPackageDto } from "../src/dto/candidate-offer.dto.js";
 import { OfferDraftApplication, OfferDraftStart } from "../src/offer-drafter.application.js";
 
@@ -194,7 +194,7 @@ test("validates nested OfferPackageDto structured output at runtime", async ({ a
 });
 ```
 
-## What field decorators does `agboss/dto` provide?
+## What field decorators does `@agboss/core/dto` provide?
 
 | Decorator | TypeScript Field Type | Options | Description |
 | :--- | :--- | :--- | :--- |
@@ -222,7 +222,7 @@ test("validates nested OfferPackageDto structured output at runtime", async ({ a
 
 | Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `PlainTextDto`, `WorkflowStartTextDto`, `WorkflowFinishTextDto` | `"agboss/dto"` | Built-in standard text DTOs (`{ text: string }`) for plain-text agent judges, workflow starts, and workflow finishes. |
-| `ToolCallApprovalAskDto` & `ToolCallApprovalDecisionDto` | `"agboss/dto"` | Built-in standard DTOs used by `@ChannelRole({ approves })` tool approval pauses (`{ approved: boolean, reason?: string, overrideArguments?: ... }`). |
-| `oneOf(DtoA, DtoB)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"agboss"` | Path Scope type wrappers used in `.returns(...)` and `@Agent` / `@Action` / `@Router` `input` and `output` contracts. |
-| `variant(DtoClass, plainObject)` & `isVariant(value, DtoClass)` | `"agboss"` | Tags and narrows union variants when returning or inspecting `oneOf(DtoA, DtoB)` values in deterministic code. |
+| `PlainTextDto`, `WorkflowStartTextDto`, `WorkflowFinishTextDto` | `"@agboss/core/dto"` | Built-in standard text DTOs (`{ text: string }`) for plain-text agent judges, workflow starts, and workflow finishes. |
+| `ToolCallApprovalAskDto` & `ToolCallApprovalDecisionDto` | `"@agboss/core/dto"` | Built-in standard DTOs used by `@ChannelRole({ approves })` tool approval pauses (`{ approved: boolean, reason?: string, overrideArguments?: ... }`). |
+| `oneOf(DtoA, DtoB)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"@agboss/core"` | Path Scope type wrappers used in `.returns(...)` and `@Agent` / `@Action` / `@Router` `input` and `output` contracts. |
+| `variant(DtoClass, plainObject)` & `isVariant(value, DtoClass)` | `"@agboss/core"` | Tags and narrows union variants when returning or inspecting `oneOf(DtoA, DtoB)` values in deterministic code. |

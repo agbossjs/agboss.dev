@@ -8,13 +8,13 @@ The `@Rag` decorator (`rag/*.rag.ts`) defines a knowledge base component impleme
 ## Complete `@Rag` examples (`SqliteFtsConnector` and custom `RagConnector`)
 
 ```ts title="src/rag/job-postings.rag.ts" file=src/rag/job-postings.rag.ts
-import { ExecutionContext } from "agboss";
+import { ExecutionContext } from "@agboss/core";
 import {
   Rag,
   SqliteFtsConnector,
   type RagConnector,
   type RagRetrieval,
-} from "agboss/rag";
+} from "@agboss/core/rag";
 import { AppEnvironment, VectorSearchService } from "../services/vector-search.service.js";
 
 // 1. Built-in SQLite FTS5 BM25 knowledge base (extends SqliteFtsConnector):
@@ -68,7 +68,7 @@ export class EngineeringRunbooksRag implements RagConnector {
 ```
 
 ```ts title="src/services/vector-search.service.ts" file=src/services/vector-search.service.ts
-import { Injectable } from "agboss";
+import { Injectable } from "@agboss/core";
 
 export class AppEnvironment {
   sqlitePath?: string;
@@ -87,7 +87,7 @@ export class VectorSearchService {
 ```
 
 ```ts title="src/agents/recruiter-rag.agent.ts" file=src/agents/recruiter-rag.agent.ts
-import { Agent, RagMode } from "agboss";
+import { Agent, RagMode } from "@agboss/core";
 import { EngineeringRunbooksRag, JobPostingsFtsRag } from "../rag/job-postings.rag.js";
 
 @Agent({
@@ -105,7 +105,7 @@ export class RecruiterRagAgent {}
 
 ```ts title="test/job-postings.rag.test.ts" file=test/job-postings.rag.test.ts
 import { expect, it } from "vitest";
-import { testRag } from "agboss/testing";
+import { testRag } from "@agboss/core/testing";
 import { EngineeringRunbooksRag } from "../src/rag/job-postings.rag.js";
 
 it("retrieves ranked passages with source IDs and tracks rag spend", async () => {
@@ -131,7 +131,7 @@ it("retrieves ranked passages with source IDs and tracks rag spend", async () =>
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `RagConnector` | `"agboss/rag"` | Interface implemented by `@Rag` classes (`retrieve(query, { topK, signal }): Promise<RagRetrieval>` and optional `index(docs)`). |
-| `SqliteFtsConnector` | `"agboss/rag"` | Built-in zero-dependency SQLite FTS5 BM25 connector with automatic tokenization and ranking. |
-| `RagMode` (`Tool`, `Context`) | `"agboss"` | Used in `@Agent({ rag: [{ use: MyRag, mode }] })`: `RagMode.Tool` exposes a search tool the model calls on demand; `RagMode.Context` pre-fetches top-K passages before the model call. |
-| `testRag(RagClass, options?)` | `"agboss/testing"` | Isolated unit runner that tests `retrieve()` and `rag:<name>` cost tracking with DI overrides without booting an agent. |
+| `RagConnector` | `"@agboss/core/rag"` | Interface implemented by `@Rag` classes (`retrieve(query, { topK, signal }): Promise<RagRetrieval>` and optional `index(docs)`). |
+| `SqliteFtsConnector` | `"@agboss/core/rag"` | Built-in zero-dependency SQLite FTS5 BM25 connector with automatic tokenization and ranking. |
+| `RagMode` (`Tool`, `Context`) | `"@agboss/core"` | Used in `@Agent({ rag: [{ use: MyRag, mode }] })`: `RagMode.Tool` exposes a search tool the model calls on demand; `RagMode.Context` pre-fetches top-K passages before the model call. |
+| `testRag(RagClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that tests `retrieve()` and `rag:<name>` cost tracking with DI overrides without booting an agent. |
