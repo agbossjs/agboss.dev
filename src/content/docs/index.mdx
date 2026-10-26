@@ -25,9 +25,9 @@ import InstallCards from '../../components/InstallCards.astro';
 
 **AGBoss** is an open-source, Spring-style TypeScript framework for building multi-agent applications on top of [LangGraph](https://www.langchain.com/langgraph). LangGraph provides the durable state-graph execution runtime and checkpointing substrate; AGBoss adds a declarative component architecture (`@Application`, `@Workflow`, `@Agent`, `@Router`, `@Arbiter`, `@Action`, `@Tool`), constructor dependency injection (`@Injectable`), explicit `@Dto` data contracts, and a static workflow compiler (`agboss check`).
 
-- **Why dependency injection matters:** Components remain stateless and single-responsibility, so you can swap real external services, SQLite repositories, and test mocks at the `@Application` boundary without rewriting workflow logic.
+- **Why dependency injection matters:** Constructor dependency injection keeps components focused on their role while letting you wire replaceable service implementations, SQLite repositories, and test doubles at the `@Application` boundary without rewriting workflow logic.
 - **Why static validation matters:** `npx agboss check` analyzes every workflow route before runtime—catching missing upstream DTO inputs, stale data after revision loops, and uncompensated side effects that pass standard TypeScript (`tsc`) checks in raw shared-state graphs.
-- **Why deterministic testing matters:** With `testWith()`, dedicated unit runners (`testAgent`, `testRouter`, `testTool`, `testAction`), VCR cassettes, and `VirtualClock`, you can test individual components and full multi-agent workflows offline in milliseconds without live LLM calls.
+- **Why deterministic testing matters:** With `testWith()`, dedicated unit runners (`testRouter`, `testTool`, `testAction`, `testArbiter`), VCR cassettes, and `VirtualClock`, you can test individual components and full multi-agent workflows deterministically offline without live LLM calls.
 
 <p>
   <strong>Official npm packages:</strong>{' '}
