@@ -10,9 +10,9 @@ Operating multi-agent systems in production requires visibility into every workf
 Any `@Injectable()` class listed in `@Application({ observers: [...] })` can implement one or more observer hook interfaces (`OnExecutionStart`, `OnExecutionEnd`, `OnExecutionError`, `OnExecutionRejected`, `OnExecutionPause`, `OnExecutionResume`, `OnAgentStart`, `OnAgentEnd`, `OnValuesOutdated`). All event payloads are pre-masked by the application and workflow `@PiiPolicy` rules before reaching your observer:
 
 ```ts title="src/observers/audit.observer.ts" file=src/observers/audit.observer.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Injectable, Workflow, WorkflowFinish, WorkflowStart, start, type AgentStartEvent, type BudgetHandler, type ExecutionEndEvent, type ExecutionRejectedEvent, type OnAgentStart, type OnExecutionEnd, type OnExecutionRejected } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Injectable, Workflow, WorkflowFinish, WorkflowStart, start, type AgentStartEvent, type BudgetHandler, type ExecutionEndEvent, type ExecutionRejectedEvent, type OnAgentStart, type OnExecutionEnd, type OnExecutionRejected } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 @Injectable()
 export class MetricsObserver
@@ -107,8 +107,8 @@ export class PingApplication {}
 
 ```ts title="test/audit.observer.test.ts" file=test/audit.observer.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { testWith } from "@agboss/core/testing";
 import { PingApplication, MetricsObserver, PingWorkflowStart } from "../src/observers/audit.observer.js";
 
 const test = testWith(PingApplication);
@@ -122,7 +122,7 @@ test("records execution and agent lifecycle events in MetricsObserver", async ({
 
 ## What events and spans are captured in traces and observers?
 
-Every element of the workflow graph has its own typed `On*Start` / `On*End` callback interface exported from `"agboss"`:
+Every element of the workflow graph has its own typed `On*Start` / `On*End` callback interface exported from `"@agboss/core"`:
 
 | Hook Interface(s) | Emitted When | Key Payload Fields |
 | :--- | :--- | :--- |

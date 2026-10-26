@@ -3,7 +3,7 @@ title: "@Judge"
 description: "Complete API reference for the @Judge decorator in AGBoss — DecidedBy.Model vs DecidedBy.Code, JudgeVerdict, toolCalls inspection, and testJudge runner."
 ---
 
-The `@Judge` decorator (`"agboss"`) defines an independent quality gate attached to an `@Agent` via `@Agent({ judges: [MyJudge], maxRetries: 2 })` or to an `@EvalSuite` case via `judgedBy: [MyJudge]`. Every time the agent produces a reply, its judges inspect `{ reply, variant, task, attempt, toolCalls }` and return a `JudgeVerdict` built via `JudgeVerdict.passed({ metrics? })` or `JudgeVerdict.failed({ reason, metrics? })`. When an in-loop judge fails, AGBoss feeds `reason` back into the agent and retries up to `maxRetries` times before letting the output leave the step.
+The `@Judge` decorator (`"@agboss/core"`) defines an independent quality gate attached to an `@Agent` via `@Agent({ judges: [MyJudge], maxRetries: 2 })` or to an `@EvalSuite` case via `judgedBy: [MyJudge]`. Every time the agent produces a reply, its judges inspect `{ reply, variant, task, attempt, toolCalls }` and return a `JudgeVerdict` built via `JudgeVerdict.passed({ metrics? })` or `JudgeVerdict.failed({ reason, metrics? })`. When an in-loop judge fails, AGBoss feeds `reason` back into the agent and retries up to `maxRetries` times before letting the output leave the step.
 
 `@Judge` supports two execution modes via `decidedBy`:
 - **`DecidedBy.Model` (default):** Injects `JudgeModel` (`judgeModel.decide()` for decision models like `"typesafe/jev-1.13"` or `judgeModel.invoke()` for chat models). Emits a `[judge.same-model-family]` warning if the judge uses the same model family as the judged `@Agent` (preventing self-preference bias).
@@ -22,9 +22,9 @@ import {
   RagMode,
   type JudgeHandler,
   type JudgeInput,
-} from "agboss";
-import { ListOf, Text } from "agboss/dto";
-import { Rag, type RagConnector, type RagRetrieval } from "agboss/rag";
+} from "@agboss/core";
+import { ListOf, Text } from "@agboss/core/dto";
+import { Rag, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
 
 export class PolicyAnswerDto {
   @Text({ prompt: "Policy answer citing [source] identifiers" })
@@ -112,7 +112,7 @@ export class PolicyAdvisorAgent {}
 
 ```ts title="test/grounded-citation.judge.test.ts" file=test/grounded-citation.judge.test.ts
 import { expect, it } from "vitest";
-import { decideWith, testJudge } from "agboss/testing";
+import { decideWith, testJudge } from "@agboss/core/testing";
 import { GroundedCitationJudge, PolicyAnswerDto } from "../src/judges/grounded-citation.judge.js";
 
 it("fails an uncited reply and returns actionable retry reason", async () => {
@@ -152,10 +152,10 @@ it("fails an uncited reply and returns actionable retry reason", async () => {
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `JudgeHandler<TReply>` | `"agboss"` | Interface implemented by every `@Judge` class (`judge(input: JudgeInput<TReply>): Promise<JudgeVerdict> \| JudgeVerdict`). |
-| `JudgeInput<TReply>` | `"agboss"` | Typed input passed to `judge()`: `{ reply: TReply, variant: DtoClass<TReply>, task: string, attempt: number, toolCalls: readonly ToolCallRecord[] }` (use `isVariant(input, VariantDto)` when `reply: oneOf(A, B)`). |
-| `toolCallsOf(ToolClass, input.toolCalls)` | `"agboss"` | Filters `input.toolCalls` to calls of `ToolClass` with `input` and `output` narrowed to that tool's DTO types. |
-| `JudgeVerdict` (`passed()`, `failed({ reason })`) | `"agboss"` | Branded builders for pass/fail verdicts (`{ passed: true, metrics? }` or `{ passed: false, reason, metrics? }`). |
-| `JudgeModel` | `"agboss"` | Injected via `deps: [JudgeModel]` on `DecidedBy.Model` judges; provides `judgeModel.decide({ state, questions })` for decision models and `judgeModel.invoke(messages)` for chat models, with automatic FinOps cost tracking under `judge:<name>`. |
-| `Decision` (`choice`, `noul`, `score`) | `"agboss"` | Builders for typed multi-question evaluation requests sent to `judgeModel.decide()`. |
-| `testJudge(JudgeClass, options?)` | `"agboss/testing"` | Isolated unit runner that tests a `@Judge` class offline with scripted `decideWith` / `replyWith` turns or `DecidedBy.Code` logic. |
+| `JudgeHandler<TReply>` | `"@agboss/core"` | Interface implemented by every `@Judge` class (`judge(input: JudgeInput<TReply>): Promise<JudgeVerdict> \| JudgeVerdict`). |
+| `JudgeInput<TReply>` | `"@agboss/core"` | Typed input passed to `judge()`: `{ reply: TReply, variant: DtoClass<TReply>, task: string, attempt: number, toolCalls: readonly ToolCallRecord[] }` (use `isVariant(input, VariantDto)` when `reply: oneOf(A, B)`). |
+| `toolCallsOf(ToolClass, input.toolCalls)` | `"@agboss/core"` | Filters `input.toolCalls` to calls of `ToolClass` with `input` and `output` narrowed to that tool's DTO types. |
+| `JudgeVerdict` (`passed()`, `failed({ reason })`) | `"@agboss/core"` | Branded builders for pass/fail verdicts (`{ passed: true, metrics? }` or `{ passed: false, reason, metrics? }`). |
+| `JudgeModel` | `"@agboss/core"` | Injected via `deps: [JudgeModel]` on `DecidedBy.Model` judges; provides `judgeModel.decide({ state, questions })` for decision models and `judgeModel.invoke(messages)` for chat models, with automatic FinOps cost tracking under `judge:<name>`. |
+| `Decision` (`choice`, `noul`, `score`) | `"@agboss/core"` | Builders for typed multi-question evaluation requests sent to `judgeModel.decide()`. |
+| `testJudge(JudgeClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that tests a `@Judge` class offline with scripted `decideWith` / `replyWith` turns or `DecidedBy.Code` logic. |

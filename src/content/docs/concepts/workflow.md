@@ -3,7 +3,7 @@ title: Workflow HDSL — HarnessDSL & Canonical Topology
 description: "Master HarnessDSL (HDSL) — the declarative workflow grammar inside AGBoss for canonical topology, Path Scope DTOs, parallel quorums, and LIFO sagas."
 ---
 
-In **AGBoss** (*Agent Graph Builder Open Source System*), a workflow is written in **HarnessDSL (`HDSL`)** — the declarative graph grammar and verification specification built into `AGBoss` (analogous to JSX in React or PSL in Prisma). While `AGBoss` is the framework, static compiler (`agboss check`), and production runtime on LangGraph (`npm i agboss`), `HarnessDSL` is the grammar used inside `*.workflow.ts` and contract decorators to specify `flow` chains, narrow `@Dto` contracts, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas. In a `@Workflow` class, `flow` is a list of **paths**. Each path reads like a sentence starting at a source (`start(StartClass)`, `agent(AgentClass)`, `router(RouterClass)`, `action(ActionClass)`, `workflow(ChildWorkflow)`), with **strictly one chained call per line** (`@stylistic/newline-per-chained-call`), and every value produced on an edge declared explicitly via `.returns(...)`.
+In **AGBoss** (*Agent Graph Builder Open Source System*), a workflow is written in **HarnessDSL (`HDSL`)** — the declarative graph grammar and verification specification built into `AGBoss` (analogous to JSX in React or PSL in Prisma). While `AGBoss` is the framework, static compiler (`agboss check`), and production runtime on LangGraph (`npm i @agboss/core`), `HarnessDSL` is the grammar used inside `*.workflow.ts` and contract decorators to specify `flow` chains, narrow `@Dto` contracts, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas. In a `@Workflow` class, `flow` is a list of **paths**. Each path reads like a sentence starting at a source (`start(StartClass)`, `agent(AgentClass)`, `router(RouterClass)`, `action(ActionClass)`, `workflow(ChildWorkflow)`), with **strictly one chained call per line** (`@stylistic/newline-per-chained-call`), and every value produced on an edge declared explicitly via `.returns(...)`.
 
 ## Canonical Topology Isomorphism (`in-degree = 1` vs `in-degree >= 2`)
 
@@ -32,8 +32,8 @@ import {
 } from "./chat.components.js";
 -->
 ```ts title="src/chat.workflow.ts" file=chat.workflow.ts
-import { Workflow, caseOf, route, router, start } from "agboss";
-import { WorkflowStartTextDto, oneOf } from "agboss/dto";
+import { Workflow, caseOf, route, router, start } from "@agboss/core";
+import { WorkflowStartTextDto, oneOf } from "@agboss/core/dto";
 
 @Workflow({
   name: "chat-workflow",
@@ -65,8 +65,8 @@ export class ChatWorkflow {}
 ```
 
 ```ts title="src/chat.components.ts" file=chat.components.ts
-import { Agent, DecidedBy, Router, WorkflowFinish, WorkflowStart } from "agboss";
-import { Text, WorkflowStartTextDto, oneOf, optional } from "agboss/dto";
+import { Agent, DecidedBy, Router, WorkflowFinish, WorkflowStart } from "@agboss/core";
+import { Text, WorkflowStartTextDto, oneOf, optional } from "@agboss/core/dto";
 
 export class ProfileDto {
   @Text({ prompt: "the candidate's profile" })
@@ -124,8 +124,8 @@ export class MainRouter {}
 ```
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 @Budget({ name: "chat-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class ChatAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
 @Budget({ name: "chat-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
@@ -135,9 +135,9 @@ export class ChatExecBudget implements BudgetHandler { maxSpend(): Usd { return 
 // @snippet
 -->
 ```ts title="test/chat.workflow.test.ts" file=chat.workflow.test.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import { expect } from "vitest";
-import { replyWith, routeTo, testWith } from "agboss/testing";
+import { replyWith, routeTo, testWith } from "@agboss/core/testing";
 import { ChatWorkflow } from "./chat.workflow.js";
 import {
   ChatWorkflowFinish,

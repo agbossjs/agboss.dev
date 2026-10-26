@@ -3,7 +3,7 @@ title: The 5-Loop Verification Funnel & Production Feedback Loops
 description: "How AGBoss structures agent verification as a 5-loop cost and determinism funnel — from $0 static agboss check and VCR unit tests to calibrated @EvalSuite."
 ---
 
-**AGBoss** (**Agent Graph Builder Open Source System**) replaces the traditional `Unit -> Integration -> E2E` testing pyramid with a **5-loop cost and determinism verification funnel** closed by **two production feedback loops**. In classical software engineering, every function is deterministic (`f(x) = y`); in a multi-agent system, an LLM node costs money, takes seconds, and exhibits variance even at `temperature: 0`. AGBoss therefore enforces one foundational rule across [`agboss check`](/cli/), `agboss/testing`, and `agboss/eval`: **never verify with a paid language model what can be proven by the compiler or checked by deterministic TypeScript; and when you invoke a model, check $0 trajectory invariants and code judges first before calling a calibrated LLM judge.**
+**AGBoss** (**Agent Graph Builder Open Source System**) replaces the traditional `Unit -> Integration -> E2E` testing pyramid with a **5-loop cost and determinism verification funnel** closed by **two production feedback loops**. In classical software engineering, every function is deterministic (`f(x) = y`); in a multi-agent system, an LLM node costs money, takes seconds, and exhibits variance even at `temperature: 0`. AGBoss therefore enforces one foundational rule across [`agboss check`](/cli/), `@agboss/core/testing`, and `@agboss/core/eval`: **never verify with a paid language model what can be proven by the compiler or checked by deterministic TypeScript; and when you invoke a model, check $0 trajectory invariants and code judges first before calling a calibrated LLM judge.**
 
 ---
 
@@ -33,9 +33,9 @@ import {
   type JudgeHandler,
   type JudgeInput,
   type ToolHandler,
-} from "agboss";
-import { Integer, Text } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 export class RefundTaskDto {
   @Text({ prompt: "Order ID and customer refund request" })
@@ -161,7 +161,7 @@ export class RefundVerificationApplication {}
 
 ```ts title="test/refund-verification.funnel.test.ts" file=test/refund-verification.funnel.test.ts
 import { expect } from "vitest";
-import { decideWith, replyWith, testJudge, testTool, testWith } from "agboss/testing";
+import { decideWith, replyWith, testJudge, testTool, testWith } from "@agboss/core/testing";
 import {
   CitationFormatJudge,
   IssueRefundTool,
@@ -243,7 +243,7 @@ flowchart TD
 | Loop | Command / Stage | Latency | LLM Cost | When It Runs | What It Catches |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Loop 0** | `agboss check` (`--federation`, `--cassettes`) | **`< 1s`** | **`$0.00`** | Every file save & first CI step | 100% of graph wiring errors (`[input.missing-on-path]`), stale loop inputs (`[input.outdated-on-path]`), uncompensated sagas (`[flow.uncompensated-action]`), and broken cross-repo MCP/A2A schemas |
-| **Loop 1** | [`npm test` (`agboss/testing`)](/guides/testing-agents/) | **`~3s`** | **`$0.00`** | Every commit (live LLM is **never** called) | Logic bugs in all 10 component types, workflow branching, parallel quorum races (`TestConcurrency.inOrder`), `ModelFailure` retries, 30s lease handoff (`instances: 2`), and VCR schema integration |
+| **Loop 1** | [`npm test` (`@agboss/core/testing`)](/guides/testing-agents/) | **`~3s`** | **`$0.00`** | Every commit (live LLM is **never** called) | Logic bugs in all 10 component types, workflow branching, parallel quorum races (`TestConcurrency.inOrder`), `ModelFailure` retries, 30s lease handoff (`instances: 2`), and VCR schema integration |
 | **Loop 2** | [`$ agboss eval run --runs 5 --baseline`](/guides/evaluation-and-profiles/) | **`~1 min`** | **`$`** | Pull Requests that modify `promptHash`, `schemaHash`, or tools | Prompt regressions on the critical smoke suite (`K = 5` trials per case) using a Fail-Fast `$0 -> $$$` judge cascade and `flaky-on-baseline` quarantine |
 | **Loop 3** | `$ agboss eval run --runs 20 --metamorphic --chaos` | **`~15 min`** | **`$$`** | Nightly on `main` & before releases / model upgrades | Paraphrase fragility (`--metamorphic`), multi-turn `@Compaction` memory loss, live provider fault recovery (`--chaos`), and silent upstream model quantization drift |
 | **Loop 4** | [`ExecutionRecord` $\to$ `$ agboss eval ui`](/guides/observability-and-tracing/) | **`24/7`** | **—** | Continuously on production traffic | Real-world edge cases, new failure modes, `@Judge` rubric drift (`eval calibrate` Cohen's $\kappa$), and candidates for [Progressive Crystallization](/concepts/progressive-crystallization/) |

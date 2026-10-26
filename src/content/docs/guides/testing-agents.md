@@ -3,7 +3,7 @@ title: "Loop 0–1: Deterministic Harness, 10 Unit Runners & VCR Lock"
 description: "Verify graph and mesh contracts in Loop 0 (agboss check --federation) and harness logic in Loop 1 (npm test) with testWith, 10 unit runners, and VCR locks."
 ---
 
-In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), **Loop 0 (`$ agboss check --federation`, `< 1s`, `$0`)** proves graph topology and cross-service mesh contracts at compile time, while **Loop 1 (`npm test`, `~3s`, `$0`)** tests your entire TypeScript harness (`@Action`, `@Tool`, `@ToolInterceptor`, `DecidedBy.Code` `@Router` and `@Arbiter`, `@PiiPolicy`, `@Compaction`, queues, retries, and LIFO sagas) without calling a live LLM. Together, `agboss/testing` provides `testWith(Application)` on a deterministic `VirtualClock`, ten isolated component runners, `ModelFailure` chaos injection, and VCR cassettes locked to [Loop 2 live PR evals](/guides/evaluation-and-profiles/) via `promptHash` and `schemaHash` (`[vcr.stale-cassette]`).
+In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), **Loop 0 (`$ agboss check --federation`, `< 1s`, `$0`)** proves graph topology and cross-service mesh contracts at compile time, while **Loop 1 (`npm test`, `~3s`, `$0`)** tests your entire TypeScript harness (`@Action`, `@Tool`, `@ToolInterceptor`, `DecidedBy.Code` `@Router` and `@Arbiter`, `@PiiPolicy`, `@Compaction`, queues, retries, and LIFO sagas) without calling a live LLM. Together, `@agboss/core/testing` provides `testWith(Application)` on a deterministic `VirtualClock`, ten isolated component runners, `ModelFailure` chaos injection, and VCR cassettes locked to [Loop 2 live PR evals](/guides/evaluation-and-profiles/) via `promptHash` and `schemaHash` (`[vcr.stale-cassette]`).
 
 ---
 
@@ -12,7 +12,7 @@ In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verifica
 | Loop | Command | Latency & Cost | Objects Verified | Lock to Next Loop |
 | :--- | :--- | :--- | :--- | :--- |
 | **Loop 0: Static Proof** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save & first CI step) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance (`[input.missing-on-path]`), `{ about }` staleness (`[input.outdated-on-path]`), LIFO saga compensations (`[flow.uncompensated-action]`), and Agent Mesh schemas | Emits `.agboss/types.d.ts` required for Loop 1 |
-| **Loop 1: Deterministic Harness & Chaos** | `npm test` (`agboss/testing` + VCR) | `~3s` · **`$0`** (every commit; no live LLM) | **Object 2 (Harness Code):** 10 unit runners, full-graph `testWith(App)` with `mockLlm`, `ModelFailure` chaos (`429`, timeouts, truncated JSON), `TestConcurrency.inOrder`, and multi-pod `{ instances: 2 }` leases | **`[vcr.stale-cassette]`** (`promptHash` + `schemaHash`) triggers [Loop 2 PR Smoke Gate](/guides/evaluation-and-profiles/) whenever a prompt or DTO schema changes |
+| **Loop 1: Deterministic Harness & Chaos** | `npm test` (`@agboss/core/testing` + VCR) | `~3s` · **`$0`** (every commit; no live LLM) | **Object 2 (Harness Code):** 10 unit runners, full-graph `testWith(App)` with `mockLlm`, `ModelFailure` chaos (`429`, timeouts, truncated JSON), `TestConcurrency.inOrder`, and multi-pod `{ instances: 2 }` leases | **`[vcr.stale-cassette]`** (`promptHash` + `schemaHash`) triggers [Loop 2 PR Smoke Gate](/guides/evaluation-and-profiles/) whenever a prompt or DTO schema changes |
 
 ---
 
@@ -21,8 +21,8 @@ In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verifica
 `testWith(Application)` boots your real `@Application` container and infrastructure in each test while scripting model turns via `mockLlm`, action calls via `mockAction`, tool failures via `mockTool`, and service methods via `mockOf`:
 
 <!-- snippet-context
-import { Tool, WorkflowFinish, WorkflowStart, type ToolHandler } from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { Tool, WorkflowFinish, WorkflowStart, type ToolHandler } from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 @Tool({ name: "lookup_order", description: "Looks up order", input: WorkflowStartTextDto, output: WorkflowFinishTextDto })
 export class LookupOrderTool implements ToolHandler<WorkflowStartTextDto, WorkflowFinishTextDto> {
   run({ text }: WorkflowStartTextDto): Promise<WorkflowFinishTextDto> { return Promise.resolve({ text }); }
@@ -34,7 +34,7 @@ export class SupportWorkflowFinish {}
 // @snippet
 -->
 ```ts title="src/support.workflow.ts" file=src/support.workflow.ts
-import { Agent, Workflow, start } from "agboss";
+import { Agent, Workflow, start } from "@agboss/core";
 
 @Agent({
   name: "support-agent",
@@ -59,8 +59,8 @@ export class SupportWorkflow {}
 ```
 
 <!-- snippet-context
-import { ExecutionCancelledError, Injectable, type JudgeHandler, type JudgeInput, type JudgeVerdict } from "agboss";
-import { PlainTextDto, Text } from "agboss/dto";
+import { ExecutionCancelledError, Injectable, type JudgeHandler, type JudgeInput, type JudgeVerdict } from "@agboss/core";
+import { PlainTextDto, Text } from "@agboss/core/dto";
 export class ChangesRequestedDto {
   @Text({ prompt: "what to change" })
   notes!: string;
@@ -97,8 +97,8 @@ import {
   testTool,
   testWith,
   waitFor,
-} from "agboss/testing";
-import { seconds, usd } from "agboss/units";
+} from "@agboss/core/testing";
+import { seconds, usd } from "@agboss/core/units";
 
 const test = testWith(OfferApplication);
 
@@ -175,7 +175,7 @@ it("a grounded reply passes the decision judge", async () => {
 
 ---
 
-## All 10 isolated unit runners in `agboss/testing`
+## All 10 isolated unit runners in `@agboss/core/testing`
 
 When testing a single component's logic — such as a PII policy, a tool interceptor, a custom compaction handler, or an arbiter's quorum voting — use the dedicated unit runner for that component type. Each runner builds a minimal container with `overrides: [override(Base, Subclass)]` and returns `{ output, spend }`:
 
@@ -211,7 +211,7 @@ Instead, AGBoss verifies **trajectory invariants** over sets and argument predic
 
 ## Chaos & Invalid-Turn Scripting (`callToolWithInvalidArguments`, `replyWithInvalidAnswer`, `ModelFailure`)
 
-Real language models occasionally emit malformed JSON, truncated tool arguments, schema-violating answers, or HTTP `429` / timeout failures. `agboss/testing` lets you script these exact faults in `Loop 1` (`$0`) to prove your harness self-corrects:
+Real language models occasionally emit malformed JSON, truncated tool arguments, schema-violating answers, or HTTP `429` / timeout failures. `@agboss/core/testing` lets you script these exact faults in `Loop 1` (`$0`) to prove your harness self-corrects:
 
 - **`callToolWithInvalidArguments(ToolClass, invalidFields)`:** Scripts a tool call whose arguments violate the tool's input `@Dto` (`ToolCallStatus.InvalidArguments`), verifying that the agent loop feeds the validation error back to the model and succeeds on the next turn.
 - **`callToolWithTruncatedArguments(ToolClass, partialArgs)`:** Simulates a tool call cut off mid-stream (`maxOutputTokens` truncation) so you can verify retry recovery.
@@ -221,8 +221,8 @@ Real language models occasionally emit malformed JSON, truncated tool arguments,
 - **Multi-instance tests (`testWith(App, { instances: 2 })`, `#458`):** When `instances: 2` is passed, `testWith` shares the default `InMemory*` stores and `VirtualClock` across all instances automatically. If your application lists `Sqlite*` stores, note that `sqlitePath: ":memory:"` opens a **separate** SQLite in-memory database per instance connection; to test multiple instances sharing one SQLite database, point `sqlitePath` in a test environment (`testWith(App, { instances: 2, env: "instances" })`) at a temporary file path (`mkdtempSync`).
 
 <!-- snippet-context
-import { DecidedBy, Judge, JudgeVerdict, Tool, ToolCallStatus, toolCallsOf, type JudgeHandler, type JudgeInput, type ToolHandler } from "agboss";
-import { Text } from "agboss/dto";
+import { DecidedBy, Judge, JudgeVerdict, Tool, ToolCallStatus, toolCallsOf, type JudgeHandler, type JudgeInput, type ToolHandler } from "@agboss/core";
+import { Text } from "@agboss/core/dto";
 export class OrderIdDto {
   @Text({ prompt: "Order ID" })
   orderId!: string;
@@ -252,7 +252,7 @@ import {
   replyWith,
   replyWithInvalidAnswer,
   testWith,
-} from "agboss/testing";
+} from "@agboss/core/testing";
 
 // Code @Judge inspecting JudgeInput.toolCalls to catch silent cross-order reads:
 @Judge({

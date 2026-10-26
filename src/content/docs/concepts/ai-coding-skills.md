@@ -7,17 +7,17 @@ In modern engineering teams, Senior, Staff, and Principal engineers rarely type 
 
 However, pre-trained coding models do not know AGBoss or **HarnessDSL** out of the box. Left unguided, they fall back to legacy orchestration habits: shared mutable state bags, `new MyDto()` instantiation, raw numbers instead of `seconds()` / `usd()`, `as any` casts, or multi-call lines in `*.workflow.ts` that fail Path Scope compilation.
 
-AGBoss solves this in a **tool-agnostic, cross-agent way** by bundling an authoritative, compiler-verified **AI Skill Suite** (`AGENTS.md` + 13 progressive-disclosure reference modules) directly inside the `agboss` npm package and automatically keeping the reference modules in sync with your installed framework version.
+AGBoss solves this in a **tool-agnostic, cross-agent way** by bundling an authoritative, compiler-verified **AI Skill Suite** (`AGENTS.md` + 13 progressive-disclosure reference modules) directly inside the `@agboss/core` npm package and automatically keeping the reference modules in sync with your installed framework version.
 
 ---
 
 ## How coding agents verify graphs in practice
 
-Every rule in `AGENTS.md` and the 13 skill reference modules maps directly to a compile-time check in `agboss check` and a deterministic offline test in `agboss/testing`. When your coding agent scaffolds or edits a workflow, it validates the graph and runs a deterministic Vitest test in milliseconds:
+Every rule in `AGENTS.md` and the 13 skill reference modules maps directly to a compile-time check in `agboss check` and a deterministic offline test in `@agboss/core/testing`. When your coding agent scaffolds or edits a workflow, it validates the graph and runs a deterministic Vitest test in milliseconds:
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 @Budget({ name: "triage-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class TriageAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
 @Budget({ name: "triage-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
@@ -43,8 +43,8 @@ import {
   type OutputOf,
   type Route,
   type RouterHandler,
-} from "agboss";
-import { Integer, Text } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class TicketDto {
   @Text({ prompt: "Support ticket ID" })
@@ -141,7 +141,7 @@ export class TicketTriageApplication {}
 
 ```ts title="test/triage.workflow.test.ts" file=test/triage.workflow.test.ts
 import { expect } from "vitest";
-import { replyWith, testRouter, testWith } from "agboss/testing";
+import { replyWith, testRouter, testWith } from "@agboss/core/testing";
 import {
   AutoAckAction,
   EscalationAgent,
@@ -210,7 +210,7 @@ AGBoss sets up a two-tier, tool-agnostic instruction architecture in your reposi
 
 Why not dump all 50 pages of framework documentation directly into `AGENTS.md`? Because loading 50 pages of docs on every prompt bloats your coding agent's context window and degrades code quality.
 
-Instead, the 13 modular reference guides live inside `node_modules/agboss/skills/agboss/` (shipped offline inside the `agboss` npm package) and are automatically synced into `.claude/skills/agboss/` (the standard skill discovery path also referenced directly by `AGENTS.md` so Cursor, Codex, Windsurf, Copilot, and Gemini CLI read the exact same markdown files on demand):
+Instead, the 13 modular reference guides live inside `node_modules/@agboss/core/skills/agboss/` (shipped offline inside the `@agboss/core` npm package) and are automatically synced into `.claude/skills/agboss/` (the standard skill discovery path also referenced directly by `AGENTS.md` so Cursor, Codex, Windsurf, Copilot, and Gemini CLI read the exact same markdown files on demand):
 
 ```text
 my-app/
@@ -246,7 +246,7 @@ Why is the synced skill directory gitignored instead of committed?
 
 ### Opting out of auto-sync
 
-For environments that prefer not to write synced skill files into the workspace, disable skill syncing in `package.json` (your coding agent can still read `node_modules/agboss/skills/agboss/` directly):
+For environments that prefer not to write synced skill files into the workspace, disable skill syncing in `package.json` (your coding agent can still read `node_modules/@agboss/core/skills/agboss/` directly):
 
 ```json
 {

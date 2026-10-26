@@ -1,6 +1,6 @@
 {
   "repository": "agbossjs/agboss",
-  "branch": "main",
-  "frameworkSha": "171e94ae9cfc1bb6a76b30f2b6fa1d7ec78bda9b",
+  "branch": "fix/scoped-package-identities",
+  "frameworkSha": "a02c02002bf08c0f8cc268ca26e39547f05c5d21",
   "version": "0.1.0"
 }

@@ -19,8 +19,8 @@ import {
   BudgetScope,
   EmptyEnvironment,
   type BudgetHandler,
-} from "agboss";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 
 // @snippet
 
@@ -55,8 +55,8 @@ import {
   type CompactionHandler,
   type CompactionInput,
   type CompactionTurn,
-} from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+} from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 
 @Compaction({
   name: "support-thread-compaction",
@@ -144,8 +144,8 @@ export class CompactingSupportWorkflow {}
 
 ```ts title="test/compacting-support.workflow.test.ts" file=test/compacting-support.workflow.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { replyWith, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { replyWith, testWith } from "@agboss/core/testing";
 import {
   KnowledgeGraphService,
   SupportApplication,

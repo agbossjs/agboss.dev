@@ -4,7 +4,7 @@
  * JSON-LD structured data, and navigation.
  *
  * Distinguishes:
- * - `sourceVersion`: version prepared in `agboss` and `agboss-cli` package manifests (`0.1.0`).
+ * - `sourceVersion`: version prepared in `@agboss/core` and `@agboss/cli` package manifests (`0.1.0`).
  * - `displayVersion`: truthful pre-release label (`v0.1.0-rc`) shown before `0.1.0` is published to npm,
  *   or `'v0.1.0'` once published.
  * - `releaseChannelLabel`: `'pre-release'` before publication, `'latest'` after publication.
@@ -50,11 +50,11 @@ export function buildReleaseMeta(isPublishedToRegistry: boolean): ReleaseMetaCon
 			packTarballs:
 				'git clone https://github.com/agbossjs/agboss.git\ncd agboss && npm ci && npm run build\nnpm pack --workspaces',
 			targetCliPreview:
-				'# Unlocks on npm once v0.1.0 is published:\nnpx agboss create my-app\n# or: npm i agboss && npm i -D agboss-cli',
+				'# Unlocks on npm once v0.1.0 is published:\nnpx --yes --package=@agboss/cli agboss create my-app\n# or: npm i @agboss/core && npm i -D @agboss/cli',
 		},
 		publishedCommands: {
-			newProject: 'npx agboss create my-app\ncd my-app\nnpm install',
-			existingProject: 'npm install agboss\nnpm install -D agboss-cli\nnpx agboss check',
+			newProject: 'npx --yes --package=@agboss/cli agboss create my-app\ncd my-app\nnpm install',
+			existingProject: 'npm install @agboss/core\nnpm install -D @agboss/cli\nnpx agboss check',
 		},
 	};
 }

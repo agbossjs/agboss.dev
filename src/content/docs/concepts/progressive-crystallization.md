@@ -46,8 +46,8 @@ Suppose you launch a workflow with a `DecidedBy.Model` router (`OrderTriageModel
 
 <!--
 ```ts file=src/routers/order-triage.contracts.ts
-import { Action, Agent, type ActionHandler, type InputOf, type OutputOf } from "agboss";
-import { Flag, Integer, Text } from "agboss/dto";
+import { Action, Agent, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
+import { Flag, Integer, Text } from "@agboss/core/dto";
 
 export class OrderTriageDto {
   @Text({ prompt: "Customer tier: free or enterprise" })
@@ -74,8 +74,8 @@ import { ComplianceReviewAgent, FastTrackCaptureAction } from "./order-triage.co
 // @snippet
 -->
 ```ts title="src/routers/order-triage-model.router.ts" file=src/routers/order-triage-model.router.ts
-import { DecidedBy, Router } from "agboss";
-import { Flag, Integer, Text } from "agboss/dto";
+import { DecidedBy, Router } from "@agboss/core";
+import { Flag, Integer, Text } from "@agboss/core/dto";
 
 export class OrderTriageDto {
   @Text({ prompt: "Customer tier: free or enterprise" })
@@ -110,7 +110,7 @@ export class OrderTriageModelRouter {}
 ```
 
 <!-- snippet-context
-import { Workflow, WorkflowFinish, WorkflowStart, route, start } from "agboss";
+import { Workflow, WorkflowFinish, WorkflowStart, route, start } from "@agboss/core";
 import { ComplianceReviewAgent, FastTrackCaptureAction, OrderTriageDto } from "./order-triage.contracts.js";
 export { ComplianceReviewAgent, FastTrackCaptureAction };
 // @snippet
@@ -144,7 +144,7 @@ import {
   type InputOf,
   type Route,
   type RouterHandler,
-} from "agboss";
+} from "@agboss/core";
 
 @Router({
   name: "order-triage-router",
@@ -168,7 +168,7 @@ export class OrderTriageRouter implements RouterHandler<OrderTriageRouter> {
 
 ```ts title="test/order-triage.router.test.ts" file=test/order-triage.router.test.ts
 import { expect, it } from "vitest";
-import { testRouter } from "agboss/testing";
+import { testRouter } from "@agboss/core/testing";
 import {
   ComplianceReviewAgent,
   FastTrackCaptureAction,

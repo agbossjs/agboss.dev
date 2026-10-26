@@ -17,8 +17,8 @@ import {
   type OnInit,
   type OnStart,
   type OnStop,
-} from "agboss";
-import { seconds } from "agboss/units";
+} from "@agboss/core";
+import { seconds } from "@agboss/core/units";
 
 @Injectable()
 export class ClaimsApiService implements OnInit, OnStart, OnStop, OnDestroy {
@@ -77,9 +77,9 @@ export const environment: ClusterEnvironment = {
 };
 ```
 ```ts file=src/worker-ping.workflow.ts
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 @WorkflowStart({ name: "worker-ping-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class WorkerPingStart {}
@@ -116,8 +116,8 @@ import {
   SqliteExecutionTreeRepository,
   SqlitePausedExecutionRepository,
   SqliteRateLimitRepository,
-} from "agboss";
-import { hours, seconds } from "agboss/units";
+} from "@agboss/core";
+import { hours, seconds } from "@agboss/core/units";
 import { ClusterEnvironment } from "./environments/app.environment.js";
 import { ClaimsApiHealthCheck, ClaimsApiService } from "./health/claims-api.health-check.js";
 import {
@@ -154,7 +154,7 @@ export class WorkerClusterApplication {}
 
 ```ts title="src/main.ts" file=src/main.ts
 import { createServer } from "node:http";
-import { HealthStatus, createApp, type HealthReport } from "agboss";
+import { HealthStatus, createApp, type HealthReport } from "@agboss/core";
 import { WorkerClusterApplication } from "./worker-cluster.application.js";
 
 export async function startProbeServer(): Promise<void> {
@@ -182,8 +182,8 @@ export async function startProbeServer(): Promise<void> {
 
 ```ts title="test/claims-api.health-check.test.ts" file=test/claims-api.health-check.test.ts
 import { expect } from "vitest";
-import { HealthStatus } from "agboss";
-import { testWith } from "agboss/testing";
+import { HealthStatus } from "@agboss/core";
+import { testWith } from "@agboss/core/testing";
 import { WorkerClusterApplication } from "../src/worker-cluster.application.js";
 
 const test = testWith(WorkerClusterApplication);

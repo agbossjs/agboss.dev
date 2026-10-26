@@ -10,8 +10,8 @@ Every AGBoss service has a single `@Application` assembly root that lists the wo
 An application's environment contract is a plain class declaring field types only (`environments/app.environment.ts` next to the application file — never place `secret()` or `env()` property initializers on the class itself, which triggers `[environment.contract-value]`). Each environment file (`dev.environment.ts`, `prod.environment.ts`, `test.environment.ts`) exports a typed `environment` object using `env()`, `env.optional()`, `env.integer()`, `env.flag()`, and `secret()`:
 
 <!-- snippet-context
-import { Application, Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "agboss";
-import { hours, seconds, usd, type Usd } from "agboss/units";
+import { Application, Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
+import { hours, seconds, usd, type Usd } from "@agboss/core/units";
 import { AuditWorkflow, AuditAppBudget } from "./audit.workflow.js";
 @Budget({ name: "audit-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
 export class AuditTenantBudget implements BudgetHandler {
@@ -43,7 +43,7 @@ export class AuditApplication {}
 ```
 
 ```ts title="src/audit/environments/app.environment.ts" file=src/audit/environments/app.environment.ts
-import type { Secret } from "agboss";
+import type { Secret } from "@agboss/core";
 
 export class AppEnvironment {
   auditUrl!: string;
@@ -53,9 +53,9 @@ export class AppEnvironment {
 ```
 
 ```ts title="src/audit/audit.workflow.ts" file=src/audit/audit.workflow.ts
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 @WorkflowStart({ name: "audit-workflow-start", description: "A request", input: WorkflowStartTextDto })
 export class AuditWorkflowStart {}
@@ -81,7 +81,7 @@ export class AuditAppBudget implements BudgetHandler {
 ```
 
 ```ts title="src/audit/environments/prod.environment.ts" file=src/audit/environments/prod.environment.ts
-import { env, secret } from "agboss";
+import { env, secret } from "@agboss/core";
 import type { AppEnvironment } from "./app.environment.js";
 
 export const environment: AppEnvironment = {
@@ -92,7 +92,7 @@ export const environment: AppEnvironment = {
 ```
 
 ```ts title="src/audit/environments/test.environment.ts" file=src/audit/environments/test.environment.ts
-import { secret } from "agboss";
+import { secret } from "@agboss/core";
 import type { AppEnvironment } from "./app.environment.js";
 
 export const environment: AppEnvironment = {
@@ -103,8 +103,8 @@ export const environment: AppEnvironment = {
 
 ```ts title="test/audit.application.test.ts" file=test/audit.application.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus, HealthStatus } from "agboss";
-import { testWith } from "agboss/testing";
+import { ExecutionStatus, HealthStatus } from "@agboss/core";
+import { testWith } from "@agboss/core/testing";
 import { AuditApplication } from "../src/audit/audit.application.js";
 import { AuditWorkflowFinish, AuditWorkflowStart } from "../src/audit/audit.workflow.js";
 

@@ -2102,7 +2102,7 @@
 							"- Single assembly root: `@Application` (`*.application.ts`) passed to `createApp` and `testWith`.",
 							"- HarnessDSL (`*.workflow.ts`): strictly one chained call per line (`@stylistic/newline-per-chained-call`).",
 							"- Run `npm run types` (`agboss check`) to regenerate `.agboss/types.d.ts` before `npm run typecheck`.",
-							"- Progressive-disclosure reference modules (synced offline from `node_modules/agboss/skills/agboss/`):",
+							"- Progressive-disclosure reference modules (synced offline from `node_modules/@agboss/core/skills/agboss/`):",
 							"#   ├── SKILL.md                                     (quick-start rules & index)",
 							"#   └── references/01..13.md                         (composition, Flow DSL, DI, MCP/A2A, channels, FinOps, PII, tracing, K8s, testing, CLI, recipes, LangGraph migration)"
 					],
@@ -2110,7 +2110,7 @@
 							{
 									"file": "skills/agboss/SKILL.md",
 									"code": [
-											"# Auto-synced offline from `node_modules/agboss/skills/agboss/` on `npm install`, `agboss check` & `agboss generate`:",
+											"# Auto-synced offline from `node_modules/@agboss/core/skills/agboss/` on `npm install`, `agboss check` & `agboss generate`:",
 											"#",
 											"# ├── AGENTS.md                                          (cross-agent standard: Codex, Cursor, Windsurf, Copilot, Gemini, Aider)",
 											"# ├── CLAUDE.md                                          (`@AGENTS.md` 1-line bridge for Claude Code)",

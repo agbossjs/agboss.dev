@@ -3,7 +3,7 @@ title: "@McpTool"
 description: Complete API reference for the @McpTool decorator in agboss/mcp — wrapping external Model Context Protocol server tools with typed DTO schemas, DI, and channels.
 ---
 
-The `@McpTool` decorator (`"agboss/mcp"`) wraps an external [`@McpServer`](/reference/mcp/) tool inside a typed AGBoss `ToolHandler<In, Out>` class. Because an `@McpTool` is a first-class class with constructor dependency injection (`deps`), it can inject its `@McpServer` client, `ExecutionContext`, `SpendRecorder`, or custom services, and can require human approval via `channel: MyChannelRole`.
+The `@McpTool` decorator (`"@agboss/core/mcp"`) wraps an external [`@McpServer`](/reference/mcp/) tool inside a typed AGBoss `ToolHandler<In, Out>` class. Because an `@McpTool` is a first-class class with constructor dependency injection (`deps`), it can inject its `@McpServer` client, `ExecutionContext`, `SpendRecorder`, or custom services, and can require human approval via `channel: MyChannelRole`.
 
 ## Complete `@McpTool` example
 
@@ -13,15 +13,15 @@ import {
   ChannelOf,
   PauseAnswerer,
   type ToolHandler,
-} from "agboss";
-import { Integer, Text, Url } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text, Url } from "@agboss/core/dto";
 import {
   McpServer,
   McpServerClient,
   McpTool,
   type ServerTools,
-} from "agboss/mcp";
-import { seconds } from "agboss/units";
+} from "@agboss/core/mcp";
+import { seconds } from "@agboss/core/units";
 
 export class CreatePrInputDto {
   @Text({ prompt: "Repository in owner/name format" })
@@ -93,7 +93,7 @@ export class CreatePullRequestMcpTool
 
 ```ts title="test/create-pull-request.mcp.test.ts" file=test/create-pull-request.mcp.test.ts
 import { expect, it } from "vitest";
-import { mcpServerStub } from "agboss/testing";
+import { mcpServerStub } from "@agboss/core/testing";
 import {
   CreatePullRequestMcpTool,
   GithubMcpServer,

@@ -19,7 +19,7 @@ import {
   type PiiMatch,
   type PiiPolicyHandler,
   type PiiRefusal,
-} from "agboss";
+} from "@agboss/core";
 
 // 1. Declarative @PiiPolicy with reversible token masking and custom refusal message:
 @PiiPolicy({
@@ -62,8 +62,8 @@ export class EmployeeBadgePiiPolicy implements PiiPolicyHandler {
 ```
 
 ```ts title="src/tools/lookup-customer.tool.ts" file=src/tools/lookup-customer.tool.ts
-import { Tool, type ToolHandler } from "agboss";
-import { Email, Text } from "agboss/dto";
+import { Tool, type ToolHandler } from "@agboss/core";
+import { Email, Text } from "@agboss/core/dto";
 
 export class CustomerLookupDto {
   @Email({ prompt: "Customer email address" })
@@ -100,8 +100,8 @@ import {
   BudgetScope,
   EmptyEnvironment,
   type BudgetHandler,
-} from "agboss";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 import {
   CustomerContactPiiPolicy,
   EmployeeBadgePiiPolicy,
@@ -128,7 +128,7 @@ export class SupportApplication {}
 
 ```ts title="test/employee-badge.pii-policy.test.ts" file=test/employee-badge.pii-policy.test.ts
 import { expect, it } from "vitest";
-import { testPii } from "agboss/testing";
+import { testPii } from "@agboss/core/testing";
 import { EmployeeBadgePiiPolicy } from "../src/policies/customer.pii-policy.js";
 
 it("pseudonymizes employee badge numbers and restores them for tools", async () => {
@@ -142,8 +142,8 @@ it("pseudonymizes employee badge numbers and restores them for tools", async () 
 
 <!--
 ```ts file=src/workflows/support.workflow.ts
-import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { LookupCustomerTool } from "../tools/lookup-customer.tool.js";
 
 @WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
@@ -193,8 +193,8 @@ Every `@PiiPolicy` class name ends with `PiiPolicy` and its `name` option ends w
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `pii(target, action)` | `"agboss"` | Binds a `PiiKind` or `PiiGroup` to a `PiiAction` inside `@PiiPolicy({ rules })`. |
-| `PiiKind` & `PiiGroup` | `"agboss"` | Built-in PII categories (`Email`, `Phone`, `CardNumber`, `Iban`, `IpAddress`, `PersonName`, `StreetAddress`, `Government`, `Financial`, `Contact`). |
-| `PiiAction` | `"agboss"` | Action factories: `replaceWithToken()` (reversible HMAC `<email:7f3a91>` restored on tool calls), `replaceWithKind()`, `replacePart({ keepLast, keepDomain })`, and `blockWithRefusal()`. |
-| `PiiPolicyHandler` & `PiiRefusal` | `"agboss"` | Interfaces implemented by custom range detectors (`findMatches(text)`) and localized refusal builders (`refusal(kind)`). |
-| `testPii(Policies, options?)` | `"agboss/testing"` | Isolated unit runner that tests masking, reversible token restoration, and refusal triggers offline. |
+| `pii(target, action)` | `"@agboss/core"` | Binds a `PiiKind` or `PiiGroup` to a `PiiAction` inside `@PiiPolicy({ rules })`. |
+| `PiiKind` & `PiiGroup` | `"@agboss/core"` | Built-in PII categories (`Email`, `Phone`, `CardNumber`, `Iban`, `IpAddress`, `PersonName`, `StreetAddress`, `Government`, `Financial`, `Contact`). |
+| `PiiAction` | `"@agboss/core"` | Action factories: `replaceWithToken()` (reversible HMAC `<email:7f3a91>` restored on tool calls), `replaceWithKind()`, `replacePart({ keepLast, keepDomain })`, and `blockWithRefusal()`. |
+| `PiiPolicyHandler` & `PiiRefusal` | `"@agboss/core"` | Interfaces implemented by custom range detectors (`findMatches(text)`) and localized refusal builders (`refusal(kind)`). |
+| `testPii(Policies, options?)` | `"@agboss/core/testing"` | Isolated unit runner that tests masking, reversible token restoration, and refusal triggers offline. |

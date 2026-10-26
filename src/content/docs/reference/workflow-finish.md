@@ -16,8 +16,8 @@ import {
   type FinishHandler,
   type InputOf,
   type OutputOf,
-} from "agboss";
-import { Integer, Text, WorkflowFinishTextDto } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text, WorkflowFinishTextDto } from "@agboss/core/dto";
 
 export class OfferDraftDto {
   @Text({ prompt: "Final approved offer letter text" })
@@ -83,8 +83,8 @@ export class OfferSummaryWorkflowFinish implements FinishHandler<OfferSummaryWor
 ```
 
 ```ts title="src/workflows/offer-package/offer-package.workflow.ts" file=src/workflows/offer-package/offer-package.workflow.ts
-import { Agent, Workflow, WorkflowStart, listOf, start } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
+import { Agent, Workflow, WorkflowStart, listOf, start } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
 import {
   AuditVerdictDto,
   OfferDraftDto,
@@ -136,8 +136,8 @@ export class OfferPackageWorkflow {}
 
 <!--
 ```ts file=src/offer.application.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 import { OfferPackageWorkflow } from "./workflows/offer-package/offer-package.workflow.js";
 
 @Budget({ name: "wf-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
@@ -160,8 +160,8 @@ export class OfferApplication {}
 
 ```ts title="test/offer-package.workflow-finish.test.ts" file=test/offer-package.workflow-finish.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { replyWith, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { replyWith, testWith } from "@agboss/core/testing";
 import { OfferApplication } from "../src/offer.application.js";
 import {
   AuditVerdictDto,
@@ -203,7 +203,7 @@ Every `@WorkflowFinish` class name ends with `WorkflowFinish` and its `name` opt
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `FinishHandler<Self>` | `"agboss"` | Interface implemented by `@WorkflowFinish` classes that declare `input` (`finish(input): OutputOf<Self> \| Promise<OutputOf<Self>>`). |
-| `WorkflowFinishTextDto` | `"agboss/dto"` | Standard built-in output DTO (`{ text: string }`) for text-returning workflows. |
+| `FinishHandler<Self>` | `"@agboss/core"` | Interface implemented by `@WorkflowFinish` classes that declare `input` (`finish(input): OutputOf<Self> \| Promise<OutputOf<Self>>`). |
+| `WorkflowFinishTextDto` | `"@agboss/core/dto"` | Standard built-in output DTO (`{ text: string }`) for text-returning workflows. |
 | `.toFinish(FinishClass)` | Flow chain | Terminates a path in `@Workflow({ flow })` after the compiler verifies `FinishClass`'s required DTOs exist on the path. |
-| `result.finish` & `result.output` | `"agboss"` | On `ExecutionStatus.Finished`, `result.finish.name` identifies which `@WorkflowFinish` ended the run and `result.output` holds the validated DTO. |
+| `result.finish` & `result.output` | `"@agboss/core"` | On `ExecutionStatus.Finished`, `result.finish.name` identifies which `@WorkflowFinish` ended the run and `result.output` holds the validated DTO. |

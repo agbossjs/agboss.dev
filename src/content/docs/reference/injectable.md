@@ -20,7 +20,7 @@ import {
   type OnInit,
   type OnStart,
   type OnStop,
-} from "agboss";
+} from "@agboss/core";
 
 @Injectable({
   deps: [EmptyEnvironment, ApplicationContext, ExecutionContext, Clock, Logger],
@@ -78,8 +78,8 @@ export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
 ```
 
 ```ts title="src/tools/search-jobs.tool.ts" file=src/tools/search-jobs.tool.ts
-import { Tool, type ToolHandler } from "agboss";
-import { ListOf, Text } from "agboss/dto";
+import { Tool, type ToolHandler } from "@agboss/core";
+import { ListOf, Text } from "@agboss/core/dto";
 import { JobIndexService } from "../services/job-index.service.js";
 
 export class JobSearchInputDto {
@@ -116,8 +116,8 @@ import {
   BudgetScope,
   EmptyEnvironment,
   type BudgetHandler,
-} from "agboss";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 import { JobIndexService } from "./services/job-index.service.js";
 import { JobScoutWorkflow } from "./workflows/job-scout.workflow.js";
 
@@ -141,7 +141,7 @@ export class JobScoutApplication {}
 
 ```ts title="test/job-index.service.test.ts" file=test/job-index.service.test.ts
 import { expect } from "vitest";
-import { override, testWith } from "agboss/testing";
+import { override, testWith } from "@agboss/core/testing";
 import { JobScoutApplication } from "../src/job-scout.application.js";
 import { JobIndexService } from "../src/services/job-index.service.js";
 import { ChatWorkflowStart } from "../src/workflows/job-scout.workflow.js";
@@ -164,8 +164,8 @@ test("uses FakeJobIndexService and spies on calls via mockOf", async ({ app, moc
 
 <!--
 ```ts file=src/workflows/job-scout.workflow.ts
-import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { SearchJobsTool } from "../tools/search-jobs.tool.js";
 
 @WorkflowStart({ name: "chat-workflow-start", description: "Start", input: WorkflowStartTextDto })
@@ -207,8 +207,8 @@ export class JobScoutWorkflow {}
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `OnInit`, `OnStart`, `OnStop`, `OnDestroy` | `"agboss"` | Four deterministic container lifecycle hooks executed during `createApp()` startup and `app.close()` shutdown on every container element. |
-| `ExecutionContext`, `TenantContext`, `ApplicationContext` | `"agboss"` | Built-in context classes injectable into any service constructor (`ExecutionContext` reads current step metadata via `AsyncLocalStorage`). |
-| `Clock` & `Logger` | `"agboss"` | Built-in time and PII-redacted structured logging singletons (`Clock` is replaced by `VirtualClock` in `testWith()`). |
-| `InjectionToken<T>` & `provide(TOKEN, value)` | `"agboss"` | Binds non-class configuration values or factory tokens (`ROUTER_FACTORY`) in `@Workflow({ providers })`. |
-| `override(BaseClass, SubClass)` & `mockOf(ServiceClass)` | `"agboss/testing"` | Replaces a service with a subclass or spy in `testWith()`, `testTool()`, `testAction()`, or `testRouter()`. |
+| `OnInit`, `OnStart`, `OnStop`, `OnDestroy` | `"@agboss/core"` | Four deterministic container lifecycle hooks executed during `createApp()` startup and `app.close()` shutdown on every container element. |
+| `ExecutionContext`, `TenantContext`, `ApplicationContext` | `"@agboss/core"` | Built-in context classes injectable into any service constructor (`ExecutionContext` reads current step metadata via `AsyncLocalStorage`). |
+| `Clock` & `Logger` | `"@agboss/core"` | Built-in time and PII-redacted structured logging singletons (`Clock` is replaced by `VirtualClock` in `testWith()`). |
+| `InjectionToken<T>` & `provide(TOKEN, value)` | `"@agboss/core"` | Binds non-class configuration values or factory tokens (`ROUTER_FACTORY`) in `@Workflow({ providers })`. |
+| `override(BaseClass, SubClass)` & `mockOf(ServiceClass)` | `"@agboss/core/testing"` | Replaces a service with a subclass or spy in `testWith()`, `testTool()`, `testAction()`, or `testRouter()`. |

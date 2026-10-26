@@ -23,7 +23,7 @@ In enterprise backend, FinTech, and incident-response pipelines, workflows mutat
 
 <!--
 ```ts file=src/missions/escrow.dto.ts
-import { Decimal, Text } from "agboss/dto";
+import { Decimal, Text } from "@agboss/core/dto";
 
 export class TransferRequestDto { @Decimal() amountUsd!: number; }
 export class EscrowHoldDto { @Text() holdId!: string; @Decimal() amountUsd!: number; }
@@ -32,7 +32,7 @@ export class ComplianceClearanceDto { @Text() region!: string; }
 ```
 -->
 <!-- snippet-context
-import { Agent, WorkflowFinish, WorkflowStart } from "agboss";
+import { Agent, WorkflowFinish, WorkflowStart } from "@agboss/core";
 import { ComplianceClearanceDto, EscrowHoldDto, LedgerEntryDto, TransferRequestDto } from "./escrow.dto.js";
 @WorkflowStart({ name: "settlement-workflow-start", description: "Start", input: TransferRequestDto })
 export class SettlementStart {}
@@ -55,7 +55,7 @@ export class ComplianceCheckWorkflow {}
 // @snippet
 -->
 ```ts title="src/missions/escrow-settlement.workflow.ts" file=src/missions/escrow-settlement.workflow.ts
-import { StepFailedError, Workflow, listOf, start, toAction } from "agboss";
+import { StepFailedError, Workflow, listOf, start, toAction } from "@agboss/core";
 import {
   CommitSettlementAction,
   HoldEscrowFundsAction,
@@ -97,7 +97,7 @@ export class EscrowSettlementWorkflow {}
 ```
 
 <!-- snippet-context
-import { listOf } from "agboss";
+import { listOf } from "@agboss/core";
 import { ComplianceClearanceDto, EscrowHoldDto, LedgerEntryDto, TransferRequestDto } from "./escrow.dto.js";
 // @snippet
 @Action({
@@ -123,7 +123,7 @@ export class ProvisionLedgerEntryAction implements ActionHandler<ProvisionLedger
 }
 -->
 ```ts title="src/missions/escrow.actions.ts" file=src/missions/escrow.actions.ts
-import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from "agboss";
+import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
 
 @Action({
   name: "release-escrow-funds-action",
@@ -170,7 +170,7 @@ export class HoldEscrowFundsAction implements ActionHandler<HoldEscrowFundsActio
 
 ```ts title="test/escrow-settlement.test.ts" file=test/escrow-settlement.test.ts
 import { expect, it } from "vitest";
-import { testAction } from "agboss/testing";
+import { testAction } from "@agboss/core/testing";
 import { HoldEscrowFundsAction } from "../src/missions/escrow.actions.js";
 import { SettlementStart } from "../src/missions/escrow-settlement.workflow.js";
 
@@ -195,7 +195,7 @@ Autonomous robots, drones, and smart industrial devices separate control into tw
 
 <!--
 ```ts file=src/robotics/robotics.dto.ts
-import { Decimal, Integer, Text } from "agboss/dto";
+import { Decimal, Integer, Text } from "@agboss/core/dto";
 
 export class MissionTargetDto { @Text() valveId!: string; }
 export class SensorFrameDto { @Text() frameId!: string; }
@@ -205,7 +205,7 @@ export class ValveTurnCommandDto { @Text() valveId!: string; }
 ```
 -->
 <!-- snippet-context
-import { ActionFailedError, Agent, WorkflowFinish, WorkflowStart, toAction } from "agboss";
+import { ActionFailedError, Agent, WorkflowFinish, WorkflowStart, toAction } from "@agboss/core";
 import { MissionTargetDto, PoseAssessmentDto, SensorFrameDto, ValveTurnReceiptDto } from "./robotics.dto.js";
 @WorkflowStart({ name: "mission-workflow-start", description: "Start", input: MissionTargetDto })
 export class MissionStart {}
@@ -222,8 +222,8 @@ export class ThermalVlmAgent {}
 // @snippet
 -->
 ```ts title="src/robotics/inspection-mission.workflow.ts" file=src/robotics/inspection-mission.workflow.ts
-import { Arbiter, DecidedBy, OnAnswer, Workflow, listOf, start } from "agboss";
-import { seconds } from "agboss/units";
+import { Arbiter, DecidedBy, OnAnswer, Workflow, listOf, start } from "@agboss/core";
+import { seconds } from "@agboss/core/units";
 import {
   AcquireTelemetryAction,
   ArmManipulatorAction,
@@ -286,7 +286,7 @@ export class ValveInspectionMissionWorkflow {}
 ```
 
 <!-- snippet-context
-import { Injectable, listOf, type OutputOf } from "agboss";
+import { Injectable, listOf, type OutputOf } from "@agboss/core";
 import { MissionTargetDto, PoseAssessmentDto, SensorFrameDto, ValveTurnReceiptDto } from "./robotics.dto.js";
 @Injectable()
 export class HardwareBridgeService {
@@ -322,7 +322,7 @@ export class ExecuteValveTurnAction implements ActionHandler<ExecuteValveTurnAct
 // @snippet
 -->
 ```ts title="src/robotics/robotics.actions.ts" file=src/robotics/robotics.actions.ts
-import { Action, ExecutionContext, type ActionHandler, type InputOf } from "agboss";
+import { Action, ExecutionContext, type ActionHandler, type InputOf } from "@agboss/core";
 
 @Action({
   name: "safe-park-manipulator-action",
@@ -369,7 +369,7 @@ export class ArmManipulatorAction implements ActionHandler<ArmManipulatorAction>
 ```
 
 <!-- snippet-context
-import { Agent, Injectable, Tool, Workflow, WorkflowFinish, WorkflowStart, start, type ToolHandler } from "agboss";
+import { Agent, Injectable, Tool, Workflow, WorkflowFinish, WorkflowStart, start, type ToolHandler } from "@agboss/core";
 import { ValveTurnCommandDto, ValveTurnReceiptDto } from "./robotics.dto.js";
 @Injectable()
 export class OperatorConsoleService {
@@ -417,7 +417,7 @@ import {
   PauseAnswerer,
   type ChannelAsk,
   type ChannelWithdrawal,
-} from "agboss";
+} from "@agboss/core";
 
 @ChannelRole({
   name: "teleop-safety-channel",
@@ -451,7 +451,7 @@ export class ConsoleTeleopSafetyChannel extends TeleopSafetyChannel {
 
 ```ts title="test/inspection-mission.test.ts" file=test/inspection-mission.test.ts
 import { expect, it } from "vitest";
-import { testArbiter } from "agboss/testing";
+import { testArbiter } from "@agboss/core/testing";
 import {
   PoseConsensusArbiter,
   PrimarySpatialVlmAgent,

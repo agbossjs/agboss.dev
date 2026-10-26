@@ -3,14 +3,14 @@ title: "@Tool & @BindTool"
 description: Complete API reference for @Tool and @BindTool in AGBoss — ToolHandler<In, Out>, channel approvals, ExecutionContext, SpendRecorder, and testTool().
 ---
 
-The `@Tool` class decorator (`tools/*.tool.ts`) defines a typed capability that an `@Agent` can invoke during its tool-calling loop, or that can be called directly via `app.tool(ToolClass).invoke(input)` or exposed over MCP via `@McpExpose`. Every `@Tool` declares its input and output DTO classes from `agboss/dto` and implements `ToolHandler<In, Out>`. The companion `@BindTool` method decorator binds tool callbacks onto component methods.
+The `@Tool` class decorator (`tools/*.tool.ts`) defines a typed capability that an `@Agent` can invoke during its tool-calling loop, or that can be called directly via `app.tool(ToolClass).invoke(input)` or exposed over MCP via `@McpExpose`. Every `@Tool` declares its input and output DTO classes from `@agboss/core/dto` and implements `ToolHandler<In, Out>`. The companion `@BindTool` method decorator binds tool callbacks onto component methods.
 
 ## Complete `@Tool` example with all capabilities
 
 ```ts title="src/tools/refund-card-payment.tool.ts" file=src/tools/refund-card-payment.tool.ts
-import { ExecutionContext, SpendRecorder, Tool, type ToolHandler } from "agboss";
-import { Integer, OneOf, Text } from "agboss/dto";
-import { kilobytes, seconds, usd } from "agboss/units";
+import { ExecutionContext, SpendRecorder, Tool, type ToolHandler } from "@agboss/core";
+import { Integer, OneOf, Text } from "@agboss/core/dto";
+import { kilobytes, seconds, usd } from "@agboss/core/units";
 import { RefundApprovalChannel } from "../channels/refund-approval.channel.js";
 import { PaymentsService } from "../services/payments.service.js";
 
@@ -65,7 +65,7 @@ export class RefundCardPaymentTool implements ToolHandler<RefundInputDto, Refund
 ```
 
 ```ts title="src/services/payments.service.ts" file=src/services/payments.service.ts
-import { Injectable } from "agboss";
+import { Injectable } from "@agboss/core";
 
 @Injectable()
 export class PaymentsService {
@@ -81,7 +81,7 @@ export class PaymentsService {
 ```
 
 ```ts title="src/channels/refund-approval.channel.ts" file=src/channels/refund-approval.channel.ts
-import { ChannelOf, ChannelRole, PauseAnswerer } from "agboss";
+import { ChannelOf, ChannelRole, PauseAnswerer } from "@agboss/core";
 import { RefundInputDto } from "../tools/refund-card-payment.tool.js";
 
 @ChannelRole({
@@ -95,7 +95,7 @@ export abstract class RefundApprovalChannel
 ```
 
 ```ts title="src/agents/refund-specialist.agent.ts" file=src/agents/refund-specialist.agent.ts
-import { Agent } from "agboss";
+import { Agent } from "@agboss/core";
 import { RefundOutputDto, RefundCardPaymentTool } from "../tools/refund-card-payment.tool.js";
 
 @Agent({
@@ -112,7 +112,7 @@ export class RefundSpecialistAgent {}
 
 ```ts title="test/refund-card-payment.tool.test.ts" file=test/refund-card-payment.tool.test.ts
 import { expect, it } from "vitest";
-import { override, testTool } from "agboss/testing";
+import { override, testTool } from "@agboss/core/testing";
 import { RefundCardPaymentTool } from "../src/tools/refund-card-payment.tool.js";
 import { PaymentsService } from "../src/services/payments.service.js";
 
@@ -145,7 +145,7 @@ it("executes RefundCardPaymentTool with a fake PaymentsService", async () => {
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | Yes | Snake_case or kebab-case tool name exposed to the model (`"refund_card"`). |
 | `description` | `string` | Yes | Concise description telling the model what the tool does. |
-| `input` | `DtoClass` | Yes | DTO class (`agboss/dto`) validating the tool's input arguments and generating its JSON Schema. |
+| `input` | `DtoClass` | Yes | DTO class (`@agboss/core/dto`) validating the tool's input arguments and generating its JSON Schema. |
 | `output` | `DtoClass` | Yes | DTO class validating the plain object returned by `run(input)`. |
 | `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `SpendRecorder`, `@Injectable` services) verified against constructor parameters. |
 | `prompt` / `promptUrls` | `string` / `readonly string[]` | No | Detailed usage instructions for the tool appended to the agent's tool guidance. |
@@ -159,9 +159,9 @@ it("executes RefundCardPaymentTool with a fake PaymentsService", async () => {
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `ToolHandler<TInput, TOutput>` | `"agboss"` | Contract implemented by `@Tool` and `@McpTool` classes (`run(input: TInput): Promise<TOutput>`). |
-| `ExecutionContext` | `"agboss"` | Injected via `deps: [ExecutionContext]`; provides `step.idempotencyKey`, `step.callId`, `signal`, `executionId`, and `ownerId`. |
-| `SpendRecorder` | `"agboss"` | Injected via `deps: [SpendRecorder]`; records external API spend (`spendRecorder.record({ service, cost })`) against `@Budget` limits. |
-| `app.tool(ToolClass).invoke(input)` | `"agboss"` | Executes a registered tool directly inside its own isolated execution context. |
-| `testTool(ToolClass, options?)` | `"agboss/testing"` | Isolated unit runner that executes `run(input)` with DI `overrides` and returns `{ output, spend }`. |
-| `mockTool(ToolClass)` | `"agboss/testing"` | Mocks or spies on a tool inside a `testWith(Application)` workflow test. |
+| `ToolHandler<TInput, TOutput>` | `"@agboss/core"` | Contract implemented by `@Tool` and `@McpTool` classes (`run(input: TInput): Promise<TOutput>`). |
+| `ExecutionContext` | `"@agboss/core"` | Injected via `deps: [ExecutionContext]`; provides `step.idempotencyKey`, `step.callId`, `signal`, `executionId`, and `ownerId`. |
+| `SpendRecorder` | `"@agboss/core"` | Injected via `deps: [SpendRecorder]`; records external API spend (`spendRecorder.record({ service, cost })`) against `@Budget` limits. |
+| `app.tool(ToolClass).invoke(input)` | `"@agboss/core"` | Executes a registered tool directly inside its own isolated execution context. |
+| `testTool(ToolClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that executes `run(input)` with DI `overrides` and returns `{ output, spend }`. |
+| `mockTool(ToolClass)` | `"@agboss/core/testing"` | Mocks or spies on a tool inside a `testWith(Application)` workflow test. |

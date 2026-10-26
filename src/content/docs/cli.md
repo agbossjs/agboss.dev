@@ -1,13 +1,13 @@
 ---
 title: CLI Reference
-description: Complete reference for the agboss CLI (agboss-cli) — project scaffolding, component generators, static flow checking, interactive chat, and evaluation.
+description: Complete reference for the agboss CLI (@agboss/cli) — project scaffolding, component generators, static flow checking, interactive chat, and evaluation.
 ---
 
-The [`agboss-cli`](https://www.npmjs.com/package/agboss-cli) package (paired with the [`agboss`](https://www.npmjs.com/package/agboss) runtime) provides the `agboss` command-line interface (short alias `agb`) for scaffolding projects (`agboss create`), generating and wiring components (`agboss generate`), generating `.agboss/types.d.ts` and checking assembly rules (`agboss check`), inspecting workflows (`agboss describe`), running interactive or one-shot turns (`agboss chat`, `agboss run`), and evaluating prompt profiles (`agboss eval`, `agboss compare`).
+The [`@agboss/cli`](https://www.npmjs.com/package/@agboss/cli) package (paired with the [`@agboss/core`](https://www.npmjs.com/package/@agboss/core) runtime) provides the `agboss` command-line interface (short alias `agb`) for scaffolding projects (`agboss create`), generating and wiring components (`agboss generate`), generating `.agboss/types.d.ts` and checking assembly rules (`agboss check`), inspecting workflows (`agboss describe`), running interactive or one-shot turns (`agboss chat`, `agboss run`), and evaluating prompt profiles (`agboss eval`, `agboss compare`).
 
 ## How to scaffold projects and generate components
 
-Create a new project interactively or via flags in CI with `npx agboss create` (also works via `npx agboss-cli create`, short alias `agb c`):
+Create a new project interactively or via flags in CI with `npx agboss create` (also works via `npx @agboss/cli create`, short alias `agb c`):
 
 ```bash
 npx agboss create my-app
@@ -107,7 +107,7 @@ src/
 
 | Command | What It Does |
 | :--- | :--- |
-| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with `agboss` (`dependencies`), `agboss-cli` (`devDependencies`), `@Application`, workflow, environments, `eslint.config.js` (`agboss/eslint`), `.agboss/types.d.ts`, `AGENTS.md`, `CLAUDE.md`, 13 AI coding skills, and Vitest tests |
+| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with `agboss` (`dependencies`), `@agboss/cli` (`devDependencies`), `@Application`, workflow, environments, `eslint.config.js` (`@agboss/core/eslint`), `.agboss/types.d.ts`, `AGENTS.md`, `CLAUDE.md`, 13 AI coding skills, and Vitest tests |
 | `agboss generate <kind> <name>` (`agboss g`) | Generates and wires an `agent`, `router`, `tool`, `arbiter`, `mcp`, `rag`, `workflow`, `openapi` client, or `eval-case` (`--from-execution <executionId>`) |
 | `agboss check [--application <path>]` | Writes `.agboss/types.d.ts`, syncs `.claude/skills/agboss/` (`SKILL.md` + 13 reference modules), and validates all flow, assembly, environment, and prompt rules without calling models |
 | `agboss check --strict` | Treats analyser warnings (`[flow.path-too-deep]`, `[judge.same-model-family]`) and assembly warnings (`[application.in-memory-cost-ledger]`, `[application.in-memory-child-queue]`) as errors |
@@ -159,5 +159,5 @@ Running `agboss describe --json --application <path>` dumps the complete machine
 AGBoss is built for Senior/Staff engineers steering AI coding agents (OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, Aider, and Claude Code):
 
 - **Universal project entrypoints (`AGENTS.md` & `CLAUDE.md`):** `agboss create <name>` generates root `AGENTS.md` and a one-line `CLAUDE.md` (`@AGENTS.md`) once and commits them to Git. They are never overwritten, allowing you to add project-specific domain rules alongside the AGBoss skill routing table.
-- **Offline, gitignored skill suite (`SKILL.md` + `references/01..13.md`):** Bundled directly inside the `agboss` npm package (`node_modules/agboss/skills/agboss/`) and automatically synced into `.claude/skills/agboss/` (`SKILL.md`, `references/01-composition-and-architecture.md` .. `13-migrating-from-langgraph.md`, and `.agboss-skills.json`) whenever `npm install` (`"postinstall": "npm run types"`, where `"types": "agboss check"`), `agboss check`, or `agboss generate` runs. Opt out anytime via `"agboss": { "skills": false }` in `package.json`. See [AI-Assisted Engineering & Coding Skills](/concepts/ai-coding-skills/) for the full architecture.
+- **Offline, gitignored skill suite (`SKILL.md` + `references/01..13.md`):** Bundled directly inside the `@agboss/core` npm package (`node_modules/@agboss/core/skills/agboss/`) and automatically synced into `.claude/skills/agboss/` (`SKILL.md`, `references/01-composition-and-architecture.md` .. `13-migrating-from-langgraph.md`, and `.agboss-skills.json`) whenever `npm install` (`"postinstall": "npm run types"`, where `"types": "agboss check"`), `agboss check`, or `agboss generate` runs. Opt out anytime via `"agboss": { "skills": false }` in `package.json`. See [AI-Assisted Engineering & Coding Skills](/concepts/ai-coding-skills/) for the full architecture.
 - **Machine-readable documentation:** Every documentation page on `agboss.dev` is published in [`/llms.txt`](/llms.txt) and [`/llms-full.txt`](/llms-full.txt) for instant context ingestion.

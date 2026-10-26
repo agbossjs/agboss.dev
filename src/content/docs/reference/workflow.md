@@ -20,9 +20,9 @@ import {
   route,
   start,
   toAction,
-} from "agboss";
-import { Reasoning, ReasoningEffort } from "agboss/models";
-import { seconds } from "agboss/units";
+} from "@agboss/core";
+import { Reasoning, ReasoningEffort } from "@agboss/core/models";
+import { seconds } from "@agboss/core/units";
 import {
   AuditArbiter,
   AuditTrailGuardrail,
@@ -124,7 +124,7 @@ export class OfferWorkflow {}
 ```
 
 ```ts title="src/dto/offer-negotiation.dto.ts" file=src/dto/offer-negotiation.dto.ts
-import { Integer, Text } from "agboss/dto";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class CandidateInputDto {
   @Text() role!: string;
@@ -179,8 +179,8 @@ import {
   start,
   type ActionHandler,
   type InputOf,
-} from "agboss";
-import { McpServer, McpServerClient, type ServerTools } from "agboss/mcp";
+} from "@agboss/core";
+import { McpServer, McpServerClient, type ServerTools } from "@agboss/core/mcp";
 import {
   AuditVerdictDto,
   CandidateInputDto,
@@ -363,8 +363,8 @@ export class ComplianceCheckWorkflow {}
 
 <!--
 ```ts file=src/offer.application.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 import { OfferWorkflow } from "./workflows/offer-negotiation.workflow.js";
 
 @Budget({ name: "ow-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
@@ -387,8 +387,8 @@ export class OfferApplication {}
 
 ```ts title="test/offer-negotiation.workflow.test.ts" file=test/offer-negotiation.workflow.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { replyWith, routeTo, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { replyWith, routeTo, testWith } from "@agboss/core/testing";
 import { OfferApplication } from "../src/offer.application.js";
 import {
   ComplianceAgent,
@@ -458,8 +458,8 @@ Every `@Workflow` class name ends with `Workflow` and its `name` option ends wit
 
 | Builder / Entity | Import Path | Description |
 | :--- | :--- | :--- |
-| `start(StartClass)` | `"agboss"` | Begins a root path from a `@WorkflowStart` class. |
-| `agent(AgentClass)`, `router(RouterClass)`, `action(ActionClass)`, `workflow(ChildWorkflow)` | `"agboss"` | Begins a shared continuation path from a node reached by multiple upstream paths. |
+| `start(StartClass)` | `"@agboss/core"` | Begins a root path from a `@WorkflowStart` class. |
+| `agent(AgentClass)`, `router(RouterClass)`, `action(ActionClass)`, `workflow(ChildWorkflow)` | `"@agboss/core"` | Begins a shared continuation path from a node reached by multiple upstream paths. |
 | `.returns(Dto, { about? })` | Flow chain | Declares one output DTO added to Path Scope; `{ about: TargetDto }` binds review verdicts to the artifact they judge. |
 | `.toAgent(A)`, `.toAction(A)`, `.toRouter(R)`, `.toWorkflow(W, { placement? })`, `.toFinish(F)` | Flow chain | Transitions execution to the next node after verifying its `input` fields exist in Path Scope; `.toWorkflow` and `route(W, { placement? })` accept `placement: ChildPlacement.ParentInstance \| ChildPlacement.AnyInstance`. |
 | `.chooseOne(route(Target, { placement? })...)` | Flow chain | Branches after `.toRouter(R)` to exactly one chosen route target. |
@@ -467,5 +467,5 @@ Every `@Workflow` class name ends with `Workflow` and its `name` option ends wit
 | `.toParallelAgents(...)`, `.toParallelWorkflows(W, { maxItems?, maxConcurrency?, placement? })` | Flow chain | Fans out across multiple agents, `{ agent, count }` copies, or `{ agent, each: ListDto }` items with `{ maxItems, maxConcurrency, placement: ChildPlacement.AnyInstance }`. |
 | `.join()`, `.joinQuorum({ min, max?, deadline? })`, `.joinQuorumGroups(...)` | Flow chain | Joins all parallel branches or resolves early as soon as a quorum verified by `.acceptedBy(Arbiter)` is reached. |
 | `.onError(ErrorClass, sidePath)`, `.onJoinError(ErrorClass, sidePath)` | Flow chain | Catches step or parallel-join failures (`StepFailedError`, `VisitsLimitExceededError`, `QuorumNotReachedError`) onto a typed recovery path. |
-| `ThisWorkflow` | `"agboss"` | Sentinel target passed to `.toWorkflow(ThisWorkflow)` or `.toParallelWorkflows(ThisWorkflow)` for bounded self-recursion. |
-| `oneOf(A, B)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"agboss"` | Path Scope input/output shape wrappers used on component `input` and `output` declarations. |
+| `ThisWorkflow` | `"@agboss/core"` | Sentinel target passed to `.toWorkflow(ThisWorkflow)` or `.toParallelWorkflows(ThisWorkflow)` for bounded self-recursion. |
+| `oneOf(A, B)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"@agboss/core"` | Path Scope input/output shape wrappers used on component `input` and `output` declarations. |

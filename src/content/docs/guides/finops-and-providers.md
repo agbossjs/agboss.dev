@@ -3,7 +3,7 @@ title: FinOps, Budgets & Model Providers
 description: Control LLM costs, rate limits, tenant fairness, and circuit breakers with @Budget, @ModelProvider, RateLimitPolicy, and SpendRecorder in AGBoss.
 ---
 
-Running multi-agent workflows in production requires strict guardrails against runaway spend, vendor rate-limit spikes, and noisy-neighbor tenants. AGBoss builds FinOps and traffic management directly into the `@Application` container via `@ModelProvider` (`agboss/models`), mandatory `@Budget` components across three scopes, `SpendRecorder` for paid non-LLM APIs, and `CostLedgerRepository`.
+Running multi-agent workflows in production requires strict guardrails against runaway spend, vendor rate-limit spikes, and noisy-neighbor tenants. AGBoss builds FinOps and traffic management directly into the `@Application` container via `@ModelProvider` (`@agboss/core/models`), mandatory `@Budget` components across three scopes, `SpendRecorder` for paid non-LLM APIs, and `CostLedgerRepository`.
 
 ## How `@ModelProvider` pools manage rate limits and tenant fairness
 
@@ -12,8 +12,8 @@ Every model in an application resolves to a `@ModelProvider` listed in `@Applica
 Out of the box, AGBoss registers two built-in catch-all providers — `OpenRouterModelProvider` (`serves: [/.*/]`) and `DecisionsModelProvider` (`serves: [/^typesafe\/jev-/]`). When you list a custom `@ModelProvider` with its own `serves` (for example `serves: [/^anthropic\//]` or `[/^bedrock\//]`) in `@Application({ providers })`, the built-in catch-all providers **automatically yield** any model matched by your custom provider (`#454`) — no subclassing of `OpenRouterModelProvider` required. To replace the default OpenRouter catch-all itself, subclass `extends OpenRouterModelProvider`:
 
 ```ts title="src/model-providers/openrouter.model-provider.ts" file=src/model-providers/openrouter.model-provider.ts
-import { ModelCost, ModelProvider, OpenRouterProvider, OPENROUTER_BASE_URL, PromptCaching, QueueBalancingStrategy, RateLimitPolicy, Reasoning, RetryPolicy, TRANSIENT_FAILURES, type OpenRouterFields } from "agboss/models";
-import { minutes, seconds } from "agboss/units";
+import { ModelCost, ModelProvider, OpenRouterProvider, OPENROUTER_BASE_URL, PromptCaching, QueueBalancingStrategy, RateLimitPolicy, Reasoning, RetryPolicy, TRANSIENT_FAILURES, type OpenRouterFields } from "@agboss/core/models";
+import { minutes, seconds } from "@agboss/core/units";
 
 @ModelProvider({
   name: "openrouter-model-provider",
@@ -52,7 +52,7 @@ export class OpenRouterModelProvider extends OpenRouterProvider {
 ```
 
 ```ts title="src/environments/app.environment.ts" file=src/environments/app.environment.ts
-import { secret, type Secret } from "agboss";
+import { secret, type Secret } from "@agboss/core";
 
 export class AppEnvironment {
   openRouterApiKey!: Secret;
@@ -79,8 +79,8 @@ it("exports OpenRouterModelProvider with tenant round-robin queueing", () => {
 Every `@Application` requires `@Budget` coverage across three scopes (`BudgetScope.Application`, `BudgetScope.Tenant`, and `BudgetScope.Execution`). Budgets implement `BudgetHandler` (`maxSpend(): Usd`) and can inject `ExecutionContext` or a custom `TenantContext` subclass to read per-tenant limits from server-side data:
 
 <!-- snippet-context
-import { ExecutionContext, TenantContext } from "agboss";
-import { Decimal, Text } from "agboss/dto";
+import { ExecutionContext, TenantContext } from "@agboss/core";
+import { Decimal, Text } from "@agboss/core/dto";
 export class ShopTenantContext extends TenantContext {
   @Decimal()
   dailyBudgetUsd!: number;
@@ -95,8 +95,8 @@ export class SearchResultsDto {
 }
 -->
 ```ts title="src/budgets/support.budgets.ts" file=src/budgets/support.budgets.ts
-import { Budget, BudgetPeriod, BudgetScope, SpendRecorder, Tool, type BudgetHandler, type ToolHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, SpendRecorder, Tool, type BudgetHandler, type ToolHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 
 @Budget({
   name: "app-daily-budget",
@@ -156,8 +156,8 @@ export class WebSearchTool
 ```
 
 <!-- snippet-context
-import { Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
+import { Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
 @WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class SupportStart {}
 @WorkflowFinish({ name: "support-workflow-finish", description: "Finish", output: WorkflowStartTextDto })
@@ -171,7 +171,7 @@ export class SupportWorkflow {}
 // @snippet
 -->
 ```ts title="src/support.application.ts" file=src/support.application.ts
-import { Application, SqliteCostLedgerRepository } from "agboss";
+import { Application, SqliteCostLedgerRepository } from "@agboss/core";
 import { AppEnvironment } from "./environments/app.environment.js";
 import { AppDailyBudget, ExecutionBudget, TenantDailyBudget } from "./budgets/support.budgets.js";
 
@@ -188,8 +188,8 @@ export class SupportApplication {}
 
 ```ts title="test/support-finops.test.ts" file=test/support-finops.test.ts
 import { expect, it } from "vitest";
-import { testTool } from "agboss/testing";
-import { usd } from "agboss/units";
+import { testTool } from "@agboss/core/testing";
+import { usd } from "@agboss/core/units";
 import { AppDailyBudget, WebSearchTool } from "../src/budgets/support.budgets.js";
 
 it("records external API spend via SpendRecorder and enforces daily budget ceiling", async () => {

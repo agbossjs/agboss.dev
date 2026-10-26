@@ -3,7 +3,7 @@ title: About AGBoss
 description: "Learn what AGBoss (Agent Graph Builder Open Source System) and HarnessDSL are, who maintains the Apache 2.0 TypeScript framework, and how to contribute."
 ---
 
-**AGBoss** (**Agent Graph Builder Open Source System**) is an Apache 2.0 licensed TypeScript framework, static graph compiler (`agboss check`), and production runtime layered on top of [LangGraph](https://www.langchain.com/langgraph) (`npm i agboss`). Inside AGBoss, **HarnessDSL (`HDSL`)** is the declarative graph grammar and verification specification (much like JSX in React or PSL in Prisma) that defines how `*.workflow.ts` `flow` chains and contract decorators specify narrow `@Dto` handoffs, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas.
+**AGBoss** (**Agent Graph Builder Open Source System**) is an Apache 2.0 licensed TypeScript framework, static graph compiler (`agboss check`), and production runtime layered on top of [LangGraph](https://www.langchain.com/langgraph) (`npm i @agboss/core`). Inside AGBoss, **HarnessDSL (`HDSL`)** is the declarative graph grammar and verification specification (much like JSX in React or PSL in Prisma) that defines how `*.workflow.ts` `flow` chains and contract decorators specify narrow `@Dto` handoffs, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas.
 
 It is designed for Senior, Staff, and Principal engineers and CTOs who build multi-agent systems scaling to hundreds of nodes with AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code) and require compile-time guarantees, predictable token economics, and zero vendor lock-in.
 
@@ -30,11 +30,11 @@ AGBoss complements LangGraph rather than replacing it. Every `@Workflow` compile
 
 ## Open-source governance and licensing
 
-The entire AGBoss framework (`agboss`), CLI (`agboss-cli`), documentation verification suite, and built-in AI coding skills (`AGENTS.md`, `CLAUDE.md`, and `.claude/skills/agboss/`) are published under the [Apache License 2.0](https://github.com/agbossjs/agboss/blob/main/LICENSE).
+The entire AGBoss framework (`agboss`), CLI (`@agboss/cli`), documentation verification suite, and built-in AI coding skills (`AGENTS.md`, `CLAUDE.md`, and `.claude/skills/agboss/`) are published under the [Apache License 2.0](https://github.com/agbossjs/agboss/blob/main/LICENSE).
 
 | Component | Package / Location | License | Purpose |
 | --- | --- | --- | --- |
-| Core Framework | `agboss` | Apache-2.0 | Decorators, HarnessDSL (`HDSL`) flow syntax, DI container, FinOps, PII, SQLite stores, `agboss/testing`, offline skills (`skills/agboss/`) |
-| Command-Line Interface | `agboss-cli` | Apache-2.0 | `agboss create`, `generate`, `check`, `describe`, `chat`, `run`, `eval`, `replay`, `golden`, `compare` |
+| Core Framework | `agboss` | Apache-2.0 | Decorators, HarnessDSL (`HDSL`) flow syntax, DI container, FinOps, PII, SQLite stores, `@agboss/core/testing`, offline skills (`skills/agboss/`) |
+| Command-Line Interface | `@agboss/cli` | Apache-2.0 | `agboss create`, `generate`, `check`, `describe`, `chat`, `run`, `eval`, `replay`, `golden`, `compare` |
 | Reference Examples | `examples/job-scout`, `examples/flow-patterns` | Apache-2.0 | End-to-end multi-agent workflows and flow pattern blueprints |
 | Documentation Site | [agboss.dev](https://agboss.dev) | Apache-2.0 | Compiler-checked guides, API reference, `/llms.txt`, and `/llms-full.txt` |

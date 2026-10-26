@@ -27,7 +27,7 @@ import {
 } from "./order.components.js";
 -->
 ```ts title="src/order.workflow.ts" file=order.workflow.ts
-import { Workflow, start, toAction } from "agboss";
+import { Workflow, start, toAction } from "@agboss/core";
 
 @Workflow({
   name: "order-workflow",
@@ -57,8 +57,8 @@ export class OrderWorkflow {}
 ```
 
 ```ts title="src/order.components.ts" file=order.components.ts
-import { Action, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "agboss";
-import { Text } from "agboss/dto";
+import { Action, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
+import { Text } from "@agboss/core/dto";
 
 export class OrderRequestDto {
   @Text({ prompt: "order id" })
@@ -143,8 +143,8 @@ export class NotifyFinanceTeamAction implements ActionHandler<NotifyFinanceTeamA
 ```
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 @Budget({ name: "order-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class OrderAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
 @Budget({ name: "order-tenant-budget", scope: BudgetScope.Tenant, period: BudgetPeriod.Day })
@@ -154,9 +154,9 @@ export class OrderExecBudget implements BudgetHandler { maxSpend(): Usd { return
 // @snippet
 -->
 ```ts title="test/order.workflow.test.ts" file=order.workflow.test.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import { expect } from "vitest";
-import { testWith } from "agboss/testing";
+import { testWith } from "@agboss/core/testing";
 import { OrderWorkflow } from "./order.workflow.js";
 import { OrderWorkflowFinish, OrderWorkflowStart } from "./order.components.js";
 
@@ -213,8 +213,8 @@ AGBoss solves both static rollback completeness and runtime external aborts with
 
 <!--
 ```ts file=src/actions/offer.contracts.ts
-import { Action, type ActionHandler, type InputOf } from "agboss";
-import { Text } from "agboss/dto";
+import { Action, type ActionHandler, type InputOf } from "@agboss/core";
+import { Text } from "@agboss/core/dto";
 
 export class OfferDraftDto {
   @Text()
@@ -241,7 +241,7 @@ export class ConfirmOfferAction implements ActionHandler<ConfirmOfferAction> {
 ```
 -->
 <!-- snippet-context
-import { ActionFailedError, Workflow, WorkflowFinish, WorkflowStart, start, toAction } from "agboss";
+import { ActionFailedError, Workflow, WorkflowFinish, WorkflowStart, start, toAction } from "@agboss/core";
 import { ConfirmOfferAction, OfferDraftDto, RegisteredOfferDto } from "./offer.contracts.js";
 // @snippet
 @WorkflowStart({ name: "offer-saga-workflow-start", description: "Start", input: OfferDraftDto })
@@ -268,7 +268,7 @@ export class OfferSagaFinish {}
 export class OfferSagaWorkflow {}
 -->
 ```ts title="src/actions/register-offer.action.ts" file=src/actions/register-offer.action.ts
-import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from "agboss";
+import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
 import { WithdrawOfferAction } from "./withdraw-offer.action.js";
 
 @Action({
@@ -297,7 +297,7 @@ import { RegisteredOfferDto } from "./offer.contracts.js";
 // @snippet
 -->
 ```ts title="src/actions/withdraw-offer.action.ts" file=src/actions/withdraw-offer.action.ts
-import { Action, ExecutionContext, type ActionHandler, type InputOf } from "agboss";
+import { Action, ExecutionContext, type ActionHandler, type InputOf } from "@agboss/core";
 
 @Action({
   name: "withdraw-offer-action",
@@ -317,7 +317,7 @@ export class WithdrawOfferAction implements ActionHandler<WithdrawOfferAction> {
 
 ```ts title="test/offer-saga.test.ts" file=test/offer-saga.test.ts
 import { expect, it } from "vitest";
-import { testAction } from "agboss/testing";
+import { testAction } from "@agboss/core/testing";
 import {
   OfferSagaStart,
   RegisterOfferAction,

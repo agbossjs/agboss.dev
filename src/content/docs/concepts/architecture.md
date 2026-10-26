@@ -3,7 +3,7 @@ title: Distributed-Systems Architecture (7 Core Invariants)
 description: How AGBoss and HarnessDSL enforce 7 distributed-systems invariants at compile time so engineers and AI coding agents scale LangGraph graphs without entropy.
 ---
 
-**AGBoss** (**Agent Graph Builder Open Source System**) is built on a foundational premise: **a multi-agent system that scales to hundreds of nodes is a distributed dataflow system, not a prompt script.** In this engineering model (much like React and JSX, or Prisma and PSL), **AGBoss** is the TypeScript framework, static graph compiler (`agboss check`), and production runtime on top of LangGraph (`npm i agboss`), while **HarnessDSL (`HDSL`)** is the declarative graph grammar and verification specification **inside `AGBoss`** — defining how `*.workflow.ts` `flow` chains and contract decorators express narrow `@Dto` handoffs, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas. Furthermore, in modern engineering organizations, the bulk of orchestration code is generated and refactored by **AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code)** under the architectural direction of a Senior, Staff, or Principal engineer.
+**AGBoss** (**Agent Graph Builder Open Source System**) is built on a foundational premise: **a multi-agent system that scales to hundreds of nodes is a distributed dataflow system, not a prompt script.** In this engineering model (much like React and JSX, or Prisma and PSL), **AGBoss** is the TypeScript framework, static graph compiler (`agboss check`), and production runtime on top of LangGraph (`npm i @agboss/core`), while **HarnessDSL (`HDSL`)** is the declarative graph grammar and verification specification **inside `AGBoss`** — defining how `*.workflow.ts` `flow` chains and contract decorators express narrow `@Dto` handoffs, `Path Scope`, `in-degree = 1` vs `in-degree >= 2` canonical topology, `{ about }` staleness tracking, quorums, and `compensateWith` / `committedBy` sagas. Furthermore, in modern engineering organizations, the bulk of orchestration code is generated and refactored by **AI coding agents (Codex, Cursor, Windsurf, Copilot, Gemini CLI, Claude Code)** under the architectural direction of a Senior, Staff, or Principal engineer.
 
 When coding agents operate on unconstrained graph libraries (raw `Annotation.Root` state bags, untyped `(state) => string` edges, and imperative `Promise.all` loops), small local edits silently corrupt downstream branches, destroy LLM KV-cache hit rates, or leave uncommitted side effects dangling on failure.
 
@@ -37,8 +37,8 @@ AGBoss enforces **strict role segregation** at the decorator and compiler level 
 - **[`@Action`](/reference/action/) (Deterministic Graph Step):** Runs pure, idempotent TypeScript with constructor DI (`ActionHandler<Self>`) and zero LLM access — ideal for external side effects, state transformations, and limit-error recovery paths.
 
 <!-- snippet-context
-import { Workflow, WorkflowFinish, WorkflowStart, route, start } from "agboss";
-import { seconds } from "agboss/units";
+import { Workflow, WorkflowFinish, WorkflowStart, route, start } from "@agboss/core";
+import { seconds } from "@agboss/core/units";
 // @snippet
 @WorkflowStart({ name: "settlement-workflow-start", description: "Start", input: OrderDto })
 export class SettlementStart {}
@@ -81,8 +81,8 @@ import {
   type OutputOf,
   type Route,
   type RouterHandler,
-} from "agboss";
-import { Integer, Text } from "agboss/dto";
+} from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class OrderDto {
   @Text()
@@ -188,7 +188,7 @@ export class SettlementRouter implements RouterHandler<SettlementRouter> {
 
 ```ts title="test/settlement.components.test.ts" file=test/settlement.components.test.ts
 import { expect, it } from "vitest";
-import { testAction, testArbiter, testRouter } from "agboss/testing";
+import { testAction, testArbiter, testRouter } from "@agboss/core/testing";
 import {
   CapturePaymentAction,
   DirectCaptureAction,

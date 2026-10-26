@@ -17,9 +17,9 @@ import {
   SqliteExecutionTreeRepository,
   SqlitePausedExecutionRepository,
   SqliteRateLimitRepository,
-} from "agboss";
-import { Reasoning, ReasoningEffort } from "agboss/models";
-import { hours, seconds } from "agboss/units";
+} from "@agboss/core";
+import { Reasoning, ReasoningEffort } from "@agboss/core/models";
+import { hours, seconds } from "@agboss/core/units";
 import {
   AppDailyBudget,
   ExecutionRunBudget,
@@ -88,7 +88,7 @@ export { SupportWorkflow };
 ```
 
 ```ts title="src/environments/prod.environment.ts" file=src/environments/prod.environment.ts
-import { env, secret } from "agboss";
+import { env, secret } from "@agboss/core";
 import type { AppEnvironment } from "../support.contracts.js";
 
 export const environment: AppEnvironment = {
@@ -100,8 +100,8 @@ export const environment: AppEnvironment = {
 ```
 
 ```ts title="src/budgets/support.budgets.ts" file=src/budgets/support.budgets.ts
-import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 
 @Budget({ name: "app-daily-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class AppDailyBudget implements BudgetHandler {
@@ -120,8 +120,8 @@ export class ExecutionRunBudget implements BudgetHandler {
 ```
 
 ```ts title="src/main.ts" file=src/main.ts
-import { ExecutionStatus, createApp } from "agboss";
-import { seconds } from "agboss/units";
+import { ExecutionStatus, createApp } from "@agboss/core";
+import { seconds } from "@agboss/core/units";
 import { SupportApplication } from "./support.application.js";
 import { ChatWorkflowStart } from "./support.components.js";
 
@@ -158,8 +158,8 @@ export async function runSupportServer() {
 
 ```ts title="test/support.application.test.ts" file=test/support.application.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { replyWith, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { replyWith, testWith } from "@agboss/core/testing";
 import { SupportApplication } from "../src/support.application.js";
 import { ChatWorkflowStart, SupportAgent } from "../src/support.components.js";
 
@@ -181,8 +181,8 @@ test("boots the application container and executes ChatWorkflowStart", async ({ 
 
 <!--
 ```ts file=src/support.contracts.ts
-import { ExecutionContext, TenantContext, type Secret } from "agboss";
-import { Text } from "agboss/dto";
+import { ExecutionContext, TenantContext, type Secret } from "@agboss/core";
+import { Text } from "@agboss/core/dto";
 
 // Pure contract class (no default values on fields — enforced by [environment.contract-value]):
 export class AppEnvironment {
@@ -226,9 +226,9 @@ import {
   type ExecutionEndEvent,
   type OnExecutionEnd,
   type ToolHandler,
-} from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
-import { DecisionsModelProvider, OpenRouterModelProvider } from "agboss/models";
+} from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
+import { DecisionsModelProvider, OpenRouterModelProvider } from "@agboss/core/models";
 
 export { DecisionsModelProvider, OpenRouterModelProvider };
 
@@ -342,10 +342,10 @@ Every `@Application` class name ends with `Application` and its `name` option en
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `createApp(AppClass, options?)` | `"agboss"` | Boots the container, runs `onInit()` and `onStart()` on all components, starts recovery sweeps, and returns the `App` handle. |
-| `App` (`execute`, `resume`, `cancel`, `checkReadiness`, `checkLiveness`, `close`, `tool`) | `"agboss"` | Runtime handle used to start workflows, resume pauses, cancel runs (`app.cancel(threadId)`), report pod health (`HealthStatus.Healthy` / `HealthStatus.Degraded` / `HealthStatus.Unhealthy`), invoke isolated tools, and drain gracefully on shutdown. |
-| `EmptyEnvironment` | `"agboss"` | Built-in empty contract class for applications that do not read environment variables. |
-| `env()`, `env.optional()`, `secret()` | `"agboss"` | Readers used in `environments/*.environment.ts` files to bind and validate `process.env` variables at startup. |
-| `ApplicationContext`, `Clock`, `Logger` | `"agboss"` | Built-in container singletons injectable into any service, action, tool, or observer via `deps`. |
-| `Sqlite*Repository` (10 classes) | `"agboss"` | Zero-dependency `node:sqlite` WAL implementations of the 10 multi-instance durability, child work-stealing (`SqliteChildExecutionQueueRepository`), history (`SqliteExecutionHistoryRepository`), and mesh deduplication (`SqliteMeshRequestRepository`) contracts. |
-| `testWith(AppClass, options?)` | `"agboss/testing"` | Deterministic test harness that boots one or more application instances with DI `overrides` and a `VirtualClock`. |
+| `createApp(AppClass, options?)` | `"@agboss/core"` | Boots the container, runs `onInit()` and `onStart()` on all components, starts recovery sweeps, and returns the `App` handle. |
+| `App` (`execute`, `resume`, `cancel`, `checkReadiness`, `checkLiveness`, `close`, `tool`) | `"@agboss/core"` | Runtime handle used to start workflows, resume pauses, cancel runs (`app.cancel(threadId)`), report pod health (`HealthStatus.Healthy` / `HealthStatus.Degraded` / `HealthStatus.Unhealthy`), invoke isolated tools, and drain gracefully on shutdown. |
+| `EmptyEnvironment` | `"@agboss/core"` | Built-in empty contract class for applications that do not read environment variables. |
+| `env()`, `env.optional()`, `secret()` | `"@agboss/core"` | Readers used in `environments/*.environment.ts` files to bind and validate `process.env` variables at startup. |
+| `ApplicationContext`, `Clock`, `Logger` | `"@agboss/core"` | Built-in container singletons injectable into any service, action, tool, or observer via `deps`. |
+| `Sqlite*Repository` (10 classes) | `"@agboss/core"` | Zero-dependency `node:sqlite` WAL implementations of the 10 multi-instance durability, child work-stealing (`SqliteChildExecutionQueueRepository`), history (`SqliteExecutionHistoryRepository`), and mesh deduplication (`SqliteMeshRequestRepository`) contracts. |
+| `testWith(AppClass, options?)` | `"@agboss/core/testing"` | Deterministic test harness that boots one or more application instances with DI `overrides` and a `VirtualClock`. |

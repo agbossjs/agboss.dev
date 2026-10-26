@@ -37,8 +37,8 @@ export class CreditReceiptDto {
 // @snippet
 -->
 ```ts title="src/config/support-contexts.ts" file=src/config/support-contexts.ts
-import { ExecutionContext, TenantContext, Tool, type ToolHandler } from "agboss";
-import { Integer, Text } from "agboss/dto";
+import { ExecutionContext, TenantContext, Tool, type ToolHandler } from "@agboss/core";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class SupportTenantContext extends TenantContext {
   @Text()
@@ -80,9 +80,9 @@ export class IssueCreditTool implements ToolHandler<CreditRequestDto, CreditRece
 ```
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 @WorkflowStart({ name: "ctx-support-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class CtxSupportStart {}
 @WorkflowFinish({ name: "ctx-support-workflow-finish", description: "Finish", output: WorkflowStartTextDto })
@@ -102,7 +102,7 @@ export class CtxExecBudget implements BudgetHandler { maxSpend(): Usd { return u
 // @snippet
 -->
 ```ts title="src/support.application.ts" file=src/support.application.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import { SupportTenantContext, SupportExecutionContext } from "./config/support-contexts.js";
 
 @Application({
@@ -119,7 +119,7 @@ export class SupportApplication {}
 
 ```ts title="test/support-contexts.test.ts" file=test/support-contexts.test.ts
 import { expect, it } from "vitest";
-import { testTool } from "agboss/testing";
+import { testTool } from "@agboss/core/testing";
 import { IssueCreditTool } from "../src/config/support-contexts.js";
 
 it("injects custom TenantContext and ExecutionContext fields into tools", async () => {

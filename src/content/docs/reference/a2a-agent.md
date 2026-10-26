@@ -3,7 +3,7 @@ title: "@A2AAgent, @A2AExpose, a2aHttpListener & A2ACallerResolver"
 description: "Complete API reference for @A2AAgent, @A2AExpose, A2AClient, a2aHttpListener, A2ACallerResolver, and wireCode error handling in the AGBoss Agent Mesh."
 ---
 
-The `@A2AAgent` and `@A2AExpose` decorators, `a2aHttpListener`, and `A2ACallerResolver` (`"agboss/a2a"`) provide both the client and server sides of the multi-tenant Agent-to-Agent (A2A) and federated Agent Mesh protocol in AGBoss, enabling strongly typed cross-service workflow calls with signed `MeshEnvelope` budget, deadline, and call-chain propagation:
+The `@A2AAgent` and `@A2AExpose` decorators, `a2aHttpListener`, and `A2ACallerResolver` (`"@agboss/core/a2a"`) provide both the client and server sides of the multi-tenant Agent-to-Agent (A2A) and federated Agent Mesh protocol in AGBoss, enabling strongly typed cross-service workflow calls with signed `MeshEnvelope` budget, deadline, and call-chain propagation:
 - **`@A2AAgent`** (`a2a/*.a2a-agent.ts`) defines a typed contract client (`extends A2AClient<InDto, OutDto>`) for a remote A2A workflow (`target: { application, start }`, `input`, `output`, `price?`), registered in `@Workflow({ providers: [RemoteA2AAgent] })` and injected into any `@Tool` or `@Action` via `deps: [RemoteA2AAgent]`.
 - **`@A2AExpose`** (`a2a/*.a2a-expose.ts`) declares the `@WorkflowStart` entry points (`exports: [Start]`) that an `@Application({ exposes: [AppA2AExpose] })` serves over A2A and exports in `agboss describe --json` for `agboss check --federation`.
 - **`a2aHttpListener(app, { expose, callerResolver, meshVerifier?, base })`** and **`A2ACallerResolver<typeof StartClass>`** (`a2a/*.a2a-caller-resolver.ts`) serve an `@A2AExpose` contract over HTTP (`POST <base>/execute`, `/resume`, `/cancel`), resolving the authenticated `tenant`, `ownerId`, `execution`, and `peer` from an `@Injectable()` resolver in the DI container before reading any request body.
@@ -17,10 +17,10 @@ import {
   type ActionHandler,
   type InputOf,
   type OutputOf,
-} from "agboss";
-import { A2AAgent, A2AClient, type A2ACallOptions } from "agboss/a2a";
-import { Text } from "agboss/dto";
-import { usd } from "agboss/units";
+} from "@agboss/core";
+import { A2AAgent, A2AClient, type A2ACallOptions } from "@agboss/core/a2a";
+import { Text } from "@agboss/core/dto";
+import { usd } from "@agboss/core/units";
 
 export class TaxAuditInputDto {
   @Text({ prompt: "Invoice ID to audit" })
@@ -82,13 +82,13 @@ export class DelegateTaxAuditAction implements ActionHandler<DelegateTaxAuditAct
 ```
 
 ```ts title="src/a2a/tax-auditor.a2a-caller-resolver.ts" file=src/a2a/tax-auditor.a2a-caller-resolver.ts
-import { Injectable } from "agboss";
+import { Injectable } from "@agboss/core";
 import {
   A2ACallerResolution,
   A2ARoute,
   type A2ACallerRequest,
   type A2ACallerResolver,
-} from "agboss/a2a";
+} from "@agboss/core/a2a";
 import type { TaxAuditWorkflowStart } from "../workflows/support-escalation.workflow.js";
 
 // 3. @Injectable() caller resolver registered in @Workflow({ providers: [ShopA2aCallerResolver] }):
@@ -123,8 +123,8 @@ export class ShopA2aCallerResolver implements A2ACallerResolver<typeof TaxAuditW
 ```
 
 ```ts title="src/workflows/support-escalation.workflow.ts" file=src/workflows/support-escalation.workflow.ts
-import { Workflow, WorkflowFinish, WorkflowStart, start } from "agboss";
-import { A2AExpose, a2aHttpListener, type A2AAdapter, type A2AApp } from "agboss/a2a";
+import { Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { A2AExpose, a2aHttpListener, type A2AAdapter, type A2AApp } from "@agboss/core/a2a";
 import {
   DelegateTaxAuditAction,
   RemoteTaxAuditorA2AAgent,
@@ -181,8 +181,8 @@ export function createTaxA2AListener(app: A2AApp, _adapter?: A2AAdapter) {
 
 <!--
 ```ts file=src/escalation.application.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 import { SupportEscalationWorkflow, TaxAuditA2AExpose } from "./workflows/support-escalation.workflow.js";
 
 @Budget({ name: "a2a-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
@@ -206,8 +206,8 @@ export class SupportEscalationApplication {}
 
 ```ts title="test/billing-specialist.a2a.test.ts" file=test/billing-specialist.a2a.test.ts
 import { expect } from "vitest";
-import { A2ACallerRejectedError, A2AClient } from "agboss/a2a";
-import { override, testAction, testWith } from "agboss/testing";
+import { A2ACallerRejectedError, A2AClient } from "@agboss/core/a2a";
+import { override, testAction, testWith } from "@agboss/core/testing";
 import {
   DelegateTaxAuditAction,
   RemoteTaxAuditorA2AAgent,
@@ -281,10 +281,10 @@ test("rejects unauthenticated A2A requests via a2aServer and delegates when auth
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `A2ACallerResolution.resolved({ tenant, ownerId, execution, peer })` | `"agboss/a2a"` | Returned by `resolveCaller(request: A2ACallerRequest)` to bind the verified `tenant`, `ownerId` (thread ownership), `execution` context values, and trusted `peer`. |
-| `A2ACallerResolution.unauthenticated({ reason, challenge? })` / `.forbidden({ reason })` | `"agboss/a2a"` | Rejects the request before reading the body or starting an execution with HTTP `401` (`a2a.caller-unauthenticated`) or HTTP `403` (`a2a.caller-forbidden`), thrown on the client as `A2ACallerRejectedError`. |
-| `A2ACallerRejectedError` | `"agboss/a2a"` | Thrown by `A2AClient` on `401` / `403`: `err.code` is always `"a2a.caller-rejected"`, `err.httpStatus` is `401` or `403`, and `err.wireCode` carries the server's specific rejection code (`"a2a.caller-unauthenticated"` or `"a2a.caller-forbidden"`). |
-| `a2aServer({ expose, callerResolver, meshVerifier? })` | `"agboss/testing"` | `testWith` fixture that serves the test's `app` on `127.0.0.1:0` and returns `{ url }` for `new A2AClient({ url, headers })`. |
-| **Agent Mesh Envelope (`MeshEnvelope`, `agboss-mesh`)** | `"agboss"` | JWS EdDSA (Ed25519) envelope header (`_meta["agboss.dev/mesh"]` over MCP, plus W3C `traceparent`) carrying `origin` (`executionId`, `parentExecutionId`, `workflow`, `step.idempotencyKey`), `budget.remaining`, `deadline.remaining`, and `callChain` (`MeshHop[]`), plus signed `MeshRunReport` spend attribution (`ToolCallRecord.remote`). |
-| `MeshLoopDetectedError` & `HopsLimitExceededError` | `"agboss"` | Thrown before executing a step when `callChain` contains the current `(application, start)` pair (`limit.mesh-loop`) or reaches `@Application({ maxMeshHops })` (`8` by default, `limit.hops`). |
+| `A2ACallerResolution.resolved({ tenant, ownerId, execution, peer })` | `"@agboss/core/a2a"` | Returned by `resolveCaller(request: A2ACallerRequest)` to bind the verified `tenant`, `ownerId` (thread ownership), `execution` context values, and trusted `peer`. |
+| `A2ACallerResolution.unauthenticated({ reason, challenge? })` / `.forbidden({ reason })` | `"@agboss/core/a2a"` | Rejects the request before reading the body or starting an execution with HTTP `401` (`a2a.caller-unauthenticated`) or HTTP `403` (`a2a.caller-forbidden`), thrown on the client as `A2ACallerRejectedError`. |
+| `A2ACallerRejectedError` | `"@agboss/core/a2a"` | Thrown by `A2AClient` on `401` / `403`: `err.code` is always `"a2a.caller-rejected"`, `err.httpStatus` is `401` or `403`, and `err.wireCode` carries the server's specific rejection code (`"a2a.caller-unauthenticated"` or `"a2a.caller-forbidden"`). |
+| `a2aServer({ expose, callerResolver, meshVerifier? })` | `"@agboss/core/testing"` | `testWith` fixture that serves the test's `app` on `127.0.0.1:0` and returns `{ url }` for `new A2AClient({ url, headers })`. |
+| **Agent Mesh Envelope (`MeshEnvelope`, `agboss-mesh`)** | `"@agboss/core"` | JWS EdDSA (Ed25519) envelope header (`_meta["agboss.dev/mesh"]` over MCP, plus W3C `traceparent`) carrying `origin` (`executionId`, `parentExecutionId`, `workflow`, `step.idempotencyKey`), `budget.remaining`, `deadline.remaining`, and `callChain` (`MeshHop[]`), plus signed `MeshRunReport` spend attribution (`ToolCallRecord.remote`). |
+| `MeshLoopDetectedError` & `HopsLimitExceededError` | `"@agboss/core"` | Thrown before executing a step when `callChain` contains the current `(application, start)` pair (`limit.mesh-loop`) or reaches `@Application({ maxMeshHops })` (`8` by default, `limit.hops`). |
 | `$ agboss check --federation <path...>` & `$ agboss hub` | CLI | Verifies cross-repository `@A2AAgent` / `@McpServer` contracts against `agboss describe --json` snapshots (`--federation`) and renders the global Agent Mesh graph, cross-service execution trees, Progressive Crystallization Radar, and Blast Radius (`agboss hub show --html` / `agboss hub ui`). |

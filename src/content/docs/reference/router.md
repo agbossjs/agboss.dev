@@ -16,8 +16,8 @@ import {
   type InputOf,
   type RouterAnswerOf,
   type RouterHandler,
-} from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
+} from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
 import {
   AuditLogAgent,
   BillingAgent,
@@ -86,7 +86,7 @@ export class ClaimTierRouter implements RouterHandler<ClaimTierRouter> {
 ```
 
 ```ts title="src/dto/order.dto.ts" file=src/dto/order.dto.ts
-import { Integer, Text } from "agboss/dto";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class OrderClaimDto {
   @Text() orderId!: string;
@@ -95,8 +95,8 @@ export class OrderClaimDto {
 ```
 
 ```ts title="src/workflows/support-routing.workflow.ts" file=src/workflows/support-routing.workflow.ts
-import { Workflow, listOf, route, start } from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+import { Workflow, listOf, route, start } from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { ClaimTierRouter, IntentTriageRouter } from "../routers/support.routers.js";
 import {
   AuditLogAgent,
@@ -146,7 +146,7 @@ export class SupportRoutingWorkflow {}
 
 ```ts title="test/support.routers.test.ts" file=test/support.routers.test.ts
 import { expect, it } from "vitest";
-import { routeTo, testRouter } from "agboss/testing";
+import { routeTo, testRouter } from "@agboss/core/testing";
 import { ClaimTierRouter, IntentTriageRouter } from "../src/routers/support.routers.js";
 import {
   ClaimBillingAgent,
@@ -190,8 +190,8 @@ import {
   listOf,
   type ActionHandler,
   type InputOf,
-} from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
+} from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { OrderClaimDto } from "./dto/order.dto.js";
 
 @Injectable()
@@ -246,8 +246,8 @@ export class CombineClaimRepliesAction implements ActionHandler<CombineClaimRepl
 
 <!--
 ```ts file=src/support-routing.application.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 import { SupportRoutingWorkflow } from "./workflows/support-routing.workflow.js";
 
 @Budget({ name: "rt-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
@@ -303,9 +303,9 @@ Each item in `routes` configures a branch target for `.chooseOne(route(...))` or
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `DecidedBy`, `SpawnPolicy`, `FailurePolicy` | `"agboss"` | Enums controlling decision mode (`Model` vs `Code`), parallel launch selection (`Always` vs `OnDemand`), and branch failure handling (`FailFast` vs `Skip`). |
-| `RouterHandler<Self>` & `Route<Self>` | `"agboss"` | Contract and return type for `DecidedBy.Code` routers (`route(input)` returns one target for `.chooseOne()` or one/many targets for `.toParallelAgents()`). |
-| `.toRouter(R).chooseOne(route(Target)...)` | `"agboss"` | Connects a router to exclusive branch paths in `@Workflow({ flow })`. |
-| `.toRouter(R).toParallelAgents(...)` | `"agboss"` | Uses a router to dynamically select which subset of `SpawnPolicy.OnDemand` agents to launch in parallel alongside `SpawnPolicy.Always` agents. |
-| `RouterFailedError` & `RouterDecisionError` | `"agboss"` | Errors thrown when a router cannot select a valid route; catchable in the flow via `.onError(RouterFailedError, sidePath)`. |
-| `testRouter(RouterClass, options?)` | `"agboss/testing"` | Unit runner that tests a model or code router in isolation without booting the workflow. |
+| `DecidedBy`, `SpawnPolicy`, `FailurePolicy` | `"@agboss/core"` | Enums controlling decision mode (`Model` vs `Code`), parallel launch selection (`Always` vs `OnDemand`), and branch failure handling (`FailFast` vs `Skip`). |
+| `RouterHandler<Self>` & `Route<Self>` | `"@agboss/core"` | Contract and return type for `DecidedBy.Code` routers (`route(input)` returns one target for `.chooseOne()` or one/many targets for `.toParallelAgents()`). |
+| `.toRouter(R).chooseOne(route(Target)...)` | `"@agboss/core"` | Connects a router to exclusive branch paths in `@Workflow({ flow })`. |
+| `.toRouter(R).toParallelAgents(...)` | `"@agboss/core"` | Uses a router to dynamically select which subset of `SpawnPolicy.OnDemand` agents to launch in parallel alongside `SpawnPolicy.Always` agents. |
+| `RouterFailedError` & `RouterDecisionError` | `"@agboss/core"` | Errors thrown when a router cannot select a valid route; catchable in the flow via `.onError(RouterFailedError, sidePath)`. |
+| `testRouter(RouterClass, options?)` | `"@agboss/core/testing"` | Unit runner that tests a model or code router in isolation without booting the workflow. |

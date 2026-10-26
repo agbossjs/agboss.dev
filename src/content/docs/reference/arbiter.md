@@ -8,7 +8,7 @@ The `@Arbiter` class decorator and `@OnAnswer(AgentClass)` method decorator (`ar
 ## Complete `@Arbiter` and `@OnAnswer` examples (`DecidedBy.Code` and `DecidedBy.Model`)
 
 ```ts title="src/arbiters/risk-quorum.arbiter.ts" file=src/arbiters/risk-quorum.arbiter.ts
-import { Arbiter, DecidedBy, ExecutionContext, OnAnswer } from "agboss";
+import { Arbiter, DecidedBy, ExecutionContext, OnAnswer } from "@agboss/core";
 import {
   BackupRiskAgent,
   FastRiskAgent,
@@ -71,7 +71,7 @@ export class RationaleQualityArbiter {}
 ```
 
 ```ts title="src/dto/risk.dto.ts" file=src/dto/risk.dto.ts
-import { Decimal, Integer, Text } from "agboss/dto";
+import { Decimal, Integer, Text } from "@agboss/core/dto";
 
 export class RiskScoreDto {
   @Integer({ min: 0, max: 100 })
@@ -86,8 +86,8 @@ export class RiskScoreDto {
 ```
 
 ```ts title="src/agents/risk.agents.ts" file=src/agents/risk.agents.ts
-import { Agent, Injectable } from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
+import { Agent, Injectable } from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
 import { RiskScoreDto } from "../dto/risk.dto.js";
 
 @Injectable()
@@ -142,9 +142,9 @@ import {
   toAction,
   type ActionHandler,
   type InputOf,
-} from "agboss";
-import { WorkflowStartTextDto } from "agboss/dto";
-import { seconds } from "agboss/units";
+} from "@agboss/core";
+import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { seconds } from "@agboss/core/units";
 import { ConfidenceThresholdArbiter } from "../arbiters/risk-quorum.arbiter.js";
 import {
   BackupRiskAgent,
@@ -221,8 +221,8 @@ export class RiskQuorumWorkflow {}
 
 <!--
 ```ts file=src/risk.application.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "agboss";
-import { usd, type Usd } from "agboss/units";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
 import { RiskQuorumWorkflow } from "./workflows/risk-quorum.workflow.js";
 
 @Budget({ name: "rq-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
@@ -245,7 +245,7 @@ export class RiskQuorumApplication {}
 
 ```ts title="test/risk-quorum.arbiter.test.ts" file=test/risk-quorum.arbiter.test.ts
 import { expect, it } from "vitest";
-import { testArbiter } from "agboss/testing";
+import { testArbiter } from "@agboss/core/testing";
 import { ConfidenceThresholdArbiter } from "../src/arbiters/risk-quorum.arbiter.js";
 import { FastRiskAgent } from "../src/agents/risk.agents.js";
 
@@ -279,8 +279,8 @@ Every `@Arbiter` class name ends with `Arbiter` and its `name` option ends with 
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `.acceptedBy(Arbiter)` & `.acceptedBy(anyOf(A, B))` | `"agboss"` | Chains arbiter gates after `.toParallelAgents(...)`; multiple `.acceptedBy()` calls form a logical `AND`, while `anyOf(A, B)` forms a logical `OR`. |
+| `.acceptedBy(Arbiter)` & `.acceptedBy(anyOf(A, B))` | `"@agboss/core"` | Chains arbiter gates after `.toParallelAgents(...)`; multiple `.acceptedBy()` calls form a logical `AND`, while `anyOf(A, B)` forms a logical `OR`. |
 | `.joinQuorum({ min, max?, deadline? })` | Flow chain | Collects accepted answers as soon as `max` (default `min`) answers pass all arbiters, cancelling remaining branches (`BranchVerdict.Surplus`). |
-| `.joinQuorumGroups(group(A, B).priority(1)..., { deadline? })` | `"agboss"` | Enforces prioritized group quorum rules where each `group(...)` declares its own `.returns(...)` and continuation path. |
-| `QuorumNotReachedError` | `"agboss"` | Thrown when fewer than `min` answers are accepted or the `deadline` expires; catchable via `.onJoinError(QuorumNotReachedError, sidePath)`. |
-| `testArbiter(ArbiterClass, options?)` | `"agboss/testing"` | Isolated unit runner that tests an arbiter's verdict for any agent and answer payload. |
+| `.joinQuorumGroups(group(A, B).priority(1)..., { deadline? })` | `"@agboss/core"` | Enforces prioritized group quorum rules where each `group(...)` declares its own `.returns(...)` and continuation path. |
+| `QuorumNotReachedError` | `"@agboss/core"` | Thrown when fewer than `min` answers are accepted or the `deadline` expires; catchable via `.onJoinError(QuorumNotReachedError, sidePath)`. |
+| `testArbiter(ArbiterClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that tests an arbiter's verdict for any agent and answer payload. |

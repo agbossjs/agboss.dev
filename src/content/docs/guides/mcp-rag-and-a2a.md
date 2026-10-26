@@ -3,15 +3,15 @@ title: MCP Servers, RAG & Sub-Workflows
 description: Connect AGBoss agents to Model Context Protocol (@McpServer, @McpTool, @McpExpose), knowledge bases (@Rag), A2A agents, and built-in AI coding skills.
 ---
 
-Modern agent architectures rarely operate in isolation: they query internal knowledge bases via retrieval-augmented generation (`agboss/rag`), consume or expose tools over the Model Context Protocol (`agboss/mcp`), and delegate subtasks to child workflows or A2A peers. AGBoss models all of these integrations as typed, testable TypeScript components.
+Modern agent architectures rarely operate in isolation: they query internal knowledge bases via retrieval-augmented generation (`@agboss/core/rag`), consume or expose tools over the Model Context Protocol (`@agboss/core/mcp`), and delegate subtasks to child workflows or A2A peers. AGBoss models all of these integrations as typed, testable TypeScript components.
 
-## How to consume and expose MCP tools (`agboss/mcp`)
+## How to consume and expose MCP tools (`@agboss/core/mcp`)
 
-`agboss/mcp` works in both directions: agents can call external MCP servers via `@McpServer` and `@McpTool`, and you can expose your own `@Tool` and `@WorkflowStart` components as an MCP server over stdio or HTTP using `@McpExpose` and `createMcpService`:
+`@agboss/core/mcp` works in both directions: agents can call external MCP servers via `@McpServer` and `@McpTool`, and you can expose your own `@Tool` and `@WorkflowStart` components as an MCP server over stdio or HTTP using `@McpExpose` and `createMcpService`:
 
 <!-- snippet-context
-import { createApp, Tool, WorkflowStart, type ToolHandler } from "agboss";
-import { Text, WorkflowStartTextDto } from "agboss/dto";
+import { createApp, Tool, WorkflowStart, type ToolHandler } from "@agboss/core";
+import { Text, WorkflowStartTextDto } from "@agboss/core/dto";
 class IssueQuery { @Text() query!: string; }
 class Issues { @Text() text!: string; }
 @Tool({ name: "search_issues", description: "Searches the tracker", input: IssueQuery, output: Issues })
@@ -24,7 +24,7 @@ declare class JobScoutApplication {}
 // @snippet
 -->
 ```ts title="src/mcp/job-scout.expose.ts"
-import { createMcpService, McpExpose } from "agboss/mcp";
+import { createMcpService, McpExpose } from "@agboss/core/mcp";
 
 @McpExpose({
   name: "job-scout-mcp",
@@ -41,14 +41,14 @@ export async function serveStdio() {
 ```
 
 <!-- snippet-context
-import { Text } from "agboss/dto";
+import { Text } from "@agboss/core/dto";
 export class ReadFileInputDto { @Text() path!: string; }
 export class ReadFileOutputDto { @Text() content!: string; }
 // @snippet
 -->
 ```ts title="src/mcp/read-file.mcp.ts" file=src/mcp/read-file.mcp.ts
-import { type ToolHandler } from "agboss";
-import { McpServer, McpServerClient, McpTool, type ServerTools } from "agboss/mcp";
+import { type ToolHandler } from "@agboss/core";
+import { McpServer, McpServerClient, McpTool, type ServerTools } from "@agboss/core/mcp";
 
 const fsTools = {
   read_file: { input: ReadFileInputDto, output: ReadFileOutputDto },
@@ -80,13 +80,13 @@ export class ReadFileMcpTool implements ToolHandler<ReadFileInputDto, ReadFileOu
 }
 ```
 
-## How `@Rag` knowledge bases work (`agboss/rag`)
+## How `@Rag` knowledge bases work (`@agboss/core/rag`)
 
 In AGBoss, a knowledge base is any `@Rag` class implementing `RagConnector` (`retrieve(query, { topK, signal })` and optional `index()`), or extending the built-in `SqliteFtsConnector`. The `topK` setting is required on every `@Rag` decorator, and reported retrieval spend (`costUsd`) is tracked automatically under `rag:<name>`:
 
 ```ts title="src/rag/company-docs.rag.ts" file=src/rag/company-docs.rag.ts
-import { Agent, RagMode, env } from "agboss";
-import { Rag, SqliteFtsConnector } from "agboss/rag";
+import { Agent, RagMode, env } from "@agboss/core";
+import { Rag, SqliteFtsConnector } from "@agboss/core/rag";
 
 export class AppEnvironment {
   handbookDbPath = env.optional("HANDBOOK_DB_PATH");
@@ -119,7 +119,7 @@ export class OnboardingAgent {}
 
 ```ts title="test/company-docs.rag.test.ts" file=test/company-docs.rag.test.ts
 import { expect, it } from "vitest";
-import { testRag } from "agboss/testing";
+import { testRag } from "@agboss/core/testing";
 import { AppEnvironment, CompanyDocs } from "../src/rag/company-docs.rag.js";
 
 it("retrieves BM25 chunks with [source] IDs via testRag", async () => {
@@ -130,9 +130,9 @@ it("retrieves BM25 chunks with [source] IDs via testRag", async () => {
 });
 ```
 
-## How child workflows (`.toWorkflow()`), `ThisWorkflow` recursion, and A2A (`agboss/a2a`) work
+## How child workflows (`.toWorkflow()`), `ThisWorkflow` recursion, and A2A (`@agboss/core/a2a`) work
 
-When a workflow grows beyond a single responsibility or crosses service boundaries, compose child `@Workflow` classes in-process / across instances or delegate over HTTP using Agent-to-Agent (`agboss/a2a`):
+When a workflow grows beyond a single responsibility or crosses service boundaries, compose child `@Workflow` classes in-process / across instances or delegate over HTTP using Agent-to-Agent (`@agboss/core/a2a`):
 
 1. **Workflow as a step (`.toWorkflow(ChildWorkflow, { placement? })`):** Runs an ordinary `@Workflow` listed in the application as an isolated child execution with its own `maxSteps` and path scope, while sharing the parent's checkpoint and budgets. Pass `{ placement: ChildPlacement.AnyInstance }` to queue the child in `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`) so any worker instance with free slots can steal it while the parent yields its tree lease. Branch on the child's finishes using `.returns(oneOf(ScoreDto, RejectedDto)).switch(caseOf(...)...)`.
 2. **Parallel child workflows (`.toParallelWorkflows(ChildWorkflow, { maxConcurrency, maxItems, placement? })`):** Fans out a `listOf(ItemDto)` across concurrent child workflow executions (in-process via `ChildPlacement.ParentInstance` or distributed across worker pods via `ChildPlacement.AnyInstance` with per-child 30s leases and per-child crash recovery) and joins their outputs with `.join().returns(listOf(oneOf(...)))`.

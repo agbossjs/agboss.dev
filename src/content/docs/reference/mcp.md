@@ -3,20 +3,20 @@ title: "@McpServer, @McpTool & @McpExpose"
 description: Complete API reference for @McpServer, @McpTool, and @McpExpose in agboss/mcp — consuming external MCP servers with typed DTOs and exposing tools over MCP.
 ---
 
-`agboss/mcp` provides three decorators for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/): **`@McpServer`** (declares and supervises a connection to an external stdio or HTTP/SSE MCP server), **`@McpTool`** (wraps an external server's tool in compile-checked TypeScript input/output DTOs and `ToolHandler`), and **`@McpExpose`** (exposes your own `@Tool` and `@WorkflowStart` classes as an MCP server via `createMcpService(app, ConfigClass)`).
+`@agboss/core/mcp` provides three decorators for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/): **`@McpServer`** (declares and supervises a connection to an external stdio or HTTP/SSE MCP server), **`@McpTool`** (wraps an external server's tool in compile-checked TypeScript input/output DTOs and `ToolHandler`), and **`@McpExpose`** (exposes your own `@Tool` and `@WorkflowStart` classes as an MCP server via `createMcpService(app, ConfigClass)`).
 
 ## Complete `@McpServer`, `@McpTool`, and `@McpExpose` example
 
 ```ts title="src/mcp/workspace-fs.mcp.ts" file=src/mcp/workspace-fs.mcp.ts
-import { Agent, ExecutionContext, Tool, type ToolHandler } from "agboss";
-import { Text } from "agboss/dto";
+import { Agent, ExecutionContext, Tool, type ToolHandler } from "@agboss/core";
+import { Text } from "@agboss/core/dto";
 import {
   McpExpose,
   McpServer,
   McpServerClient,
   McpTool,
   type ServerTools,
-} from "agboss/mcp";
+} from "@agboss/core/mcp";
 
 export class ReadFileArgsDto {
   @Text({ prompt: "Relative path inside the workspace" })
@@ -100,7 +100,7 @@ export class WorkspaceReaderAgent {}
 
 ```ts title="test/workspace-fs.mcp.test.ts" file=test/workspace-fs.mcp.test.ts
 import { expect, it } from "vitest";
-import { mcpServerStub, testTool } from "agboss/testing";
+import { mcpServerStub, testTool } from "@agboss/core/testing";
 import {
   PingWorkspaceTool,
    WorkspaceFsMcpServer,
@@ -137,7 +137,7 @@ it("stubs @McpServer calls and unit-tests exposed @Tool offline", async () => {
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `McpServerClient<TTools>` | `"agboss/mcp"` | Base class extended by `@McpServer` classes; provides `this.call(toolName, input)` with compile-checked arguments and return types. |
-| `@Workflow({ mcp: [ServerClass] })` | `"agboss"` | Registers `@McpServer` classes on the workflow so the container connects them on startup and closes them on shutdown. |
-| `createMcpService(app, ExposeConfigClass)` | `"agboss/mcp"` | Creates a stdio (`service.connectStdio()`) or session-based MCP server from a booted `App` and an `@McpExpose` class. |
-| `mcpServerStub(ServerClass, handlers)` | `"agboss/testing"` | Stubs an `@McpServer` in unit tests (`testTool`) without spawning an external process. |
+| `McpServerClient<TTools>` | `"@agboss/core/mcp"` | Base class extended by `@McpServer` classes; provides `this.call(toolName, input)` with compile-checked arguments and return types. |
+| `@Workflow({ mcp: [ServerClass] })` | `"@agboss/core"` | Registers `@McpServer` classes on the workflow so the container connects them on startup and closes them on shutdown. |
+| `createMcpService(app, ExposeConfigClass)` | `"@agboss/core/mcp"` | Creates a stdio (`service.connectStdio()`) or session-based MCP server from a booted `App` and an `@McpExpose` class. |
+| `mcpServerStub(ServerClass, handlers)` | `"@agboss/core/testing"` | Stubs an `@McpServer` in unit tests (`testTool`) without spawning an external process. |

@@ -3,14 +3,14 @@ title: "@McpExpose"
 description: Complete API reference for @McpExpose and createMcpService in agboss/mcp — exposing AGBoss @WorkflowStart and @Tool classes as an MCP server.
 ---
 
-The `@McpExpose` decorator and `createMcpService(app, ConfigClass)` (`"agboss/mcp"`) turn an AGBoss `@Application` into a standards-compliant **Model Context Protocol (MCP) server**. External MCP clients (Codex, Cursor, Windsurf, Claude Code, or another AGBoss application) can discover and call your exposed [`@WorkflowStart`](/reference/workflow-start/) entry points and [`@Tool`](/reference/tool/) classes with full `@Budget`, `@PiiPolicy`, and `@InputGuardrail` / `@OutputGuardrail` enforcement.
+The `@McpExpose` decorator and `createMcpService(app, ConfigClass)` (`"@agboss/core/mcp"`) turn an AGBoss `@Application` into a standards-compliant **Model Context Protocol (MCP) server**. External MCP clients (Codex, Cursor, Windsurf, Claude Code, or another AGBoss application) can discover and call your exposed [`@WorkflowStart`](/reference/workflow-start/) entry points and [`@Tool`](/reference/tool/) classes with full `@Budget`, `@PiiPolicy`, and `@InputGuardrail` / `@OutputGuardrail` enforcement.
 
 ## Complete `@McpExpose` and `createMcpService` example
 
 ```ts title="src/mcp/job-scout.expose.ts" file=src/mcp/job-scout.expose.ts
-import { Tool, WorkflowStart, createApp, type ToolHandler } from "agboss";
-import { Text, WorkflowStartTextDto } from "agboss/dto";
-import { McpExpose, createMcpService } from "agboss/mcp";
+import { Tool, WorkflowStart, createApp, type ToolHandler } from "@agboss/core";
+import { Text, WorkflowStartTextDto } from "@agboss/core/dto";
+import { McpExpose, createMcpService } from "@agboss/core/mcp";
 import { JobScoutApplication } from "../job-scout.application.js";
 
 export class JobQueryDto {
@@ -69,9 +69,9 @@ import {
   WorkflowFinish,
   start,
   type BudgetHandler,
-} from "agboss";
-import { WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 import { ChatWorkflowStart, SearchJobsTool } from "./mcp/job-scout.expose.js";
 
 @WorkflowFinish({ name: "chat-workflow-finish", description: "Answer", output: WorkflowFinishTextDto })
@@ -118,8 +118,8 @@ export class JobScoutApplication {}
 
 ```ts title="test/job-scout.expose.test.ts" file=test/job-scout.expose.test.ts
 import { expect } from "vitest";
-import { ExecutionStatus } from "agboss";
-import { replyWith, testTool, testWith } from "agboss/testing";
+import { ExecutionStatus } from "@agboss/core";
+import { replyWith, testTool, testWith } from "@agboss/core/testing";
 import { JobScoutApplication, ScoutAgent } from "../src/job-scout.application.js";
 import {
   ChatWorkflowStart,

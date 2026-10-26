@@ -3,7 +3,7 @@ title: "@ReplyInterpreter"
 description: "Complete API reference for the @ReplyInterpreter decorator, ReplyInterpreterHandler, and testReplyInterpreter() for structured model output extraction."
 ---
 
-`@ReplyInterpreter` (`"agboss"`) declares the component that converts a free-text human reply (`app.resume({ pauseId, reply })`) into the typed decision required by a [`@ChannelRole`](/reference/channel-role/). Each `@ReplyInterpreter` belongs to a single `@ChannelRole({ replyInterpreter })` and can be driven either by a model (`DecidedBy.Model`) or by deterministic TypeScript (`DecidedBy.Code`).
+`@ReplyInterpreter` (`"@agboss/core"`) declares the component that converts a free-text human reply (`app.resume({ pauseId, reply })`) into the typed decision required by a [`@ChannelRole`](/reference/channel-role/). Each `@ReplyInterpreter` belongs to a single `@ChannelRole({ replyInterpreter })` and can be driven either by a model (`DecidedBy.Model`) or by deterministic TypeScript (`DecidedBy.Code`).
 
 ## How to declare a `@ReplyInterpreter` (`DecidedBy.Model` & `DecidedBy.Code`)
 
@@ -28,9 +28,9 @@ import {
   type BudgetHandler,
   type ChannelAsk,
   type ToolHandler,
-} from "agboss";
-import { Integer, Text, WorkflowFinishTextDto, WorkflowStartTextDto } from "agboss/dto";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { Integer, Text, WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
+import { usd, type Usd } from "@agboss/core/units";
 
 export class RefundInputDto {
   @Text({ prompt: "order id" })
@@ -121,7 +121,7 @@ import {
   type InputOf,
   type OutputOf,
   type ReplyInterpreterHandler,
-} from "agboss";
+} from "@agboss/core";
 
 // 1. Deterministic code interpreter (implements ReplyInterpreterHandler<Self>)
 @ReplyInterpreter({
@@ -164,7 +164,7 @@ export abstract class RefundApprovalChannel
 ```
 
 ```ts title="src/channels/model-reply.interpreter.ts" file=src/model-reply.ts
-import { DecidedBy, ReplyInterpreter } from "agboss";
+import { DecidedBy, ReplyInterpreter } from "@agboss/core";
 
 @ReplyInterpreter({
   name: "refund-model-reply-interpreter",
@@ -179,7 +179,7 @@ export class RefundModelReplyInterpreter {}
 
 ```ts title="test/refund-reply.interpreter.test.ts" file=test/refund-reply.interpreter.test.ts
 import { expect, it } from "vitest";
-import { ReplyInterpretation } from "agboss";
+import { ReplyInterpretation } from "@agboss/core";
 import { RefundCodeReplyInterpreter } from "../src/refund-reply.js";
 
 it("interprets free-text approval and rejection replies deterministically", () => {

@@ -8,14 +8,14 @@ The `@Agent` decorator defines an LLM-powered workflow node (`agents/*.agent.ts`
 ## Complete `@Agent` example with all capabilities
 
 ```ts title="src/agents/offer-reviewer.agent.ts" file=src/agents/offer-reviewer.agent.ts
-import { Agent, RagMode, TokenLimit, historyOf, oneOf } from "agboss";
+import { Agent, RagMode, TokenLimit, historyOf, oneOf } from "@agboss/core";
 import {
   CacheRetention,
   CachedPart,
   PromptCaching,
   Reasoning,
   ReasoningEffort,
-} from "agboss/models";
+} from "@agboss/core/models";
 import {
   CandidatePiiPolicy,
   CompensationHandbookRag,
@@ -79,7 +79,7 @@ Audit the candidate offer draft against the {{department}} salary bands.
 ```
 
 ```ts title="src/dto/offer.dto.ts" file=src/dto/offer.dto.ts
-import { Integer, Text } from "agboss/dto";
+import { Integer, Text } from "@agboss/core/dto";
 
 export class CandidateInputDto {
   @Text() level!: string;
@@ -101,7 +101,7 @@ export class ChangesRequestedDto {
 ```
 
 ```ts title="src/workflows/offer-review.workflow.ts" file=src/workflows/offer-review.workflow.ts
-import { Workflow, agent, caseOf, oneOf, start } from "agboss";
+import { Workflow, agent, caseOf, oneOf, start } from "@agboss/core";
 import { OfferReviewerAgent } from "../agents/offer-reviewer.agent.js";
 import {
   CompensationMcpServer,
@@ -141,7 +141,7 @@ export class OfferReviewWorkflow {}
 ```
 
 ```ts title="src/offer.application.ts" file=src/offer.application.ts
-import { Application, EmptyEnvironment } from "agboss";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import { AgAppBudget, AgExecBudget, AgTenantBudget } from "./agents/offer-deps.js";
 import { OfferReviewWorkflow } from "./workflows/offer-review.workflow.js";
 
@@ -156,8 +156,8 @@ export class OfferApplication {}
 ```
 
 ```ts title="test/offer-reviewer.agent.test.ts" file=test/offer-reviewer.agent.test.ts
-import { callTool, replyWith, testWith } from "agboss/testing";
-import { usd } from "agboss/units";
+import { callTool, replyWith, testWith } from "@agboss/core/testing";
+import { usd } from "@agboss/core/units";
 import { OfferApplication } from "../src/offer.application.js";
 import { OfferReviewerAgent } from "../src/agents/offer-reviewer.agent.js";
 import { SearchJobsTool } from "../src/agents/offer-deps.js";
@@ -199,10 +199,10 @@ import {
   type JudgeHandler,
   type JudgeInput,
   type ToolHandler,
-} from "agboss";
-import { McpServer, McpServerClient, McpTool, type ServerTools } from "agboss/mcp";
-import { Rag, type RagConnector, type RagRetrieval } from "agboss/rag";
-import { usd, type Usd } from "agboss/units";
+} from "@agboss/core";
+import { McpServer, McpServerClient, McpTool, type ServerTools } from "@agboss/core/mcp";
+import { Rag, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
+import { usd, type Usd } from "@agboss/core/units";
 import {
   CandidateInputDto,
   ChangesRequestedDto,
@@ -351,8 +351,8 @@ Every `@Agent` class name ends with `Agent` and its `name` option ends with `-ag
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `oneOf(DtoA, DtoB)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"agboss"` | Declares union output variants, list outputs, optional inputs, and bounded loop histories. |
-| `Reasoning` & `PromptCaching` | `"agboss/models"` | Configures reasoning effort (`Reasoning.on({ effort })`) and prompt caching (`PromptCaching.whereSupported()`). |
-| `RagMode` (`Tool`, `Context`) | `"agboss"` | Controls whether a `@Rag` knowledge base is exposed as a callable search tool or injected into context automatically. |
-| `VisitsLimitExceededError` | `"agboss"` | Thrown before the model call when an agent exceeds `maxVisits` in a review loop; catchable via `.onError()`. |
-| `mockLlm(AgentClass)` & `replyWith(Dto, value)` | `"agboss/testing"` | Scripts deterministic agent responses, tool calls (`callTool`), and simulated latency (`waitFor`) in `testWith()` tests. |
+| `oneOf(DtoA, DtoB)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"@agboss/core"` | Declares union output variants, list outputs, optional inputs, and bounded loop histories. |
+| `Reasoning` & `PromptCaching` | `"@agboss/core/models"` | Configures reasoning effort (`Reasoning.on({ effort })`) and prompt caching (`PromptCaching.whereSupported()`). |
+| `RagMode` (`Tool`, `Context`) | `"@agboss/core"` | Controls whether a `@Rag` knowledge base is exposed as a callable search tool or injected into context automatically. |
+| `VisitsLimitExceededError` | `"@agboss/core"` | Thrown before the model call when an agent exceeds `maxVisits` in a review loop; catchable via `.onError()`. |
+| `mockLlm(AgentClass)` & `replyWith(Dto, value)` | `"@agboss/core/testing"` | Scripts deterministic agent responses, tool calls (`callTool`), and simulated latency (`waitFor`) in `testWith()` tests. |
