@@ -9,9 +9,9 @@
 					"problem": "Ad-hoc scripts boot without cost caps, PII policies, or durable stores, wiring different graphs in prod and tests.",
 					"solution": "<code>@Application</code> is a single verified root: <code>createApp()</code> checks all paths, budgets, and secrets upfront.",
 					"code": [
-							"import { Application, SqliteCheckpointSaver, SqliteCostLedgerRepository, SqliteExecutionLeaseRepository, SqliteExecutionRecordRepository, SqlitePausedExecutionRepository } from \"agboss\";",
-							"import { DecisionsModelProvider } from \"agboss/models\";",
-							"import { seconds } from \"agboss/units\";",
+							"import { Application, SqliteCheckpointSaver, SqliteCostLedgerRepository, SqliteExecutionLeaseRepository, SqliteExecutionRecordRepository, SqlitePausedExecutionRepository } from \"@agboss/core\";",
+							"import { DecisionsModelProvider } from \"@agboss/core/models\";",
+							"import { seconds } from \"@agboss/core/units\";",
 							"import { AppEnvironment } from \"./environments/app.environment.js\";",
 							"import { JobScout } from \"./job-scout.workflow.js\";",
 							"",
@@ -40,7 +40,7 @@
 							{
 									"file": "src/environments/app.environment.ts",
 									"code": [
-											"import { env, secret, type Secret } from \"agboss\";",
+											"import { env, secret, type Secret } from \"@agboss/core\";",
 											"",
 											"export class AppEnvironment {",
 											"  openRouterApiKey!: Secret;",
@@ -60,8 +60,8 @@
 							{
 									"file": "src/main.ts",
 									"code": [
-											"import { createApp } from \"agboss\";",
-											"import { seconds } from \"agboss/units\";",
+											"import { createApp } from \"@agboss/core\";",
+											"import { seconds } from \"@agboss/core/units\";",
 											"import { JobScoutApplication } from \"./job-scout.application.js\";",
 											"import { ChatWorkflowStart } from \"./workflow-starts/chat.workflow-start.js\";",
 											"",
@@ -83,8 +83,8 @@
 					"problem": "Imperative loops and mutable God State bags hide broken edges and dead branches until production traffic hits them.",
 					"solution": "<code>@Workflow</code> declares pure <code>HarnessDSL</code> paths (1 call per line) verified by <code>agboss check</code> before runtime.",
 					"code": [
-							"import { Workflow, WorkflowSettings, route, start, type IncompatibleResume, type ResumeDecision, type WorkflowDefinition } from \"agboss\";",
-							"import { WorkflowStartTextDto } from \"agboss/dto\";",
+							"import { Workflow, WorkflowSettings, route, start, type IncompatibleResume, type ResumeDecision, type WorkflowDefinition } from \"@agboss/core\";",
+							"import { WorkflowStartTextDto } from \"@agboss/core/dto\";",
 							"",
 							"const sameVersionOnly = (resume: IncompatibleResume): ResumeDecision =>",
 							"  resume.paused.workflowVersion === resume.current.workflowVersion ? \"resume\" : \"reject\";",
@@ -124,7 +124,7 @@
 							{
 									"file": "src/dto/job-scout.dto.ts",
 									"code": [
-											"import { ListOf, OneOf, Text, Url } from \"agboss/dto\";",
+											"import { ListOf, OneOf, Text, Url } from \"@agboss/core/dto\";",
 											"",
 											"export class JobPostingDto {",
 											"  @Text({ prompt: \"Role title\" })",
@@ -148,8 +148,8 @@
 							{
 									"file": "src/workflow-starts/chat.workflow-start.ts",
 									"code": [
-											"import { WorkflowFinish, WorkflowStart } from \"agboss\";",
-											"import { WorkflowFinishTextDto, WorkflowStartTextDto } from \"agboss/dto\";",
+											"import { WorkflowFinish, WorkflowStart } from \"@agboss/core\";",
+											"import { WorkflowFinishTextDto, WorkflowStartTextDto } from \"@agboss/core/dto\";",
 											"",
 											"@WorkflowStart({",
 											"  name: \"chat-workflow-start\",",
@@ -173,8 +173,8 @@
 					"problem": "Stuffing tools, prompts, and retries into a single mega-agent wastes tokens and makes quality regressions impossible to isolate.",
 					"solution": "<code>@Agent</code> isolates one role with typed <code>input</code>/<code>output</code> DTOs, static prompts, and <code>@Judge</code> gates.",
 					"code": [
-							"import { Agent, RagMode } from \"agboss\";",
-							"import { listOf, optional } from \"agboss/dto\";",
+							"import { Agent, RagMode } from \"@agboss/core\";",
+							"import { listOf, optional } from \"@agboss/core/dto\";",
 							"",
 							"@Agent({",
 							"  name: \"scout-agent\",",
@@ -208,7 +208,7 @@
 							{
 									"file": "src/judges/answer-grounded.judge.ts",
 									"code": [
-											"import { Decision, Judge, JudgeModel, JudgeVerdict, type JudgeHandler, type JudgeInput } from \"agboss\";",
+											"import { Decision, Judge, JudgeModel, JudgeVerdict, type JudgeHandler, type JudgeInput } from \"@agboss/core\";",
 											"import { JobShortlistDto } from \"../dto/job-shortlist.dto.js\";",
 											"",
 											"@Judge({",
@@ -240,7 +240,7 @@
 					"problem": "Calling a frontier chat LLM just to pick the next branch adds 2–4s of latency and burns token budget on every hop.",
 					"solution": "<code>@Router</code> switches between <code>DecidedBy.Model</code> (fast JEV classifier) and <code>DecidedBy.Code</code> (0ms, $0.00).",
 					"code": [
-							"import { DecidedBy, ExecutionContext, Router, type InputOf, type Route, type RouterHandler } from \"agboss\";",
+							"import { DecidedBy, ExecutionContext, Router, type InputOf, type Route, type RouterHandler } from \"@agboss/core\";",
 							"",
 							"@Router({",
 							"  name: \"credit-limit-router\",",
@@ -272,7 +272,7 @@
 							{
 									"file": "src/workflows/order-checkout.workflow.ts",
 									"code": [
-											"import { Workflow, route, start } from \"agboss\";",
+											"import { Workflow, route, start } from \"@agboss/core\";",
 											"import { CreditLimitRouter } from \"../routers/credit-limit.router.js\";",
 											"",
 											"@Workflow({",
@@ -298,7 +298,7 @@
 							{
 									"file": "src/services/credit.service.ts",
 									"code": [
-											"import { Injectable } from \"agboss\";",
+											"import { Injectable } from \"@agboss/core\";",
 											"",
 											"@Injectable()",
 											"export class CreditService {",
@@ -315,8 +315,8 @@
 					"problem": "Unvalidated tool arguments, hung HTTP calls, and non-idempotent retries corrupt external APIs and databases.",
 					"solution": "<code>@Tool</code> validates DTOs, enforces <code>timeout: seconds(n)</code>, and injects <code>step.idempotencyKey</code> via DI.",
 					"code": [
-							"import { ExecutionContext, Tool, type ToolHandler } from \"agboss\";",
-							"import { kilobytes, seconds } from \"agboss/units\";",
+							"import { ExecutionContext, Tool, type ToolHandler } from \"@agboss/core\";",
+							"import { kilobytes, seconds } from \"@agboss/core/units\";",
 							"",
 							"@Tool({",
 							"  name: \"charge_card\",",
@@ -346,7 +346,7 @@
 							{
 									"file": "src/tools/search-jobs.dto.ts",
 									"code": [
-											"import { ListOf, Text } from \"agboss/dto\";",
+											"import { ListOf, Text } from \"@agboss/core/dto\";",
 											"",
 											"export class JobSearchInputDto {",
 											"  @Text({ minLength: 2, prompt: \"Role keywords, e.g. Staff TypeScript\" })",
@@ -363,7 +363,7 @@
 									"file": "test/search-jobs.tool.test.ts",
 									"code": [
 											"import { expect, it } from \"vitest\";",
-											"import { override, testTool } from \"agboss/testing\";",
+											"import { override, testTool } from \"@agboss/core/testing\";",
 											"import { SearchJobsTool } from \"../src/tools/search-jobs.tool.js\";",
 											"import { JobBoardService } from \"../src/services/job-board.service.js\";",
 											"",
@@ -390,8 +390,8 @@
 					"problem": "Raw MCP integrations return untyped JSON blobs and require custom server boilerplate to expose your own tools.",
 					"solution": "<code>@McpServer</code> and <code>@McpTool</code> type external calls, while <code>@McpExpose</code> serves your workflows over MCP.",
 					"code": [
-							"import { createApp } from \"agboss\";",
-							"import { McpExpose, McpServer, McpServerClient, createMcpService, type ServerTools } from \"agboss/mcp\";",
+							"import { createApp } from \"@agboss/core\";",
+							"import { McpExpose, McpServer, McpServerClient, createMcpService, type ServerTools } from \"@agboss/core/mcp\";",
 							"",
 							"const githubTools = {",
 							"  get_file_contents: { input: ReadFileInputDto, output: ReadFileOutputDto },",
@@ -420,9 +420,9 @@
 							{
 									"file": "src/mcp/read-file.mcp-tool.ts",
 									"code": [
-											"import { type ToolHandler } from \"agboss\";",
-											"import { Text } from \"agboss/dto\";",
-											"import { McpTool } from \"agboss/mcp\";",
+											"import { type ToolHandler } from \"@agboss/core\";",
+											"import { Text } from \"@agboss/core/dto\";",
+											"import { McpTool } from \"@agboss/core/mcp\";",
 											"import { GithubMcpServer } from \"./job-scout.expose.js\";",
 											"",
 											"export class ReadFileInputDto {",
@@ -454,7 +454,7 @@
 							{
 									"file": "src/mcp/expose-tools.mcp.ts",
 									"code": [
-											"import { McpExpose, createMcpService } from \"agboss/mcp\";",
+											"import { McpExpose, createMcpService } from \"@agboss/core/mcp\";",
 											"import { SearchJobsTool } from \"../tools/search-jobs.tool.js\";",
 											"import { ChatWorkflowStart } from \"../workflow-starts/chat.workflow-start.js\";",
 											"",
@@ -476,8 +476,8 @@
 					"problem": "Uncited vector search dumps noisy chunks into prompts without tracking retrieval spend or source provenance.",
 					"solution": "<code>@Rag</code> enforces <code>topK</code>, cites <code>[source]</code> IDs, and includes built-in <code>SqliteFtsConnector</code> BM25 search.",
 					"code": [
-							"import { Agent, InjectionToken, RagMode, provide } from \"agboss\";",
-							"import { Rag, SqliteFtsConnector, type FtsOptions } from \"agboss/rag\";",
+							"import { Agent, InjectionToken, RagMode, provide } from \"@agboss/core\";",
+							"import { Rag, SqliteFtsConnector, type FtsOptions } from \"@agboss/core/rag\";",
 							"",
 							"export const DOCS_INDEX = new InjectionToken<FtsOptions>(\"DOCS_INDEX\");",
 							"",
@@ -507,7 +507,7 @@
 							{
 									"file": "src/agents/handbook-assistant.agent.ts",
 									"code": [
-											"import { Agent, RagMode } from \"agboss\";",
+											"import { Agent, RagMode } from \"@agboss/core\";",
 											"import { CompanyHandbookRag, VectorDocsRag } from \"../rag/company-handbook.rag.js\";",
 											"",
 											"@Agent({",
@@ -527,7 +527,7 @@
 									"file": "test/company-handbook.rag.test.ts",
 									"code": [
 											"import { expect, it } from \"vitest\";",
-											"import { testRag } from \"agboss/testing\";",
+											"import { testRag } from \"@agboss/core/testing\";",
 											"import { CompanyHandbookRag } from \"../src/rag/company-handbook.rag.js\";",
 											"",
 											"it(\"retrieves ranked handbook passages in isolation\", async () => {",
@@ -544,8 +544,8 @@
 					"problem": "Concurrent tenants trigger 429 rate-limit cascades and retry storms when hitting model APIs directly.",
 					"solution": "<code>@ModelProvider</code> adds tenant-weighted queues, shared 429 cooldowns, circuit breakers, and cost attribution.",
 					"code": [
-							"import { CachedPart, CacheRetention, ModelCost, ModelFailure, ModelProvider, OpenRouterProvider, PromptCaching, QueueBalancingStrategy, RateLimitPolicy, Reasoning, RetryPolicy } from \"agboss/models\";",
-							"import { minutes, seconds } from \"agboss/units\";",
+							"import { CachedPart, CacheRetention, ModelCost, ModelFailure, ModelProvider, OpenRouterProvider, PromptCaching, QueueBalancingStrategy, RateLimitPolicy, Reasoning, RetryPolicy } from \"@agboss/core/models\";",
+							"import { minutes, seconds } from \"@agboss/core/units\";",
 							"",
 							"@ModelProvider({",
 							"  name: \"openrouter-model-provider\",",
@@ -584,7 +584,7 @@
 							{
 									"file": "src/environments/app.environment.ts",
 									"code": [
-											"import { env, secret, type Secret } from \"agboss\";",
+											"import { env, secret, type Secret } from \"@agboss/core\";",
 											"",
 											"export class AppEnvironment {",
 											"  openRouterApiKey!: Secret;",
@@ -600,7 +600,7 @@
 							{
 									"file": "src/job-scout.application.ts",
 									"code": [
-											"import { Application, SqliteRateLimitRepository } from \"agboss\";",
+											"import { Application, SqliteRateLimitRepository } from \"@agboss/core\";",
 											"import { OpenRouterProvider } from \"./config/models.config.js\";",
 											"import { AppEnvironment } from \"./environments/app.environment.js\";",
 											"import { JobScoutWorkflow } from \"./job-scout.workflow.js\";",
@@ -625,8 +625,8 @@
 					"problem": "Review loops without visit bounds or error paths spin infinitely when a model repeatedly requests edits.",
 					"solution": "<code>maxVisits</code> caps loop iterations and routes exhaustion cleanly through <code>.onError(VisitsLimitExceededError, ...)</code>.",
 					"code": [
-							"import { VisitsLimitExceededError, Workflow, agent, caseOf, start, toAction } from \"agboss\";",
-							"import { oneOf } from \"agboss/dto\";",
+							"import { VisitsLimitExceededError, Workflow, agent, caseOf, start, toAction } from \"@agboss/core\";",
+							"import { oneOf } from \"@agboss/core/dto\";",
 							"",
 							"@Workflow({",
 							"  name: \"offer-workflow\",",
@@ -663,7 +663,7 @@
 							{
 									"file": "src/agents/offer-loop.agents.ts",
 									"code": [
-											"import { Agent, historyOf, oneOf, optional } from \"agboss\";",
+											"import { Agent, historyOf, oneOf, optional } from \"@agboss/core\";",
 											"import { ChangesRequestedDto, DraftApprovedDto, OfferDraftDto } from \"../dto/offer.dto.js\";",
 											"",
 											"@Agent({",
@@ -694,7 +694,7 @@
 							{
 									"file": "src/dto/offer.dto.ts",
 									"code": [
-											"import { Text } from \"agboss/dto\";",
+											"import { Text } from \"@agboss/core/dto\";",
 											"",
 											"export class OfferDraftDto {",
 											"  @Text({ prompt: \"Offer letter markdown body\" })",
@@ -719,8 +719,8 @@
 					"problem": "After an editor writes draft v2, stale v1 approvals still linger in shared state and can leak into final actions.",
 					"solution": "<code>{ about: OfferDraftDto }</code> invalidates prior critiques on overwrite, while <code>historyOf()</code> bounds loop context.",
 					"code": [
-							"import { Action, Agent, type ActionHandler, type InputOf } from \"agboss\";",
-							"import { historyOf, oneOf } from \"agboss/dto\";",
+							"import { Action, Agent, type ActionHandler, type InputOf } from \"@agboss/core\";",
+							"import { historyOf, oneOf } from \"@agboss/core/dto\";",
 							"",
 							"@Agent({",
 							"  name: \"reviewer-agent\",",
@@ -752,7 +752,7 @@
 							{
 									"file": "src/observers/outdated-audit.observer.ts",
 									"code": [
-											"import { Injectable, type OnValuesOutdated, type ValuesOutdatedEvent } from \"agboss\";",
+											"import { Injectable, type OnValuesOutdated, type ValuesOutdatedEvent } from \"@agboss/core\";",
 											"",
 											"@Injectable()",
 											"export class OutdatedAuditObserver implements OnValuesOutdated {",
@@ -769,7 +769,7 @@
 							{
 									"file": "src/actions/send-offer.action.ts",
 									"code": [
-											"import { Action, type ActionHandler, type InputOf } from \"agboss\";",
+											"import { Action, type ActionHandler, type InputOf } from \"@agboss/core\";",
 											"import { DraftApprovedDto, OfferDraftDto } from \"../dto/offer.dto.js\";",
 											"",
 											"@Action({",
@@ -794,7 +794,7 @@
 					"problem": "Unbounded <code>Promise.all</code> fan-out overwhelms downstream APIs and leaves sibling tasks running after a crash.",
 					"solution": "<code>.toParallelAgents()</code> and <code>.toParallelWorkflows()</code> cap <code>maxConcurrency</code>/<code>maxItems</code> and abort on failure.",
 					"code": [
-							"import { SpawnPolicy, StepFailedError, Workflow, route, start, toAction } from \"agboss\";",
+							"import { SpawnPolicy, StepFailedError, Workflow, route, start, toAction } from \"@agboss/core\";",
 							"",
 							"@Workflow({",
 							"  name: \"checkout-workflow\",",
@@ -831,7 +831,7 @@
 							{
 									"file": "src/routers/screening.router.ts",
 									"code": [
-											"import { DecidedBy, FailurePolicy, Router, SpawnPolicy, type InputOf, type Route, type RouterHandler } from \"agboss\";",
+											"import { DecidedBy, FailurePolicy, Router, SpawnPolicy, type InputOf, type Route, type RouterHandler } from \"@agboss/core\";",
 											"import { AuditAgent, CodeReviewAgent, CultureFitAgent } from \"../agents/screening.agents.js\";",
 											"import { CandidateDto } from \"../dto/candidate.dto.js\";",
 											"",
@@ -856,7 +856,7 @@
 							{
 									"file": "src/dto/candidate.dto.ts",
 									"code": [
-											"import { Flag, Integer, Text } from \"agboss/dto\";",
+											"import { Flag, Integer, Text } from \"@agboss/core/dto\";",
 											"",
 											"export class CandidateDto {",
 											"  @Text({ prompt: \"Candidate ID\" })",
@@ -879,9 +879,9 @@
 					"problem": "Waiting for the slowest model in a parallel ensemble inflates tail latency and wastes tokens once consensus is reached.",
 					"solution": "<code>.acceptedBy(Arbiter).joinQuorum()</code> proceeds as soon as quorum is met and aborts slower branches as <code>Surplus</code>.",
 					"code": [
-							"import { QuorumNotReachedError, Workflow, anyOf, start, toFinish } from \"agboss\";",
-							"import { listOf } from \"agboss/dto\";",
-							"import { seconds } from \"agboss/units\";",
+							"import { QuorumNotReachedError, Workflow, anyOf, start, toFinish } from \"@agboss/core\";",
+							"import { listOf } from \"@agboss/core/dto\";",
+							"import { seconds } from \"@agboss/core/units\";",
 							"",
 							"@Workflow({",
 							"  name: \"panel-quorum-workflow\",",
@@ -913,7 +913,7 @@
 							{
 									"file": "src/arbiters/score.arbiter.ts",
 									"code": [
-											"import { Arbiter, DecidedBy, OnAnswer } from \"agboss\";",
+											"import { Arbiter, DecidedBy, OnAnswer } from \"@agboss/core\";",
 											"import { BackupScorerAgent, FastScorerAgent, PrimaryScorerAgent } from \"../agents/scorers.js\";",
 											"import { ScoreDto } from \"../dto/score.dto.js\";",
 											"",
@@ -943,7 +943,7 @@
 									"file": "test/score.arbiter.test.ts",
 									"code": [
 											"import { expect, it } from \"vitest\";",
-											"import { testArbiter } from \"agboss/testing\";",
+											"import { testArbiter } from \"@agboss/core/testing\";",
 											"import { HighConfidenceArbiter } from \"../src/arbiters/score.arbiter.js\";",
 											"import { PrimaryScorerAgent } from \"../src/agents/scorers.js\";",
 											"",
@@ -961,7 +961,7 @@
 					"problem": "Self-recursive workflows risk infinite depth explosions or hard crashes when reaching their recursion ceiling.",
 					"solution": "<code>ThisWorkflow</code> with <code>maxDepth</code> softly strips recursive schema variants at max depth, warming only 2 KV prefixes.",
 					"code": [
-							"import { ThisWorkflow, Workflow, caseOf, listOf, start } from \"agboss\";",
+							"import { ThisWorkflow, Workflow, caseOf, listOf, start } from \"@agboss/core\";",
 							"",
 							"@Workflow({",
 							"  name: \"topic-workflow\",",
@@ -998,7 +998,7 @@
 							{
 									"file": "src/workflows/verify-claim.workflow.ts",
 									"code": [
-											"import { Workflow, start } from \"agboss\";",
+											"import { Workflow, start } from \"@agboss/core\";",
 											"import { ClaimStart, ClaimVerifiedFinish } from \"./claim-endpoints.js\";",
 											"import { FactCheckerAgent } from \"../agents/fact-checker.agent.js\";",
 											"import { ClaimDto, VerificationReportDto } from \"../dto/research.dto.js\";",
@@ -1021,7 +1021,7 @@
 							{
 									"file": "src/dto/research.dto.ts",
 									"code": [
-											"import { ListOf, Text } from \"agboss/dto\";",
+											"import { ListOf, Text } from \"@agboss/core/dto\";",
 											"",
 											"export class ResearchTopicDto {",
 											"  @Text({ prompt: \"Research question or sub-question\" })",
@@ -1046,7 +1046,7 @@
 					"problem": "Global singletons leak database pools across tests and drop in-flight steps when a worker pod receives SIGTERM.",
 					"solution": "4-stage lifecycle hooks (<code>OnInit..OnDestroy</code>) and <code>app.close()</code> drain running steps before releasing leases.",
 					"code": [
-							"import { InputGuardrail, Injectable, Tool, type GuardrailRefusal, type OnDestroy, type OnInit, type OnStart, type OnStop, type ToolHandler } from \"agboss\";",
+							"import { InputGuardrail, Injectable, Tool, type GuardrailRefusal, type OnDestroy, type OnInit, type OnStart, type OnStop, type ToolHandler } from \"@agboss/core\";",
 							"",
 							"@Injectable()",
 							"export class PgPool implements OnInit, OnStop, OnDestroy {",
@@ -1087,7 +1087,7 @@
 									"file": "test/pg-pool.service.test.ts",
 									"code": [
 											"import { expect } from \"vitest\";",
-											"import { override, testWith } from \"agboss/testing\";",
+											"import { override, testWith } from \"@agboss/core/testing\";",
 											"import { JobScoutApplication } from \"../src/job-scout.application.js\";",
 											"import { PgPool } from \"../src/services/pg-pool.service.js\";",
 											"",
@@ -1109,7 +1109,7 @@
 							{
 									"file": "src/dto/ledger.dto.ts",
 									"code": [
-											"import { ListOf, Text } from \"agboss/dto\";",
+											"import { ListOf, Text } from \"@agboss/core/dto\";",
 											"",
 											"export class LedgerQueryDto {",
 											"  @Text({ minLength: 1 })",
@@ -1129,7 +1129,7 @@
 					"problem": "Ad-hoc console logging misses child workflow trees, parallel branch verdicts, and model retry reasons.",
 					"solution": "Implement any of the 23 typed observer hooks (<code>OnExecutionEnd</code>, <code>OnStepRetry</code>) and register in <code>@Application</code>.",
 					"code": [
-							"import { Injectable, OutdatedReason, nameOf, type AgentStartEvent, type ExecutionPauseEvent, type ExecutionRejectedEvent, type ExecutionResumeEvent, type GuardrailEndEvent, type JudgeEndEvent, type ModelEndEvent, type OnAgentStart, type OnExecutionPause, type OnExecutionRejected, type OnExecutionResume, type OnGuardrailEnd, type OnJudgeEnd, type OnModelEnd, type OnQuorumDecided, type OnToolEnd, type OnValuesOutdated, type QuorumDecidedEvent, type ToolEndEvent, type ValuesOutdatedEvent } from \"agboss\";",
+							"import { Injectable, OutdatedReason, nameOf, type AgentStartEvent, type ExecutionPauseEvent, type ExecutionRejectedEvent, type ExecutionResumeEvent, type GuardrailEndEvent, type JudgeEndEvent, type ModelEndEvent, type OnAgentStart, type OnExecutionPause, type OnExecutionRejected, type OnExecutionResume, type OnGuardrailEnd, type OnJudgeEnd, type OnModelEnd, type OnQuorumDecided, type OnToolEnd, type OnValuesOutdated, type QuorumDecidedEvent, type ToolEndEvent, type ValuesOutdatedEvent } from \"@agboss/core\";",
 							"",
 							"@Injectable()",
 							"export class ProductionAuditObserver",
@@ -1166,7 +1166,7 @@
 							{
 									"file": "src/job-scout.application.ts",
 									"code": [
-											"import { Application } from \"agboss\";",
+											"import { Application } from \"@agboss/core\";",
 											"import { TelemetryObserver } from \"./observers/telemetry.observer.js\";",
 											"import { AppEnvironment } from \"./environments/app.environment.js\";",
 											"import { JobScoutWorkflow } from \"./job-scout.workflow.js\";",
@@ -1185,7 +1185,7 @@
 									"file": "test/production-audit.observer.test.ts",
 									"code": [
 											"import { expect } from \"vitest\";",
-											"import { testWith } from \"agboss/testing\";",
+											"import { testWith } from \"@agboss/core/testing\";",
 											"import { JobScoutApplication } from \"../src/job-scout.application.js\";",
 											"import { ProductionAuditObserver } from \"../src/observers/production-audit.observer.js\";",
 											"",
@@ -1205,8 +1205,8 @@
 					"problem": "Passing <code>tenantId</code>, <code>signal</code>, and <code>idempotencyKey</code> through every function signature pollutes domain code.",
 					"solution": "Inject <code>ExecutionContext</code> and <code>TenantContext</code> anywhere, and expose K8s probes via <code>@HealthCheck</code>.",
 					"code": [
-							"import { ApplicationContext, HealthCheck, HealthCheckResult, SqliteExecutionLeaseRepository, TenantContext, type HealthCheckHandler } from \"agboss\";",
-							"import { seconds } from \"agboss/units\";",
+							"import { ApplicationContext, HealthCheck, HealthCheckResult, SqliteExecutionLeaseRepository, TenantContext, type HealthCheckHandler } from \"@agboss/core\";",
+							"import { seconds } from \"@agboss/core/units\";",
 							"",
 							"export class ShopTenantContext extends TenantContext {",
 							"  plan!: \"free\" | \"enterprise\";",
@@ -1237,7 +1237,7 @@
 							{
 									"file": "src/tools/charge-order.tool.ts",
 									"code": [
-											"import { ExecutionContext, Tool, type ToolHandler } from \"agboss\";",
+											"import { ExecutionContext, Tool, type ToolHandler } from \"@agboss/core\";",
 											"import { ChargeInputDto, ChargeOutputDto } from \"./charge-order.dto.js\";",
 											"import { ShopTenantContext } from \"../config/context.config.js\";",
 											"",
@@ -1265,7 +1265,7 @@
 							{
 									"file": "src/server/health.route.ts",
 									"code": [
-											"import { HealthStatus, createApp } from \"agboss\";",
+											"import { HealthStatus, createApp } from \"@agboss/core\";",
 											"import { JobScoutApplication } from \"../job-scout.application.js\";",
 											"",
 											"const app = await createApp(JobScoutApplication);",
@@ -1285,8 +1285,8 @@
 					"problem": "Hand-written JSON Schemas drift from TypeScript classes and leak raw PII into model prompts and trace logs.",
 					"solution": "<code>agboss/dto</code> decorators compile directly to strict JSON Schema with field-level <code>PiiAction.replaceWithToken()</code>.",
 					"code": [
-							"import { PiiAction } from \"agboss\";",
-							"import { Integer, ListOf, OneOf, Text } from \"agboss/dto\";",
+							"import { PiiAction } from \"@agboss/core\";",
+							"import { Integer, ListOf, OneOf, Text } from \"@agboss/core/dto\";",
 							"",
 							"export class IssueDto {",
 							"  @Text()",
@@ -1317,7 +1317,7 @@
 							{
 									"file": "src/actions/create-ticket.action.ts",
 									"code": [
-											"import { Action, type ActionHandler, type InputOf, type OutputOf } from \"agboss\";",
+											"import { Action, type ActionHandler, type InputOf, type OutputOf } from \"@agboss/core\";",
 											"import { TicketDto } from \"../dto/ticket.dto.js\";",
 											"",
 											"@Action({",
@@ -1337,7 +1337,7 @@
 									"file": "test/ticket.dto.test.ts",
 									"code": [
 											"import { expect, it } from \"vitest\";",
-											"import { testAction } from \"agboss/testing\";",
+											"import { testAction } from \"@agboss/core/testing\";",
 											"import { CreateTicketAction } from \"../src/actions/create-ticket.action.js\";",
 											"import { CheckoutStart } from \"../src/workflow-starts/checkout.workflow-start.js\";",
 											"",
@@ -1360,8 +1360,8 @@
 					"problem": "Scattered <code>process.env</code> reads fail hours into a run and mix raw millisecond/dollar numbers without units.",
 					"solution": "<code>secret()</code> and <code>env()</code> validate at startup, while <code>seconds()</code> and <code>usd()</code> enforce typed units.",
 					"code": [
-							"import { env, secret, type Secret } from \"agboss\";",
-							"import { hours, seconds, usd, type Milliseconds, type Usd } from \"agboss/units\";",
+							"import { env, secret, type Secret } from \"@agboss/core\";",
+							"import { hours, seconds, usd, type Milliseconds, type Usd } from \"@agboss/core/units\";",
 							"",
 							"export class AppEnvironment {",
 							"  openRouterApiKey!: Secret;",
@@ -1389,7 +1389,7 @@
 							{
 									"file": "src/environments/test.environment.ts",
 									"code": [
-											"import { seconds, usd } from \"agboss/units\";",
+											"import { seconds, usd } from \"@agboss/core/units\";",
 											"import type { AppEnvironment } from \"./app.environment.js\";",
 											"",
 											"export const environment: AppEnvironment = {",
@@ -1403,7 +1403,7 @@
 							{
 									"file": "src/job-scout.application.ts",
 									"code": [
-											"import { Application } from \"agboss\";",
+											"import { Application } from \"@agboss/core\";",
 											"import { AppEnvironment } from \"./environments/prod.environment.js\";",
 											"import { JobScout } from \"./job-scout.workflow.js\";",
 											"",
@@ -1423,7 +1423,7 @@
 					"problem": "Random UUID PII masks mutate historical messages on every turn, destroying provider KV prefix cache hit rates.",
 					"solution": "<code>@PiiPolicy</code> uses deterministic HMAC-SHA256 tokens (<code>&lt;email:7f3a91&gt;</code>) and restores real values inside <code>@Tool</code>.",
 					"code": [
-							"import { PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, type PiiRefusal } from \"agboss\";",
+							"import { PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, type PiiRefusal } from \"@agboss/core\";",
 							"",
 							"@PiiPolicy({",
 							"  name: \"customer-pii-policy\",",
@@ -1448,7 +1448,7 @@
 									"file": "test/customer-pii.policy.test.ts",
 									"code": [
 											"import { expect, it } from \"vitest\";",
-											"import { testPii } from \"agboss/testing\";",
+											"import { testPii } from \"@agboss/core/testing\";",
 											"import { CustomerPiiPolicy } from \"../src/policies/customer.pii-policy.js\";",
 											"",
 											"it(\"replaces emails with deterministic HMAC tokens and restores them for tools\", async () => {",
@@ -1462,7 +1462,7 @@
 							{
 									"file": "src/job-scout.application.ts",
 									"code": [
-											"import { Application } from \"agboss\";",
+											"import { Application } from \"@agboss/core\";",
 											"import { CustomerPiiPolicy } from \"./policies/customer.pii-policy.js\";",
 											"import { JobScout } from \"./job-scout.workflow.js\";",
 											"",
@@ -1482,7 +1482,7 @@
 					"problem": "Prompt injections and policy violations reach downstream steps or customers when left to prompt instructions alone.",
 					"solution": "<code>@InputGuardrail</code> and <code>@OutputGuardrail</code> block unsafe payloads via fast models or deterministic code.",
 					"code": [
-							"import { ExecutionContext, InputGuardrail, OutputGuardrail, type GuardrailRefusal } from \"agboss\";",
+							"import { ExecutionContext, InputGuardrail, OutputGuardrail, type GuardrailRefusal } from \"@agboss/core\";",
 							"",
 							"@InputGuardrail({",
 							"  name: \"prompt-injection-guardrail\",",
@@ -1515,7 +1515,7 @@
 									"file": "test/prompt-injection.guardrail.test.ts",
 									"code": [
 											"import { expect, it } from \"vitest\";",
-											"import { decideWith, testGuardrail } from \"agboss/testing\";",
+											"import { decideWith, testGuardrail } from \"@agboss/core/testing\";",
 											"import { PromptInjectionGuardrail } from \"../src/guardrails/prompt-injection.guardrail.js\";",
 											"",
 											"it(\"blocks flagged jailbreak attempts before the agent runs\", async () => {",
@@ -1533,7 +1533,7 @@
 							{
 									"file": "src/agents/support.agent.ts",
 									"code": [
-											"import { Agent } from \"agboss\";",
+											"import { Agent } from \"@agboss/core\";",
 											"import { CompetitorMentionGuardrail, PromptInjectionGuardrail } from \"../guardrails/prompt-injection.guardrail.js\";",
 											"",
 											"@Agent({",
@@ -1553,7 +1553,7 @@
 					"problem": "In-memory human approval promises die on pod restarts, and resolved quorums leave stale Approve buttons in Slack.",
 					"solution": "Two-phase <code>app.resume({ pauseId, decision })</code> persists in SQLite and calls <code>channel.withdraw()</code> on cancel.",
 					"code": [
-							"import { Channel, ChannelOf, ChannelOutcome, ChannelRole, ExecutionContext, PauseAnswerer, type ChannelAsk, type ChannelWithdrawal } from \"agboss\";",
+							"import { Channel, ChannelOf, ChannelOutcome, ChannelRole, ExecutionContext, PauseAnswerer, type ChannelAsk, type ChannelWithdrawal } from \"@agboss/core\";",
 							"",
 							"@ChannelRole({",
 							"  name: \"refund-approval-channel\",",
@@ -1584,7 +1584,7 @@
 							{
 									"file": "src/tools/refund-card.tool.ts",
 									"code": [
-											"import { Tool, type ToolHandler } from \"agboss\";",
+											"import { Tool, type ToolHandler } from \"@agboss/core\";",
 											"import { RefundApprovalChannel } from \"../channels/refund-approval.channel.js\";",
 											"import { RefundCardInputDto, RefundCardOutputDto } from \"./refund-card.dto.js\";",
 											"",
@@ -1605,7 +1605,7 @@
 							{
 									"file": "src/webhooks/slack-actions.route.ts",
 									"code": [
-											"import { createApp } from \"agboss\";",
+											"import { createApp } from \"@agboss/core\";",
 											"import { JobScoutApplication } from \"../job-scout.application.js\";",
 											"",
 											"const app = await createApp(JobScoutApplication);",
@@ -1625,8 +1625,8 @@
 					"problem": "Post-hoc token accounting only notices a runaway loop or parallel fan-out after the bill has already been incurred.",
 					"solution": "<code>@Budget</code> reserves estimated cost before each call and aborts sibling branches on <code>BudgetExceededError</code>.",
 					"code": [
-							"import { Budget, BudgetPeriod, BudgetScope, ExecutionContext, type BudgetHandler } from \"agboss\";",
-							"import { usd, type Usd } from \"agboss/units\";",
+							"import { Budget, BudgetPeriod, BudgetScope, ExecutionContext, type BudgetHandler } from \"@agboss/core\";",
+							"import { usd, type Usd } from \"@agboss/core/units\";",
 							"",
 							"@Budget({",
 							"  name: \"application-daily-budget\",",
@@ -1662,7 +1662,7 @@
 							{
 									"file": "src/observers/finops-alert.observer.ts",
 									"code": [
-											"import { Injectable, type ExecutionEndEvent, type OnExecutionEnd } from \"agboss\";",
+											"import { Injectable, type ExecutionEndEvent, type OnExecutionEnd } from \"@agboss/core\";",
 											"",
 											"@Injectable()",
 											"export class FinOpsAlertObserver implements OnExecutionEnd {",
@@ -1677,8 +1677,8 @@
 							{
 									"file": "src/tools/paid-serp.tool.ts",
 									"code": [
-											"import { SpendRecorder, Tool, type ToolHandler } from \"agboss\";",
-											"import { usd } from \"agboss/units\";",
+											"import { SpendRecorder, Tool, type ToolHandler } from \"@agboss/core\";",
+											"import { usd } from \"@agboss/core/units\";",
 											"",
 											"@Tool({",
 											"  name: \"paid_serp_search\",",
@@ -1703,7 +1703,7 @@
 					"problem": "Deploying durable agent state usually forces teams to stand up external Redis/Postgres clusters on day one.",
 					"solution": "7 built-in zero-dependency <code>Sqlite*</code> WAL repositories persist checkpoints, pauses, leases, and cost ledgers.",
 					"code": [
-							"import { SqliteCheckpointSaver, SqliteCostLedgerRepository, SqliteExecutionLeaseRepository, SqliteExecutionRecordRepository, SqliteExecutionTreeRepository, SqlitePausedExecutionRepository, SqliteRateLimitRepository, env } from \"agboss\";",
+							"import { SqliteCheckpointSaver, SqliteCostLedgerRepository, SqliteExecutionLeaseRepository, SqliteExecutionRecordRepository, SqliteExecutionTreeRepository, SqlitePausedExecutionRepository, SqliteRateLimitRepository, env } from \"@agboss/core\";",
 							"",
 							"export class StoreEnvironment {",
 							"  sqlitePath!: string;",
@@ -1729,7 +1729,7 @@
 							{
 									"file": "src/job-scout.application.ts",
 									"code": [
-											"import { Application } from \"agboss\";",
+											"import { Application } from \"@agboss/core\";",
 											"import { StoreEnvironment, durableStores } from \"./environments/store.environment.js\";",
 											"import { JobScoutWorkflow } from \"./job-scout.workflow.js\";",
 											"",
@@ -1747,7 +1747,7 @@
 									"file": "test/checkpoint-recovery.test.ts",
 									"code": [
 											"import { expect } from \"vitest\";",
-											"import { testWith } from \"agboss/testing\";",
+											"import { testWith } from \"@agboss/core/testing\";",
 											"import { JobScoutApplication } from \"../src/job-scout.application.js\";",
 											"",
 											"const test = testWith(JobScoutApplication, { instances: 2 });",
@@ -1765,8 +1765,8 @@
 					"problem": "When a worker pod crashes mid-step, another pod can double-execute side effects while the zombie pod still runs.",
 					"solution": "30s execution-tree leases and <code>ExecutionLeaseLostError</code> abort lost steps before the next tool call runs.",
 					"code": [
-							"import { createApp } from \"agboss\";",
-							"import { seconds } from \"agboss/units\";",
+							"import { createApp } from \"@agboss/core\";",
+							"import { seconds } from \"@agboss/core/units\";",
 							"import { JobScoutApplication } from \"../job-scout.application.js\";",
 							"",
 							"export async function startWorkerNode() {",
@@ -1789,8 +1789,8 @@
 									"file": "test/multi-pod-failover.test.ts",
 									"code": [
 											"import { expect } from \"vitest\";",
-											"import { testWith } from \"agboss/testing\";",
-											"import { seconds } from \"agboss/units\";",
+											"import { testWith } from \"@agboss/core/testing\";",
+											"import { seconds } from \"@agboss/core/units\";",
 											"import { JobScoutApplication } from \"../src/job-scout.application.js\";",
 											"",
 											"const test = testWith(JobScoutApplication, { instances: 2 });",
@@ -1805,8 +1805,8 @@
 							{
 									"file": "src/job-scout.application.ts",
 									"code": [
-											"import { Application, SqliteCheckpointSaver, SqliteExecutionLeaseRepository, SqlitePausedExecutionRepository } from \"agboss\";",
-											"import { seconds } from \"agboss/units\";",
+											"import { Application, SqliteCheckpointSaver, SqliteExecutionLeaseRepository, SqlitePausedExecutionRepository } from \"@agboss/core\";",
+											"import { seconds } from \"@agboss/core/units\";",
 											"",
 											"@Application({",
 											"  name: \"job-scout-application\",",
@@ -1826,8 +1826,8 @@
 					"solution": "<code>testWith(App)</code> scripts model turns offline and controls branch completion order via <code>TestConcurrency.inOrder()</code>.",
 					"code": [
 							"import { expect } from \"vitest\";",
-							"import { TestConcurrency, replyWith, step, testWith, waitFor } from \"agboss/testing\";",
-							"import { seconds, usd } from \"agboss/units\";",
+							"import { TestConcurrency, replyWith, step, testWith, waitFor } from \"@agboss/core/testing\";",
+							"import { seconds, usd } from \"@agboss/core/units\";",
 							"",
 							"const test = testWith(OfferApplication, {",
 							"  instances: 2,",
@@ -1856,8 +1856,8 @@
 							{
 									"file": "src/workflows/offer-review.workflow.ts",
 									"code": [
-											"import { Workflow, agent, caseOf, start } from \"agboss\";",
-											"import { oneOf } from \"agboss/dto\";",
+											"import { Workflow, agent, caseOf, start } from \"@agboss/core\";",
+											"import { oneOf } from \"@agboss/core/dto\";",
 											"import { ChangesRequestedDto, DraftApprovedDto, OfferDraftDto } from \"../dto/offer.dto.js\";",
 											"import { EditorAgent, ReviewerAgent, SendOfferAction } from \"../agents/offer.agents.js\";",
 											"",
@@ -1887,7 +1887,7 @@
 							{
 									"file": "src/dto/offer.dto.ts",
 									"code": [
-											"import { Decimal, Flag, Text } from \"agboss/dto\";",
+											"import { Decimal, Flag, Text } from \"@agboss/core/dto\";",
 											"",
 											"export class OfferDraftDto {",
 											"  @Text() role!: string;",
@@ -1908,9 +1908,9 @@
 					"solution": "10 isolated unit runners (<code>testTool</code>, <code>testToolInterceptor</code>, <code>testCompaction</code>, …) test single components in 1ms.",
 					"code": [
 							"import { expect, it } from \"vitest\";",
-							"import { Decision, Judge, JudgeModel, JudgeVerdict, type JudgeHandler, type JudgeInput } from \"agboss\";",
-							"import { isVariant, oneOf } from \"agboss/dto\";",
-							"import { decideWith, override, testJudge, testTool } from \"agboss/testing\";",
+							"import { Decision, Judge, JudgeModel, JudgeVerdict, type JudgeHandler, type JudgeInput } from \"@agboss/core\";",
+							"import { isVariant, oneOf } from \"@agboss/core/dto\";",
+							"import { decideWith, override, testJudge, testTool } from \"@agboss/core/testing\";",
 							"",
 							"const ReplyUnion = oneOf(GroundedReplyDto, ClarificationReplyDto);",
 							"",
@@ -1951,7 +1951,7 @@
 							{
 									"file": "src/tools/search-jobs.tool.ts",
 									"code": [
-											"import { Tool, type ToolHandler } from \"agboss\";",
+											"import { Tool, type ToolHandler } from \"@agboss/core\";",
 											"import { JobBoardService } from \"../services/job-board.service.js\";",
 											"import { JobQueryDto, JobListDto } from \"./search-jobs.dto.js\";",
 											"",
@@ -1973,7 +1973,7 @@
 							{
 									"file": "src/guardrails/ssn.guardrail.ts",
 									"code": [
-											"import { InputGuardrail } from \"agboss\";",
+											"import { InputGuardrail } from \"@agboss/core\";",
 											"",
 											"@InputGuardrail({",
 											"  name: \"ssn-input-guardrail\",",
@@ -2010,7 +2010,7 @@
 							{
 									"file": "src/observers/langfuse.observer.ts",
 									"code": [
-											"import { Injectable, type ExecutionEndEvent, type OnExecutionEnd } from \"agboss\";",
+											"import { Injectable, type ExecutionEndEvent, type OnExecutionEnd } from \"@agboss/core\";",
 											"",
 											"@Injectable()",
 											"export class LangfuseAuditObserver implements OnExecutionEnd {",
@@ -2028,7 +2028,7 @@
 							{
 									"file": "src/job-scout.application.ts",
 									"code": [
-											"import { Application } from \"agboss\";",
+											"import { Application } from \"@agboss/core\";",
 											"import { LangfuseObserver } from \"./observers/langfuse.observer.js\";",
 											"import { JobScout } from \"./job-scout.workflow.js\";",
 											"",
@@ -2114,7 +2114,7 @@
 											"#",
 											"# ├── AGENTS.md                                          (cross-agent standard: Codex, Cursor, Windsurf, Copilot, Gemini, Aider)",
 											"# ├── CLAUDE.md                                          (`@AGENTS.md` 1-line bridge for Claude Code)",
-											"# └── .claude/skills/agboss/                             (gitignored, version-locked to installed `agboss`)",
+											"# └── .claude/skills/agboss/                             (gitignored, version-locked to installed `@agboss/core`)",
 											"#       ├── SKILL.md                                     (quick-start rules & index)",
 											"#       ├── .agboss-skills.json                          (synced package version stamp)",
 											"#       └── references/",
@@ -2151,7 +2151,7 @@
 					"problem": "Partial failures leave external side effects (escrow holds, ATS offers, hardware states) uncommitted and uncompensated.",
 					"solution": "<code>@Action({ compensateWith, committedBy })</code> enforces rollback coverage statically (<code>[flow.uncompensated-action]</code>).",
 					"code": [
-							"import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from \"agboss\";",
+							"import { Action, ExecutionContext, type ActionHandler, type InputOf, type OutputOf } from \"@agboss/core\";",
 							"import { WithdrawOfferAction } from \"./withdraw-offer.action.js\";",
 							"import { ConfirmOfferAction } from \"./confirm-offer.action.js\";",
 							"import { OfferDraftDto, RegisteredOfferDto } from \"../dto/offer.dto.js\";",
@@ -2183,7 +2183,7 @@
 							{
 									"file": "src/actions/withdraw-offer.action.ts",
 									"code": [
-											"import { Action, ExecutionContext, type ActionHandler, type InputOf } from \"agboss\";",
+											"import { Action, ExecutionContext, type ActionHandler, type InputOf } from \"@agboss/core\";",
 											"import { RegisteredOfferDto } from \"../dto/offer.dto.js\";",
 											"",
 											"@Action({",
@@ -2210,7 +2210,7 @@
 							{
 									"file": "src/workflows/send-offer.workflow.ts",
 									"code": [
-											"import { StepFailedError, Workflow, start, toAction } from \"agboss\";",
+											"import { StepFailedError, Workflow, start, toAction } from \"@agboss/core\";",
 											"",
 											"@Workflow({",
 											"  name: \"send-offer-workflow\",",
@@ -2239,8 +2239,8 @@
 					"problem": "External cancellations (<code>app.cancel</code>, <code>FailFast</code>, quorum <code>Surplus</code>, budget breach) bypass normal <code>.onError</code> edges.",
 					"solution": "The runtime checkpoints open compensators and unwinds them in LIFO order under a dedicated <code>compensationTimeout</code>.",
 					"code": [
-							"import { Application, createApp } from \"agboss\";",
-							"import { seconds } from \"agboss/units\";",
+							"import { Application, createApp } from \"@agboss/core\";",
+							"import { seconds } from \"@agboss/core/units\";",
 							"import { AutonomousEscrowWorkflow } from \"./autonomous-escrow.workflow.js\";",
 							"",
 							"@Application({",
@@ -2264,7 +2264,7 @@
 									"file": "test/lifo-saga-unwinding.test.ts",
 									"code": [
 											"import { expect } from \"vitest\";",
-											"import { testWith } from \"agboss/testing\";",
+											"import { testWith } from \"@agboss/core/testing\";",
 											"import { AutonomousEscrowApplication } from \"../src/missions/autonomous-transfer.application.js\";",
 											"",
 											"const test = testWith(AutonomousEscrowApplication, { instances: 2 });",
@@ -2284,8 +2284,8 @@
 					"problem": "Traffic spikes overload single pods with deep parallel trees while sibling pods in the cluster sit idle.",
 					"solution": "<code>ChildPlacement.AnyInstance</code> + <code>ChildExecutionQueueRepository</code> distribute child workflows across pods while parents yield their lease.",
 					"code": [
-							"import { Application, SqliteChildExecutionQueueRepository, createApp } from \"agboss\";",
-							"import { seconds } from \"agboss/units\";",
+							"import { Application, SqliteChildExecutionQueueRepository, createApp } from \"@agboss/core\";",
+							"import { seconds } from \"@agboss/core/units\";",
 							"import { durableStores } from \"../environments/store.environment.js\";",
 							"import { DeepResearchWorkflow, VerifyClaimWorkflow } from \"../workflows/research.workflow.js\";",
 							"",
@@ -2310,8 +2310,8 @@
 							{
 									"file": "src/workflows/distributed-children.workflow.ts",
 									"code": [
-											"import { ChildPlacement, FailurePolicy, Workflow, start } from \"agboss\";",
-											"import { listOf } from \"agboss/dto\";",
+											"import { ChildPlacement, FailurePolicy, Workflow, start } from \"@agboss/core\";",
+											"import { listOf } from \"@agboss/core/dto\";",
 											"import { VerifyClaimWorkflow } from \"./verify-claim.workflow.js\";",
 											"",
 											"@Workflow({",
@@ -2344,7 +2344,7 @@
 					"problem": "Keeping stabilized routing decisions on LLM calls forever wastes latency and budget long after patterns settle.",
 					"solution": "Join <code>agboss describe --json</code> and <code>agboss records export</code> in <code>agboss hub</code> to crystallize routes into code.",
 					"code": [
-							"import { DecidedBy, Router, type InputOf, type Route, type RouterHandler } from \"agboss\";",
+							"import { DecidedBy, Router, type InputOf, type Route, type RouterHandler } from \"@agboss/core\";",
 							"import { ComplianceReviewAgent, FastTrackCaptureAction } from \"../agents/order.agents.js\";",
 							"import { OrderTriageDto } from \"../dto/order.dto.js\";",
 							"",
@@ -2385,7 +2385,7 @@
 							{
 									"file": "src/workflows/versioned-child-resume.application.ts",
 									"code": [
-											"import { Application } from \"agboss\";",
+											"import { Application } from \"@agboss/core\";",
 											"import { ParentWorkflow, ChildWorkflowV1, ChildWorkflowV2 } from \"./workflows.js\";",
 											"",
 											"@Application({",

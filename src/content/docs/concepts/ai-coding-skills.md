@@ -194,7 +194,7 @@ test("routes critical tickets to EscalationAgent and unit-tests PriorityRouter",
 When you scaffold a new project with [`agboss create`](/cli/):
 
 ```bash
-cd /tmp && npx agboss create my-app --yes
+cd /tmp && npm exec --yes --package=@agboss/cli@0.1.0 -- agboss create my-app --yes
 ```
 
 AGBoss sets up a two-tier, tool-agnostic instruction architecture in your repository:
@@ -220,7 +220,7 @@ my-app/
 │   └── types.d.ts                                     # Gitignored — generated Path Scope & Produced<Dto, P> types
 └── .claude/
     └── skills/
-        └── agboss/                                    # Gitignored — offline-synced from installed `agboss` package
+        └── agboss/                                    # Gitignored — offline-synced from installed `@agboss/core` package
             ├── SKILL.md                               # Root dispatcher & 10 non-negotiable invariants
             ├── .agboss-skills.json                    # Synced package version stamp & integrity metadata
             └── references/
@@ -240,9 +240,9 @@ my-app/
 ```
 
 Why is the synced skill directory gitignored instead of committed?
-- **Zero version drift across upgrades:** Every time you upgrade `agboss` and run `npm install` (via `"postinstall": "npm run types"`, where `"types": "agboss check"`), `npx agboss check`, or `npx agboss generate`, the CLI compares the installed `agboss` version against `.agboss-skills.json` and updates the 14 skill files in place.
-- **No noisy 14-file PR diffs:** Upgrading `agboss` in `package.json` never pollutes your pull requests with documentation diffs, and accidental local edits to synced skill files are automatically detected (`[skills.local-edit]`) and restored to match the installed runtime.
-- **100% offline & supply-chain safe:** `agboss check` never makes network calls to download instructions that steer coding agents; skills always match the exact version of `agboss` installed in `node_modules`.
+- **Zero version drift across upgrades:** Every time you upgrade `@agboss/core` and run `npm install` (via `"postinstall": "npm run types"`, where `"types": "agboss check"`), `npx agboss check`, or `npx agboss generate`, the CLI compares the installed `@agboss/core` version against `.agboss-skills.json` and updates the 14 skill files in place.
+- **No noisy 14-file PR diffs:** Upgrading `@agboss/core` in `package.json` never pollutes your pull requests with documentation diffs, and accidental local edits to synced skill files are automatically detected (`[skills.local-edit]`) and restored to match the installed runtime.
+- **100% offline & supply-chain safe:** `agboss check` never makes network calls to download instructions that steer coding agents; skills always match the exact version of `@agboss/core` installed in `node_modules`.
 
 ### Opting out of auto-sync
 

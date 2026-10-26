@@ -7,13 +7,13 @@ The [`@agboss/cli`](https://www.npmjs.com/package/@agboss/cli) package (paired w
 
 ## How to scaffold projects and generate components
 
-Create a new project interactively or via flags in CI with `npx agboss create` (also works via `npx @agboss/cli create`, short alias `agb c`):
+Create a new project interactively or via flags in CI with `npm exec --yes --package=@agboss/cli@0.1.0 -- agboss create` (short alias `agb c`):
 
 ```bash
-npx agboss create my-app
+npm exec --yes --package=@agboss/cli@0.1.0 -- agboss create my-app
 cd my-app
 npm install
-agboss c support-desk --yes --agents "triage:Sorts requests,answerer:Answers questions" --tools "answerer:search_orders" --mcp filesystem:/path/to/docs --rag notes --skip-install
+npm exec --yes --package=@agboss/cli@0.1.0 -- agboss c support-desk --yes --agents "triage:Sorts requests,answerer:Answers questions" --tools "answerer:search_orders" --mcp filesystem:/path/to/docs --rag notes --skip-install
 ```
 
 Generate components into an existing workflow module with `agboss generate` (alias `agboss g`) using their full names (including kind suffix) or single-letter/short kind aliases (`a` = `agent`, `r` = `router`, `t` = `tool`, `ar` = `arbiter`, `m` = `mcp`, `oa` = `openapi`, `w` = `workflow`, `ec` = `eval-case`). The CLI enforces a strict **`1 class = 1 file`** layout, placing each `@Workflow` in `src/workflows/<workflow-name>/` alongside its `@WorkflowStart` and `@WorkflowFinish` files, prompt-capable components (`@Agent`, `@Router`, `@Judge`, `@Arbiter`, `@Compaction`, `@InputGuardrail` / `@OutputGuardrail`, `@ReplyInterpreter`) in their own component subdirectory (`src/<kind-plural>/<name>/<name>.<kind>.ts` + `<name>.prompt.md`), and all DTOs flat in `src/dto/<name>.dto.ts`:
@@ -107,7 +107,7 @@ src/
 
 | Command | What It Does |
 | :--- | :--- |
-| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with `agboss` (`dependencies`), `@agboss/cli` (`devDependencies`), `@Application`, workflow, environments, `eslint.config.js` (`@agboss/core/eslint`), `.agboss/types.d.ts`, `AGENTS.md`, `CLAUDE.md`, 13 AI coding skills, and Vitest tests |
+| `agboss create <name>` (`agboss c`) | Scaffolds a new AGBoss project with `@agboss/core` (`dependencies`), `@agboss/cli` (`devDependencies`), `@Application`, workflow, environments, `eslint.config.js` (`@agboss/core/eslint`), `.agboss/types.d.ts`, `AGENTS.md`, `CLAUDE.md`, 13 AI coding skills, and Vitest tests |
 | `agboss generate <kind> <name>` (`agboss g`) | Generates and wires an `agent`, `router`, `tool`, `arbiter`, `mcp`, `rag`, `workflow`, `openapi` client, or `eval-case` (`--from-execution <executionId>`) |
 | `agboss check [--application <path>]` | Writes `.agboss/types.d.ts`, syncs `.claude/skills/agboss/` (`SKILL.md` + 13 reference modules), and validates all flow, assembly, environment, and prompt rules without calling models |
 | `agboss check --strict` | Treats analyser warnings (`[flow.path-too-deep]`, `[judge.same-model-family]`) and assembly warnings (`[application.in-memory-cost-ledger]`, `[application.in-memory-child-queue]`) as errors |
