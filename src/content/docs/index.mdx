@@ -5,8 +5,8 @@ template: splash
 banner:
   content: '<strong>New in v0.1.0:</strong> <a href="#executable-proof">Executable Path Scope Proof</a> · <a href="/features/">Interactive Feature Explorer</a> · <a href="/examples/job-scout/">7 Verified Examples</a> · <a href="/getting-started/quick-start/">Quickstart →</a>'
 hero:
-  title: '<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class="hero-headline">Build AI agents.<br/>Verify workflows before runtime.</span>'
-  tagline: '<p class="hero-lead-copy"><strong>Spring-style architecture for LangGraph AI agents.</strong> Build reliable, testable AI agents in TypeScript with dependency injection, static workflow validation, and deterministic testing.</p>'
+  title: '<span class="hero-eyebrow">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class="hero-headline">Build complex AI agents.<br/>Catch broken workflows before they run.</span>'
+  tagline: '<p class="hero-lead-copy"><strong>AGBoss brings Spring-style dependency injection and declarative TypeScript components to LangGraph.</strong> Its static compiler catches structural workflow bugs before execution, and deterministic test runners let you verify components and workflows offline without live LLM calls.</p>'
   actions:
     - text: Get Started
       link: /getting-started/quick-start/
@@ -21,148 +21,180 @@ import InstallCards from '../../components/InstallCards.astro';
 
 <InstallCards />
 
-## What is AGBoss and why is it built on LangGraph?
-
-**AGBoss** is an open-source, Spring-style TypeScript framework for building multi-agent applications on top of [LangGraph](https://www.langchain.com/langgraph). LangGraph provides the durable state-graph execution runtime and checkpointing substrate; AGBoss adds a declarative component architecture (`@Application`, `@Workflow`, `@Agent`, `@Router`, `@Arbiter`, `@Action`, `@Tool`), constructor dependency injection (`@Injectable`), explicit `@Dto` data contracts, and a static workflow compiler (`agboss check`).
-
-- **Why dependency injection matters:** Constructor dependency injection keeps components focused on their role while letting you wire replaceable service implementations, SQLite repositories, and test doubles at the `@Application` boundary without rewriting workflow logic.
-- **Why static validation matters:** `npx agboss check` analyzes every workflow route before runtime—catching missing upstream DTO inputs, stale data after revision loops, and uncompensated side effects that pass standard TypeScript (`tsc`) checks in raw shared-state graphs.
-- **Why deterministic testing matters:** With `testWith()`, dedicated unit runners (`testRouter`, `testTool`, `testAction`, `testArbiter`), VCR cassettes, and `VirtualClock`, you can test individual components and full multi-agent workflows deterministically offline without live LLM calls.
-
-<p>
-  <strong>Official npm packages:</strong>{' '}
-  <a href="https://www.npmjs.com/package/@agboss/core" target="_blank" rel="noopener"><code>@agboss/core</code></a>{' '}
-  (production runtime) &amp;{' '}
-  <a href="https://www.npmjs.com/package/@agboss/cli" target="_blank" rel="noopener"><code>@agboss/cli</code></a>{' '}
-  (CLI &amp; static compiler)
-  &nbsp;·&nbsp;
-  <strong>Working examples:</strong>{' '}
-  <a href="https://github.com/agbossjs/agboss-examples" target="_blank" rel="noopener"><code>agbossjs/agboss-examples</code></a>
-</p>
-
 <div id="executable-proof"></div>
 
-## How does AGBoss catch workflow dataflow errors before runtime?
+## Readable workflows. Verified before runtime.
 
-In raw graph orchestrators that share a single mutable state object (`Annotation.Root`), a router branch that skips an upstream producer compiles cleanly under `tsc` and fails only in production when that branch is taken. AGBoss verifies **Path Scope** across every possible execution path at build time via `agboss check` and generated `.agboss/types.d.ts` provenance types (`Produced<Dto, Producer>`):
+In raw shared-state graphs, a router branch that skips a required producer compiles cleanly under `tsc` and fails only in production when that branch is taken. AGBoss tracks typed `@Dto` handoffs across every route and catches structural workflow mistakes before execution with `npx agboss check`:
 
-```ts no-check: intentional [input.missing-on-path] example from 02-path-scope-proof
-// fast-track-contract.workflow.ts
+<div class="agboss-proof-grid">
+<div class="agboss-proof-card is-valid">
+<div class="agboss-proof-head">
+<span class="agboss-proof-badge is-valid">✓ Valid workflow</span>
+<span class="agboss-proof-meta">Passes <code>agboss check</code></span>
+</div>
+<ul class="agboss-proof-points">
+<li>Readable, declarative flow with explicit typed <code>@Dto</code> handoffs.</li>
+<li>VIP orders route through <code>ApplyVipCouponAction</code> (<code>CouponDiscountDto</code>) before <code>RenderInvoiceAction</code>; standard orders route to <code>RenderStandardInvoiceAction</code>.</li>
+</ul>
+
+```ts title="missing-input-fixed.workflow.ts" no-check: concise workflow excerpt from 02-path-scope-proof
 @Workflow({
-  name: "fast-track-contract-workflow",
-  version: "1.0.0",
+  name: "missing-input-fixed-workflow",
+  version: "0.1.0",
   flow: [
-    start(FastTrackContractWorkflowStart)
-      .returns(ContractDraftDto)
-      .toRouter(ContractTrackRouter)
+    start(MissingInputFixedStart)
+      .returns(CheckoutRequestDto)
+      .toRouter(TierRouter)
       .chooseOne(
-        // Standard path produces ComplianceApprovalDto before publishing
-        route("standard")
-          .toAgent(ComplianceCheckAgent)
-          .returns(ComplianceApprovalDto)
-          .to(PublishContractAction),
-        // Fast-track skips ComplianceCheckAgent and jumps straight to PublishContractAction!
-        route("fast-track")
-          .to(PublishContractAction),
+        // VIP path produces CouponDiscountDto first
+        route(ApplyVipCouponAction)
+          .returns(CouponDiscountDto)
+          .toAction(RenderInvoiceAction)
+          .returns(InvoiceSummaryDto)
+          .toFinish(MissingInputFixedFinish),
+        // Standard path needs only CheckoutRequestDto
+        route(RenderStandardInvoiceAction)
+          .returns(InvoiceSummaryDto)
+          .toFinish(MissingInputFixedFinish),
       ),
-    path(PublishContractAction)
-      .returns(PublishedContractDto)
-      .toFinish(FastTrackContractWorkflowFinish),
   ],
 })
-export class FastTrackContractWorkflow {}
+export class MissingInputFixedWorkflow {}
 ```
 
-Running `npx agboss check` rejects this graph before a single model call or side effect executes:
-
-```text
-error [input.missing-on-path]: publish-contract-action requires ComplianceApprovalDto
-  (parameter 'approval'), which is not produced on path:
-  fast-track-contract-workflow-start → contract-track-router → publish-contract-action
-  (produced only on: fast-track-contract-workflow-start → contract-track-router → compliance-check-agent → publish-contract-action)
+```text title="npx agboss check"
+types: .agboss/types.d.ts
+ok: cases/01-missing-input/agboss-fixed/application.ts
+  — assembly, environment, application, prompts, types
 ```
 
-<p>
+</div>
+<div class="agboss-proof-card is-invalid">
+<div class="agboss-proof-head">
+<span class="agboss-proof-badge is-invalid">✗ Invalid workflow</span>
+<span class="agboss-proof-meta">Caught before runtime</span>
+</div>
+<ul class="agboss-proof-points">
+<li>Second branch skips <code>ApplyVipCouponAction</code> and routes straight to <code>RenderInvoiceAction</code> (which requires <code>CouponDiscountDto</code>).</li>
+<li>TypeScript alone does not catch the missing upstream input; <code>agboss check</code> reports the exact missing input and path.</li>
+</ul>
+
+```ts title="missing-input-broken.workflow.ts" no-check: intentional [input.missing-on-path] example from 02-path-scope-proof
+@Workflow({
+  name: "missing-input-broken-workflow",
+  version: "0.1.0",
+  flow: [
+    start(MissingInputBrokenStart)
+      .returns(CheckoutRequestDto)
+      .toRouter(TierBrokenRouter)
+      .chooseOne(
+        route(ApplyVipCouponAction)
+          .returns(CouponDiscountDto)
+          .toAction(RenderInvoiceAction),
+        // Skips ApplyVipCouponAction (CouponDiscountDto)!
+        route(RenderInvoiceAction),
+      ),
+    action(RenderInvoiceAction)
+      .returns(InvoiceSummaryDto)
+      .toFinish(MissingInputBrokenFinish),
+  ],
+})
+export class MissingInputBrokenWorkflow {}
+```
+
+```text title="npx agboss check"
+error [input.missing-on-path] missing-input-broken-workflow:
+  render-invoice-action.coupon (CouponDiscountDto)
+  is not produced on the path:
+  missing-input-broken-workflow-start
+    → tier-broken-router → render-invoice-action
+```
+
+</div>
+</div>
+
+<p class="agboss-proof-links">
   <a href="https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof" target="_blank" rel="noopener"><strong>Run <code>02-path-scope-proof</code> on GitHub →</strong></a>
   &nbsp;·&nbsp;
   <a href="/concepts/path-scope/">Read Path Scope &amp; Provenance docs →</a>
-  &nbsp;·&nbsp;
-  <a href="/features/">Explore all capabilities in the Interactive Feature Explorer →</a>
 </p>
 
-## What are the three core capabilities of AGBoss?
+## Three core capabilities
+
+AGBoss layers structured application architecture on top of [LangGraph](https://www.langchain.com/langgraph)'s durable execution runtime:
 
 <div class="agboss-pillars">
 	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/decorators/">
 		<span class="agboss-mission-kicker">1 · DESIGN</span>
 		<h3>Typed Components &amp; Declarative Workflows</h3>
-		<p>Compose workflows from single-responsibility classes (<code>@Agent</code>, <code>@Router</code>, <code>@Arbiter</code>, <code>@Action</code>, <code>@Tool</code>) wired with constructor dependency injection (<code>@Injectable</code>), narrow <code>@Dto</code> handoffs, and canonical <code>HarnessDSL</code> flow chains.</p>
-		<span class="agboss-pillar-cta">Components &amp; HarnessDSL →</span>
+		<p>Structure agent systems from focused TypeScript classes instead of monolithic shared state. Wire services with constructor dependency injection (<code>@Injectable</code>) and connect <code>@Agent</code>, <code>@Router</code>, and <code>@Action</code> steps through explicit <code>@Dto</code> contracts.</p>
+		<span class="agboss-pillar-cta">Component Architecture →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="/concepts/verification-funnel/">
 		<span class="agboss-mission-kicker">2 · VERIFY</span>
-		<h3>Static Graph Checking, Unit Runners &amp; Evals</h3>
-		<p>Verify Path Scope, review-loop freshness (<code>&#123; about &#125;</code>), and saga compensation before runtime with <code>agboss check</code>, run deterministic races with <code>testWith()</code> + <code>VirtualClock</code> and 10 unit runners, and gate model changes with <code>@EvalSuite</code> (<code>pass@k</code> / <code>pass^k</code>).</p>
-		<span class="agboss-pillar-cta">5-Loop Verification Funnel →</span>
+		<h3>Static Checking &amp; Deterministic Testing</h3>
+		<p>Catch broken routes and test multi-agent behavior offline before calling a live model. Validate every workflow path at build time with <code>agboss check</code>, then run fast, deterministic unit and workflow tests with <code>testWith()</code> and recorded fixtures.</p>
+		<span class="agboss-pillar-cta">Verification &amp; Testing →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="/guides/error-handling-and-rollback/">
 		<span class="agboss-mission-kicker">3 · OPERATE</span>
-		<h3>LIFO Sagas, Human Pauses, Budgets &amp; Leases</h3>
-		<p>Operate workflows with declarative <code>compensateWith</code> / <code>committedBy</code> LIFO rollbacks, two-phase <code>@ChannelRole</code> pauses, pre-call <code>@Budget</code> reservations, reversible HMAC <code>@PiiPolicy</code>, SQLite WAL stores, 30s leases, and <code>ChildPlacement.AnyInstance</code> work-stealing.</p>
-		<span class="agboss-pillar-cta">Sagas, Persistence &amp; FinOps →</span>
+		<h3>Reliable Execution &amp; Recovery</h3>
+		<p>Run long-lived workflows in production with built-in fault tolerance and cost controls. Roll back failed side effects with <code>compensateWith</code> sagas, enforce <code>@Budget</code> limits, and resume paused or interrupted runs from persistent state.</p>
+		<span class="agboss-pillar-cta">Production Reliability →</span>
 	</a>
 </div>
 
-## Which runnable examples can you start with?
+## Runnable examples
 
 Every example in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) is verified offline with `npm run check`, `npm test`, and `npx tsx src/demo.ts`:
 
 <div class="agboss-pillars">
 	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss" target="_blank" rel="noopener">
-		<span class="agboss-mission-kicker">STARTER · P0</span>
+		<span class="agboss-mission-kicker">STARTER APPLICATION</span>
 		<h3><code>01-hello-agboss</code></h3>
-		<p>Minimal end-to-end starter demonstrating constructor DI, <code>@Router</code> + <code>@Agent</code> + <code>@Tool</code> composition, <code>@Budget</code> caps, <code>src/http/server.ts</code> endpoints, and deterministic unit/workflow tests.</p>
+		<p>Minimal end-to-end starter demonstrating constructor dependency injection, <code>@Router</code> + <code>@Agent</code> + <code>@Tool</code> composition, <code>@Budget</code> caps, and deterministic offline tests.</p>
 		<span class="agboss-pillar-cta">View 01-hello-agboss →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof" target="_blank" rel="noopener">
-		<span class="agboss-mission-kicker">STATIC COMPILER PROOF · P0</span>
+		<span class="agboss-mission-kicker">STATIC COMPILER PROOF</span>
 		<h3><code>02-path-scope-proof</code></h3>
-		<p>Side-by-side comparison of 4 graph bugs (<code>[input.missing-on-path]</code>, <code>[input.outdated-on-path]</code>, <code>[launch.branch-outdates-sibling]</code>, <code>[flow.uncompensated-action]</code>) that pass raw <code>tsc</code> in LangGraph but are caught by <code>agboss check</code>.</p>
+		<p>Side-by-side comparison of 4 structural workflow bugs (missing inputs, stale loop data, parallel conflicts, uncompensated actions) that pass <code>tsc</code> in raw graphs but are caught by <code>agboss check</code>.</p>
 		<span class="agboss-pillar-cta">View 02-path-scope-proof →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga" target="_blank" rel="noopener">
-		<span class="agboss-mission-kicker">LIFO SAGAS &amp; RECOVERY · P0</span>
+		<span class="agboss-mission-kicker">SAGAS &amp; RECOVERY</span>
 		<h3><code>04-travel-booking-saga</code></h3>
-		<p>Multi-step flight, hotel, and payment booking workflow proving automatic LIFO compensation on failure, budget abort, cancellation, two-phase <code>@ChannelRole</code> pauses, <code>@Arbiter</code> quorums, and SQLite crash recovery.</p>
+		<p>Multi-step flight, hotel, and payment workflow demonstrating automatic <code>compensateWith</code> rollbacks on failure, human approval pauses, and persistent crash recovery.</p>
 		<span class="agboss-pillar-cta">View 04-travel-booking-saga →</span>
 	</a>
 </div>
 
-<p>
-  <a href="/examples/job-scout/"><strong>Browse the full 7-example catalog (including <code>03-support-refund-desk</code>, <code>05-cluster-work-stealing</code>, <code>06-enterprise-agent-mesh</code>, and <code>07-langgraph-migration</code>) →</strong></a>
+<p class="agboss-examples-more">
+  <a href="/examples/job-scout/"><strong>Browse all 7 verified examples (including <code>03-support-refund-desk</code>, <code>05-cluster-work-stealing</code>, <code>06-enterprise-agent-mesh</code>, and <code>07-langgraph-migration</code>) →</strong></a>
 </p>
 
-## Ready to build with AGBoss?
+## Start building with AGBoss
 
 AGBoss is open source under the **Apache-2.0** license and runs inside your own Node.js infrastructure with zero vendor lock-in.
 
 <div class="agboss-pillars">
 	<a class="agboss-mission-card agboss-pillar-link" href="/getting-started/quick-start/">
-		<span class="agboss-mission-kicker">5 · 15 · 30 MINUTE PATH</span>
+		<span class="agboss-mission-kicker">QUICKSTART</span>
 		<h3>Quickstart Guide</h3>
-		<p>Go from installation and your first <code>agboss check</code> to dependency injection, typed DTO handoffs, and intentional Path Scope verification in 30 minutes.</p>
+		<p>Scaffold a new project, wire typed components with dependency injection, and run your first static workflow check in minutes.</p>
 		<span class="agboss-pillar-cta">Start the Quickstart →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="/features/">
-		<span class="agboss-mission-kicker">INTERACTIVE CODE WALKTHROUGH</span>
+		<span class="agboss-mission-kicker">FEATURE EXPLORER</span>
 		<h3>Interactive Feature Explorer</h3>
-		<p>Inspect 37 interactive code examples covering every AGBoss decorator, workflow topology pattern, LIFO saga, and evaluation loop.</p>
+		<p>Inspect 37 interactive TypeScript code examples covering decorators, routing patterns, testing, and production controls.</p>
 		<span class="agboss-pillar-cta">Open Feature Explorer →</span>
 	</a>
 	<a class="agboss-mission-card agboss-pillar-link" href="https://github.com/agbossjs/agboss" target="_blank" rel="noopener">
 		<span class="agboss-mission-kicker">APACHE-2.0 · OPEN SOURCE</span>
 		<h3>GitHub Repository</h3>
-		<p>Explore the framework source code, CLI compiler, release checklist, and executable proof suite on GitHub.</p>
+		<p>Explore the <code>@agboss/core</code> runtime, <code>@agboss/cli</code> static compiler, and executable proof suite on GitHub.</p>
 		<span class="agboss-pillar-cta">github.com/agbossjs/agboss →</span>
 	</a>
 </div>

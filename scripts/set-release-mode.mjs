@@ -48,13 +48,13 @@ const TRANSFORMS = [
       "banner:",
       "  content: '<strong>Pre-Release v0.1.0-rc:</strong> <a href=\"#executable-proof\">Executable Path Scope Proof</a> · <a href=\"/features/\">Interactive Feature Explorer</a> · <a href=\"/examples/job-scout/\">7 Verified Examples</a> · <a href=\"/getting-started/quick-start/\">Quickstart →</a>'",
       "hero:",
-      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class=\"hero-headline\">Build AI agents.<br/>Verify workflows before runtime.</span>'",
+      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0-rc (pre-release)</span><span class=\"hero-headline\">Build complex AI agents.<br/>Catch broken workflows before they run.</span>'",
     ].join("\n"),
     published: [
       "banner:",
       "  content: '<strong>New in v0.1.0:</strong> <a href=\"#executable-proof\">Executable Path Scope Proof</a> · <a href=\"/features/\">Interactive Feature Explorer</a> · <a href=\"/examples/job-scout/\">7 Verified Examples</a> · <a href=\"/getting-started/quick-start/\">Quickstart →</a>'",
       "hero:",
-      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class=\"hero-headline\">Build AI agents.<br/>Verify workflows before runtime.</span>'",
+      "  title: '<span class=\"hero-eyebrow\">Apache-2.0 · TypeScript · Built on LangGraph · v0.1.0 (latest)</span><span class=\"hero-headline\">Build complex AI agents.<br/>Catch broken workflows before they run.</span>'",
     ].join("\n"),
   },
   {

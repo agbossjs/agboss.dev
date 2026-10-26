@@ -288,13 +288,23 @@ h1[data-page-title] {
 
 /* ---------- Install snippet ---------- */
 
+.agboss-install-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.65rem;
+	margin: 0 auto 3rem !important;
+}
+
 .agboss-install {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: 0.9rem;
 	width: fit-content;
-	margin: 0 auto 3rem;
+	max-width: 100%;
+	overflow-x: auto;
+	margin: 0 auto !important;
 	padding: 0.85rem 1.75rem;
 	border-radius: 999px;
 	border: 1px solid var(--sl-color-hairline);
@@ -302,6 +312,29 @@ h1[data-page-title] {
 	box-shadow: 0 16px 40px -20px rgba(37, 140, 235, 0.35);
 	font-family: var(--sl-font-mono);
 	font-size: 1.05rem;
+	white-space: nowrap;
+}
+
+.agboss-install-sub {
+	margin: 0 !important;
+	font-size: 0.85rem;
+	color: var(--sl-color-gray-3);
+	text-align: center;
+}
+
+.agboss-install-sub code {
+	font-family: var(--sl-font-mono);
+	font-size: 0.82rem;
+	padding: 0.15rem 0.45rem;
+	border-radius: 6px;
+	border: 1px solid var(--sl-color-hairline);
+	background: var(--sl-color-bg-nav);
+	color: var(--sl-color-gray-2);
+}
+
+.agboss-copy-inline {
+	font-size: 0.95rem;
+	vertical-align: middle;
 }
 
 .agboss-install-prompt {
@@ -1334,6 +1367,142 @@ header a[rel='me']:hover {
 
 .agboss-missions-link a:hover {
 	text-decoration: underline;
+}
+
+/* ---------- Homepage Path Scope Proof Comparison (Valid vs Invalid Workflow) ---------- */
+
+.agboss-proof-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1.25rem;
+	margin: 1.35rem 0 1.25rem !important;
+}
+
+@media (min-width: 62rem) {
+	.agboss-proof-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		align-items: stretch;
+	}
+}
+
+.agboss-proof-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin: 0 !important;
+	padding: 1.2rem 1.25rem;
+	border-radius: 14px;
+	border: 1px solid var(--sl-color-hairline);
+	background: var(--sl-color-bg-nav);
+	min-width: 0;
+}
+
+.agboss-proof-card.is-valid {
+	border-top: 3px solid #34d399;
+}
+
+.agboss-proof-card.is-invalid {
+	border-top: 3px solid #f87171;
+}
+
+:root[data-theme='light'] .agboss-proof-card.is-valid {
+	border-top-color: #059669;
+}
+
+:root[data-theme='light'] .agboss-proof-card.is-invalid {
+	border-top-color: #dc2626;
+}
+
+.agboss-proof-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin: 0 !important;
+}
+
+.agboss-proof-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.2rem 0.65rem;
+	border-radius: 999px;
+	font-family: var(--sl-font-mono);
+	font-size: 0.74rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	line-height: 1.3;
+}
+
+.agboss-proof-badge.is-valid {
+	border: 1px solid color-mix(in srgb, #10b981 55%, transparent);
+	background: color-mix(in srgb, #10b981 16%, transparent);
+	color: #34d399;
+}
+
+.agboss-proof-badge.is-invalid {
+	border: 1px solid color-mix(in srgb, #ef4444 55%, transparent);
+	background: color-mix(in srgb, #ef4444 16%, transparent);
+	color: #f87171;
+}
+
+:root[data-theme='light'] .agboss-proof-badge.is-valid {
+	color: #047857;
+	background: rgba(16, 185, 129, 0.12);
+	border-color: rgba(16, 185, 129, 0.45);
+}
+
+:root[data-theme='light'] .agboss-proof-badge.is-invalid {
+	color: #b91c1c;
+	background: rgba(239, 68, 68, 0.1);
+	border-color: rgba(239, 68, 68, 0.45);
+}
+
+.agboss-proof-meta {
+	font-size: 0.8rem;
+	font-weight: 500;
+	color: var(--sl-color-gray-3);
+}
+
+.agboss-proof-points {
+	margin: 0 !important;
+	padding-left: 1.15rem !important;
+	font-size: 0.86rem;
+	line-height: 1.5;
+	color: var(--sl-color-gray-2);
+}
+
+.agboss-proof-points li {
+	margin: 0.2rem 0 !important;
+}
+
+.agboss-proof-card .expressive-code {
+	margin: 0 !important;
+}
+
+.agboss-proof-card .expressive-code:last-of-type {
+	margin-top: auto !important;
+}
+
+.agboss-proof-card .expressive-code pre {
+	font-size: 0.8rem;
+	line-height: 1.55;
+}
+
+.agboss-proof-links,
+.agboss-examples-more {
+	margin: 0.5rem 0 3.25rem !important;
+}
+
+@media (max-width: 36rem) {
+	.agboss-proof-card {
+		padding: 1rem 0.9rem;
+	}
+	.agboss-proof-card .expressive-code pre {
+		font-size: 0.75rem;
+	}
 }
 
 /* ---------- Narrower "On this page" right TOC (1.5x narrower: 12.5rem vs 18.75rem) & wider central content ---------- */
