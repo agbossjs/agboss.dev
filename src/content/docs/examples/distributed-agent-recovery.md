@@ -10,7 +10,8 @@ description: Architectural walkthrough of agbossjs/distributed-agent-recovery â€
 [**`agbossjs/distributed-agent-recovery`**](https://github.com/agbossjs/distributed-agent-recovery) is a standalone, multi-process distributed AI release pipeline built on `@agboss/core@0.1.0` and `@agboss/cli@0.1.0`. It demonstrates how AGBoss coordinates multiple OS worker processes, survives mid-execution worker freezes (`SIGSTOP` / lease expiry), rolls back partial external commits via deterministic LIFO sagas, and delegates root-cause recovery planning to an LLM agent without ever letting a probabilistic model manage distributed locks or cleanup state.
 
 - **GitHub Repository:** [`github.com/agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distributed-agent-recovery)
-- **Execution Modes:** `$0` deterministic offline suite (`testWith` & offline demo transport), multi-process OS worker cluster (`--cluster --real-clock` with untouched 30-second sweeps and POSIX `SIGSTOP`/`SIGCONT`), live OpenRouter (`openai/gpt-4o-mini`), and multi-container Docker Compose.
+- **Recorded Live LLM + Real-Clock `SIGSTOP` Evidence:** [`docs/evidence/live-real-clock-cluster-run.json`](https://github.com/agbossjs/distributed-agent-recovery/blob/main/docs/evidence/live-real-clock-cluster-run.json) (`openai/gpt-4o-mini`, `$0.00036255` total spend, 2 OS worker PIDs, 30s lease takeover `epoch 1 -> 2`, linear unbranched checkpoint chain)
+- **Automated CI Gates:** `$0` deterministic offline suite (`testWith` & `mockLlm`), real-clock multi-process POSIX `SIGSTOP`/`SIGCONT` recovery (`--cluster --real-clock`), 4-container Docker Compose + hard worker container death (`exit 137`) failover, and single-node Kubernetes (`kind`).
 
 ---
 
@@ -547,7 +548,7 @@ In addition to fast virtual-clock tests, [`agbossjs/distributed-agent-recovery`]
 
 ## The 8 Automated Invariants
 
-Every demo and CI run executes `ReleaseInvariantVerifierService` against the SQLite database (`release_artifacts`, `release_candidate_locks`, `fencing_tokens`, `execution_leases`, `ledger_events`) and on-disk `*.manifest.json` files, exiting non-zero if any invariant is violated:
+Every demo and CI run executes `ReleaseInvariantVerifierService` against both the application's SQLite ledger tables (`release_artifacts`, `release_candidate_locks`, `fencing_tokens`, `ledger_events`), **AGBoss's internal SQLite cluster tables** (`execution_leases`, `checkpoints`, `child_execution_queue`) via `ClusterSnapshotRepository`, and on-disk `*.manifest.json` files, exiting non-zero if any invariant is violated:
 
 | # | Invariant ID | What It Proves |
 | :--- | :--- | :--- |
@@ -556,9 +557,13 @@ Every demo and CI run executes `ReleaseInvariantVerifierService` against the SQL
 | **3** | `INV-3-NO-FAILED-ATTEMPT-ARTIFACTS-ACTIVE` | Zero Attempt 1 rows remain active in SQLite and zero Attempt 1 `.artifact.json` staging files remain on disk. |
 | **4** | `INV-4-SAGA-COMPENSATIONS-RECORDED-AND-APPLIED` | `CompensateReleaseCandidateAction` marked Attempt 1's candidate lock and all 3 module artifacts `COMPENSATED` with its `step.idempotencyKey`. |
 | **5** | `INV-5-NO-DUPLICATE-EXTERNAL-COMMITS` | Every committed row carries a unique `step.idempotencyKey` and at most one active artifact exists per `(release_id, attempt_number, logical_task_id)`. |
-| **6** | `INV-6-MULTI-INSTANCE-PARTICIPATION` | At least 2 distinct AGBoss worker `instanceId`s executed child workflows across the cluster. |
-| **7** | `INV-7-ZOMBIE-WORKER-FENCED` | Both Layer 1 (`ZOMBIE_WRITE_REJECTED` at the SQLite ledger) and Layer 2 (`RUNTIME_LEASE_FENCED` / `execution.lease-lost` at `LeasedCheckpointSaver`) were recorded for the stalled worker. |
-| **8** | `INV-8-ORIGINAL-LOGICAL-TASK-COMPLETED-AFTER-TAKEOVER` | `rel-2026.10.0:payment-engine` preserved the **exact same `childExecutionId` and `idempotencyKey`**, with Step 1 prepared by Worker A (`leaseEpoch = 1`) and Step 2 completed by Worker B (`leaseEpoch = 2`). |
+| **6** | `INV-6-MULTI-INSTANCE-PARTICIPATION` | At least 2 distinct AGBoss worker `instanceId`s executed child workflows across the fixed worker pool. |
+| **7** | `INV-7-ZOMBIE-WORKER-FENCED` | Verifies Layer 1 (`ZOMBIE_WRITE_REJECTED`) and Layer 2 (`RUNTIME_LEASE_FENCED` when the zombie resumes, or hard process death) **plus independent verification of AGBoss's `execution_leases` (`lease_epoch >= 2`, `holder_instance_id !== stalledInstanceId`, `released = 1`) and `checkpoints` (strictly linear unbranched `parent_checkpoint_id` chain proving zero split-brain zombie checkpoint writes)**. |
+| **8** | `INV-8-ORIGINAL-LOGICAL-TASK-COMPLETED-AFTER-TAKEOVER` | `rel-2026.10.0:payment-engine` preserved the **exact same `childExecutionId` and `idempotencyKey`**, with Step 1 prepared by Worker A (`leaseEpoch = 1`), Step 2 completed by Worker B (`leaseEpoch = 2`), `execution_leases.holder_instance_id` matching the committer, and `0` orphaned rows in `child_execution_queue`. |
+
+:::caution[Verification-only internal schema inspection]
+`ClusterSnapshotRepository` queries AGBoss's internal SQLite tables (`execution_leases`, `checkpoints`, `child_execution_queue`) directly so `INV-7` and `INV-8` can audit lease epochs and checkpoint ancestry independently of application event logs. This direct table inspection is a **diagnostic verification dependency coupled to `@agboss/core@0.1.0`'s internal schema**, not a recommended application integration API.
+:::
 
 ---
 
@@ -569,33 +574,39 @@ Clone [`agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distri
 ```bash
 git clone https://github.com/agbossjs/distributed-agent-recovery.git
 cd distributed-agent-recovery
-npm install
 
-# 1. Static compiler check (agboss check + tsc + @agboss/core/eslint) & Vitest suite
+# 1. Recommended first-time workflow (100% offline default, $0 cost, no API key needed)
+npm ci
 npm run check
 npm test
-
-# 2. Run the full 12-step two-attempt demo & 8-invariant verifier ($0 offline)
-npx tsx src/demo.ts
+npx tsx src/demo.ts --cluster
 npx tsx src/demo.ts --verify-only
 
-# 3. Run compiled multi-process OS cluster with untouched 30s clock & SIGSTOP/SIGCONT
+# 2. Optional: Live OpenRouter inference (openai/gpt-4o-mini + InspectFailedAttemptTool)
+OPENROUTER_API_KEY="sk-or-v1-..." npx tsx src/demo.ts --live
+
+# 3. Optional: Compiled multi-process OS cluster with untouched 30s lease TTL & POSIX SIGSTOP/SIGCONT
 npm run build
 node dist/src/demo.js --cluster --real-clock
 
-# 4. Optional: Combine multi-process OS cluster with live OpenRouter (openai/gpt-4o-mini)
+# 4. Optional: Combine real-clock POSIX SIGSTOP cluster with live OpenRouter inference
 OPENROUTER_API_KEY="sk-or-v1-..." node dist/src/demo.js --cluster --live --real-clock
 
-# 5. Optional: Run across 4 containers (storage-init, worker-alpha, worker-beta, coordinator)
-docker compose -f deploy/compose/docker-compose.yml up --build --abort-on-container-exit --exit-code-from coordinator
+# 5. Optional: 4-container Docker Compose cluster & clean volume teardown
+docker compose -f deploy/compose/docker-compose.yml up -d --build --wait worker-alpha worker-beta
+docker compose -f deploy/compose/docker-compose.yml run --rm -T --no-deps coordinator node dist/src/demo.js
+docker compose -f deploy/compose/docker-compose.yml down -v --remove-orphans
 ```
 
 ---
 
-## Canonical Directory Layout & Storage Scope
+## Canonical Directory Layout & Guarantee Boundaries
 
 The repository enforces strict `<kind>/<name>.<kind>.<ext>` role separation (`1 class = 1 file`, `< 200` lines per file, Drizzle ORM repositories in `src/repositories/`, Drizzle table schemas in `src/schemas/`, pure `.sql` DDL migrations in `src/sql/`, domain errors in `src/errors/`, stateless `@Injectable` services in `src/services/`, and symmetric `tests/` mirroring `src/`).
 
-:::note[Shared storage scope]
-This showcase runs AGBoss's built-in `Sqlite*` cluster repositories (`SqliteChildExecutionQueueRepository`, `SqliteExecutionLeaseRepository`, `SqliteCheckpointSaver`, `SqliteExecutionRecordRepository`, `SqliteExecutionTreeRepository`) and a Drizzle-backed SQLite release ledger in `WAL` mode over a shared local file or Docker volume on a single host. For multi-host Kubernetes clusters, subclass AGBoss's repository contracts against PostgreSQL/Redis while keeping the exact same workflow code and monotonic `leaseEpoch` fencing pattern (see [Multi-Instance, Leases & SQLite](/guides/persistence-and-recovery/)).
+:::note[Guarantee boundaries & shared storage scope]
+- **Two-Layer Fencing Contract:** AGBoss protects runtime lease ownership, LIFO compensation orchestration, checkpoint recovery, and `LeasedCheckpointSaver` writes; the application's ledger enforces external side-effect fencing (`leaseEpoch` + `step.idempotencyKey`) and physical file cleanup.
+- **At-Least-Once Execution with Idempotent Effects (Not "Exactly-Once"):** Lease takeover replays unfinished steps *at-least-once* from the last committed checkpoint; duplicate external commits are prevented by deterministic `step.idempotencyKey` values and monotonic `leaseEpoch` fencing.
+- **Reversible Compensation vs. Hard-Kill Recovery:** Saga compensation undoes reversible staging operations in an active workflow before routing `ReleaseGateFailedError`, whereas a hard-killed worker (`SIGKILL` / `exit 137`) does not execute in-process compensation on deathâ€”its lease expires and a surviving worker resumes from the last committed checkpoint.
+- **Fixed Worker Pool & Single-Host SQLite WAL:** The showcase distributes and recovers work across a fixed pool of workers (not dynamic autoscaling) sharing a local SQLite database in `WAL` mode on a single host (local processes, Docker Compose volume, or single-node `kind`). Multi-node distributed deployments across separate hosts require network-backed storage repositories (such as PostgreSQL) implementing the same monotonic `leaseEpoch` fencing contract (see [Multi-Instance, Leases & SQLite](/guides/persistence-and-recovery/)).
 :::
