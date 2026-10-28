@@ -346,6 +346,7 @@ it("executes RegisterOfferAction and compensates with WithdrawOfferAction", asyn
 
 ---
 
-## Standalone Executable Proof: [`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)
+## Standalone Executable Proofs
 
-Inspect **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)** and **[`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof)** (`cases/04-uncompensated-action`) in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) for runnable proofs of reverse-order LIFO compensation across `payment-saga`, `budget-saga`, `quorum-saga`, and `hitl-hold-saga`, idempotent external ledgers (`step.idempotencyKey`), and crash-safe SQLite WAL recovery (see [7 Verified Examples](/examples/job-scout/)).
+- **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)** and **[`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof)** (`cases/04-uncompensated-action`) in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples): Runnable proofs of reverse-order LIFO compensation across `payment-saga`, `budget-saga`, `quorum-saga`, and `hitl-hold-saga`, idempotent external ledgers (`step.idempotencyKey`), and crash-safe SQLite WAL recovery (see [7 Verified Examples](/examples/job-scout/)).
+- **[Showcase: Distributed Agent Recovery (`agbossjs/distributed-agent-recovery`)](/examples/distributed-agent-recovery/):** Multi-process distributed release pipeline ([GitHub](https://github.com/agbossjs/distributed-agent-recovery)) combining `LockReleaseCandidateAction` (`compensateWith: CompensateReleaseCandidateAction`) with `.onError(...)` AI root-cause recovery planning (`ReleaseRecoveryPlannerAgent`), checkpoint takeover, and two-layer zombie worker lease fencing.

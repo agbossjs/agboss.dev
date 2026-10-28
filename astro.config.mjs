@@ -220,6 +220,7 @@ export default defineConfig({
 					items: [
 						{ label: 'agboss CLI', slug: 'cli' },
 						{ label: '7 Verified Examples & job-scout', slug: 'examples/job-scout' },
+						{ label: 'Showcase: Distributed Agent Recovery', slug: 'examples/distributed-agent-recovery' },
 						{ label: 'Changelog & Releases', slug: 'changelog' },
 						{ label: 'About AGBoss', slug: 'about' },
 					],
@@ -258,7 +259,7 @@ export default defineConfig({
 						{
 							label: 'Examples',
 							paths: ['examples/**'],
-							description: '7 standalone verified applications in agbossjs/agboss-examples (01-hello-agboss, 02-path-scope-proof, 03-support-refund-desk, 04-travel-booking-saga, 05-cluster-work-stealing, 06-enterprise-agent-mesh, 07-langgraph-migration) plus job-scout and flow-patterns.',
+							description: '7 standalone verified applications in agbossjs/agboss-examples (01-hello-agboss through 07-langgraph-migration), the Distributed Agent Recovery multi-process showcase (agbossjs/distributed-agent-recovery), plus job-scout and flow-patterns.',
 						},
 					],
 					optionalLinks: [
@@ -271,6 +272,11 @@ export default defineConfig({
 							label: 'AGBoss Verified Examples Repository',
 							url: 'https://github.com/agbossjs/agboss-examples',
 							description: '7 standalone verified applications (01-hello-agboss, 02-path-scope-proof, 03-support-refund-desk, 04-travel-booking-saga, 05-cluster-work-stealing, 06-enterprise-agent-mesh, and 07-langgraph-migration).',
+						},
+						{
+							label: 'AGBoss Distributed Agent Recovery Showcase',
+							url: 'https://github.com/agbossjs/distributed-agent-recovery',
+							description: 'Multi-process distributed AI release pipeline demonstrating ChildPlacement.AnyInstance load balancing, LIFO saga compensation, live AI recovery planning, checkpoint takeover, and two-layer zombie worker lease fencing.',
 						},
 						{
 							label: 'Why AGBoss',

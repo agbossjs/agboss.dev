@@ -377,3 +377,10 @@ Every recursive workflow requires `maxDepth` on `@Workflow` (`[graph.missing-max
 | **Distributed child placement** | `placement: ChildPlacement.AnyInstance` | Enqueues `.toWorkflow()`, `.toParallelWorkflows()`, or `route(Workflow)` children into `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`), yielding the parent's lease while waiting and recovering each child independently under its own 30s lease (`[flow.conflicting-placement]` if two paths to the same child disagree). |
 | **Quorum cancellation** | `deadline: seconds(10)` | Automatically aborts slower losing branches (`BranchVerdict.Surplus`) via `AbortSignal` the instant quorum is decided. |
 | **Recursion ceiling** | `maxDepth` | Required on every `ThisWorkflow` graph (`[graph.missing-max-depth]`); omits the recursion tool at `depth === maxDepth` for model launches (soft stop) and throws `DepthLimitExceededError` if exceeded by deterministic launches. |
+
+---
+
+## Standalone Executable Proofs
+
+- **[Showcase: Distributed Agent Recovery (`agbossjs/distributed-agent-recovery`)](/examples/distributed-agent-recovery/):** Multi-process distributed release pipeline ([GitHub](https://github.com/agbossjs/distributed-agent-recovery)) demonstrating `.toParallelWorkflows(ModuleWorkerWorkflow, { placement: ChildPlacement.AnyInstance })` across independent OS worker processes, sibling fairness load balancing, same-task checkpoint takeover after 30s lease expiration, two-layer zombie worker lease fencing, and LIFO saga compensation.
+- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** Multi-instance cluster harness in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) proving `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository` and bounded recursive `ThisWorkflow` (`maxDepth: 2`) (see [7 Verified Examples](/examples/job-scout/)).

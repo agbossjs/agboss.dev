@@ -3,10 +3,11 @@ title: "Examples: 7 Verified Applications (01–07), flow-patterns & job-scout"
 description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (01–07) alongside examples/flow-patterns and examples/job-scout in agbossjs/agboss.
 ---
 
-AGBoss provides two complementary repositories of runnable, CI-verified examples so you can prove compile-time and runtime guarantees in seconds for `$0` and inspect production-grade reference architectures.
+AGBoss provides three complementary repositories of runnable, CI-verified examples so you can prove compile-time and runtime guarantees in seconds for `$0` and inspect production-grade reference architectures.
 
 1. **7 Standalone Verified Examples ([`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)):** Seven self-contained applications (`01-hello-agboss` through `07-langgraph-migration`) following the **`Promise → Failure Injection → Reproducible Proof`** discipline — each with its own `package.json`, canonical `1 class = 1 file` component subfolder layout, symmetric Spring-style `tests/` mirroring `src/`, `.claude/skills/agboss/`, `npx agboss check`, and `$0` offline test & demo suites.
-2. **In-Repository Examples (`examples/flow-patterns` & `examples/job-scout` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss)):** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `ThisWorkflow` recursion in `< 5 seconds` for `$0`, alongside the interactive `examples/job-scout` career assistant.
+2. **Distributed Agent Recovery Showcase ([`agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distributed-agent-recovery) · [Architectural Walkthrough →](/examples/distributed-agent-recovery/)):** A multi-process distributed AI release pipeline ("Ghost in the Machine: The Zombie AI Worker") proving `ChildPlacement.AnyInstance` cross-process load balancing, LIFO `compensateWith` saga rollback, live `openai/gpt-4o-mini` recovery planning, same-task checkpoint takeover after 30s lease expiration, and two-layer zombie worker lease fencing across 8 automated invariants.
+3. **In-Repository Examples (`examples/flow-patterns` & `examples/job-scout` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss)):** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `ThisWorkflow` recursion in `< 5 seconds` for `$0`, alongside the interactive `examples/job-scout` career assistant.
 
 ---
 
