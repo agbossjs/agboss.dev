@@ -24,7 +24,7 @@ import {
   type JudgeInput,
 } from "@agboss/core";
 import { ListOf, Text } from "@agboss/core/dto";
-import { Rag, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
+import { Rag, RagTenancy, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
 
 export class PolicyAnswerDto {
   @Text({ prompt: "Policy answer citing [source] identifiers" })
@@ -37,6 +37,7 @@ export class PolicyAnswerDto {
 @Rag({
   name: "handbook_rag",
   description: "Company policy handbook",
+  tenancy: RagTenancy.PerTenant,
   topK: 3,
 })
 export class HandbookRag implements RagConnector {

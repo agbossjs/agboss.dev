@@ -86,4 +86,4 @@ Raw numbers in configuration are a major source of production bugs (confusing `3
 | `usd(amount)` | `Usd` | Verifies finite `amount >= 0`; used in `@Budget.maxSpend()`, `SpendRecorder.record()`, and `replyWith(..., { cost })`. |
 | `seconds(n)` | `Milliseconds` | Converts non-negative seconds to branded `Milliseconds` (`timeout`, `shutdownTimeout`, quorum `deadline`). |
 | `minutes(n)` | `Milliseconds` | Converts non-negative minutes to branded `Milliseconds` (model provider `timeout`, circuit breaker cooldowns). |
-| `hours(n)` | `Milliseconds` | Converts non-negative hours to branded `Milliseconds` (`pauseRecordRetention: hours(24)`, long quorum deadlines). |
+| `hours(n)` | `Milliseconds` | Converts non-negative hours to branded `Milliseconds` (`retention: { pauseRecords: hours(24) }`, long quorum deadlines). |

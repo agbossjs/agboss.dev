@@ -328,7 +328,7 @@ When embedding AGBoss inside an HTTP server (Fastify, Express, Hono, Next.js rou
 5. **Handle webhook retries & ambiguous replies explicitly:**
    - **`NotPausedError`:** External webhook providers (Slack, Stripe, GitHub) retry on network timeouts, and humans double-click buttons. Catch `NotPausedError` and return `200 OK` idempotently.
    - **`UninterpretableReplyError`:** When a human sends a free-text reply that `@ReplyInterpreter` cannot parse (`ReplyInterpretation.notUnderstood({ reason })`), `app.resume` throws `UninterpretableReplyError` and **keeps the pause `Pending`** so your webhook can reply in the Slack thread with `err.reason` and wait for a clearer answer.
-   - **`UnknownPauseError`:** The `pauseId` does not exist, belongs to another tenant, or was pruned after `pauseRecordRetention` (`hours(24)` default); return `404 Not Found`.
+   - **`UnknownPauseError`:** The `pauseId` does not exist, belongs to another tenant, or was pruned after `retention.pauseRecords` (`hours(24)` default); return `404 Not Found`.
 
 ---
 

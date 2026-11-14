@@ -64,7 +64,7 @@ import {
     ExecutionRunBudget,
   ],
   piiPolicies: [ContactPiiPolicy],
-  pseudonymKey: "piiPseudonymKey",
+  piiKeyField: "piiPseudonymKey",
   observers: [MetricsObserver],
   uncompactedTurns: 6,
   defaults: {
@@ -79,7 +79,7 @@ import {
       maxToolCalls: 8,
     },
   },
-  pauseRecordRetention: hours(48),
+  retention: { pauseRecords: hours(48) },
   shutdownTimeout: seconds(25),
 })
 export class SupportApplication {}
@@ -327,14 +327,14 @@ Every `@Application` class name ends with `Application` and its `name` option en
 | `mesh` | `MeshOptions` | No | Agent Mesh Envelope signing and verification settings (`{ signingKey, peers, idempotencyRetention }`) for multi-service A2A/MCP deployments. |
 | `compaction` | `Class` | No | Default [`@Compaction`](/reference/compaction/) class summarizing turns older than `uncompactedTurns`. |
 | `uncompactedTurns` | `number \| TurnLimit` | No | Default number of recent turns shown in full to every agent and model router (`5` by default, or `TurnLimit.ALL`). |
-| `pseudonymKey` | `string` | No | Name of a `Secret` field on the `environment` class used for HMAC token pseudonymization across all pods. |
+| `piiKeyField` | `string` | No | Name of a `Secret` field on the `environment` class used for HMAC token pseudonymization across all pods. |
 | `tenantContext` | `TenantContextClass` | No | Custom subclass of `TenantContext` whose decorated DTO fields (without `prompt`, `[context.prompt-unused]`) are required on `app.execute(..., { tenant })`. |
 | `executionContext` | `ExecutionContextClass` | No | Custom subclass of `ExecutionContext` carrying per-execution identity fields passed via `app.execute(..., { execution })`. |
 | `defaults` | `WorkflowDefaults` | No | Default `models`, `router`, `guardrail`, `tools`, and `flow` settings inherited by all workflows. |
 | `exposes` | `readonly Class[]` | No | `@A2AExpose` and `@McpExpose` contract classes served over A2A/MCP and exported in `agboss describe --json`. |
 | `maxConcurrentSteps` | `number` | No | Maximum `@Agent`, `@Router`, and `@Action` steps running concurrently in this process before queueing by priority and reporting `step-slots` as `HealthStatus.Degraded`. |
 | `compensationTimeout` | `Milliseconds` | No | Dedicated cleanup window for automatic LIFO saga compensation when an execution is cancelled or hits a limit (`seconds(30)` by default). |
-| `pauseRecordRetention` | `Milliseconds` | No | How long resolved or cancelled pause records remain stored (`hours(24)` by default). |
+| `retention.pauseRecords` | `Milliseconds` | No | How long resolved or cancelled pause records remain stored (`hours(24)` by default). |
 | `executionRecordRetention` | `Milliseconds` | No | How long completed `ExecutionRecord` snapshots remain in `ExecutionHistoryRepository` (`days(7)` by default). |
 | `shutdownTimeout` | `Milliseconds` | No | Grace period for `app.close()` and `SIGTERM` / `SIGINT` drain before releasing active execution leases (`seconds(25)` by default). |
 

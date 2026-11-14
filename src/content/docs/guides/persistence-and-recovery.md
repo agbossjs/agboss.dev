@@ -118,26 +118,41 @@ export class SupportApplication {}
 import {
   ExecutionLeaseRepository,
   Injectable,
+  type ExecutionIdentity,
   type ExecutionLease,
+  type ExecutionTree,
 } from "@agboss/core";
 import type { Milliseconds } from "@agboss/core/units";
 
+// The lease table of your own database: every method one atomic statement on the database's clock
 @Injectable()
 export class LeaseTableService {
+  claimId(_identity: ExecutionIdentity): Promise<boolean> {
+    return Promise.resolve(false);
+  }
   insertIfFree(
     _tenantId: string,
     _rootExecutionId: string,
-    _lease: number,
+    _duration: Milliseconds,
   ): Promise<ExecutionLease | undefined> {
     return Promise.resolve(undefined);
   }
-  extendIfHeld(
-    _executionLease: ExecutionLease,
-    _lease: number,
-  ): Promise<boolean> {
-    return Promise.resolve(false);
+  extendIfHeld(_held: ExecutionLease, _duration: Milliseconds): Promise<Milliseconds | undefined> {
+    return Promise.resolve(undefined);
   }
-  deleteIfHeld(_executionLease: ExecutionLease): Promise<void> {
+  markYielded(_held: ExecutionLease): Promise<Milliseconds | undefined> {
+    return Promise.resolve(undefined);
+  }
+  takeBack(_held: ExecutionLease, _duration: Milliseconds): Promise<ExecutionLease | undefined> {
+    return Promise.resolve(undefined);
+  }
+  deleteIfHeld(_held: ExecutionLease): Promise<void> {
+    return Promise.resolve();
+  }
+  retireIfHeld(_held: ExecutionLease): Promise<void> {
+    return Promise.resolve();
+  }
+  markCancelRequested(_tree: ExecutionTree): Promise<void> {
     return Promise.resolve();
   }
   selectOne(): Promise<void> {
@@ -151,31 +166,53 @@ export class TableExecutionLeaseRepository extends ExecutionLeaseRepository {
     super();
   }
 
+  override ping(): Promise<void> {
+    return this.leaseTableService.selectOne();
+  }
+
+  // an id is claimed once, ever, under any tenant: of concurrent claims exactly one gets true
+  override claimExecutionId(identity: ExecutionIdentity): Promise<boolean> {
+    return this.leaseTableService.claimId(identity);
+  }
+
   override acquire(
     tenantId: string,
     rootExecutionId: string,
-    lease: Milliseconds,
+    duration: Milliseconds,
   ): Promise<ExecutionLease | undefined> {
-    return this.leaseTableService.insertIfFree(
-      tenantId,
-      rootExecutionId,
-      lease,
-    );
+    return this.leaseTableService.insertIfFree(tenantId, rootExecutionId, duration);
   }
 
+  // answers the time the lease has left, or undefined once it is over
   override renew(
     executionLease: ExecutionLease,
-    lease: Milliseconds,
-  ): Promise<boolean> {
-    return this.leaseTableService.extendIfHeld(executionLease, lease);
+    duration: Milliseconds,
+  ): Promise<Milliseconds | undefined> {
+    return this.leaseTableService.extendIfHeld(executionLease, duration);
   }
 
   override release(executionLease: ExecutionLease): Promise<void> {
     return this.leaseTableService.deleteIfHeld(executionLease);
   }
 
-  override ping(): Promise<void> {
-    return this.leaseTableService.selectOne();
+  override retire(executionLease: ExecutionLease): Promise<void> {
+    return this.leaseTableService.retireIfHeld(executionLease);
+  }
+
+  override yield(executionLease: ExecutionLease): Promise<Milliseconds | undefined> {
+    return this.leaseTableService.markYielded(executionLease);
+  }
+
+  override reclaim(
+    executionLease: ExecutionLease,
+    duration: Milliseconds,
+  ): Promise<ExecutionLease | undefined> {
+    return this.leaseTableService.takeBack(executionLease, duration);
+  }
+
+  // a cancel is a fence: durable once this resolves, keyed by the tree's root
+  override requestCancel(tree: ExecutionTree): Promise<void> {
+    return this.leaseTableService.markCancelRequested(tree);
   }
 }
 ```
@@ -229,7 +266,7 @@ Because `@Agent`, `@Router`, `@Arbiter`, `@Action`, and `@Tool` classes never im
 
 | Stage | `@Application({ providers })` Configuration | Use Case |
 | :--- | :--- | :--- |
-| **Stage 1: In-Memory (Default)** | `providers: []` (built-in `InMemory*` stores) | Local prototyping (`npm run chat`), unit tests (`testWith`), and deterministic CI suites |
+| **Stage 1: In-Memory (Default)** | `providers: []` (built-in `InMemory*` stores) | Local prototyping (`agboss chat`), unit tests (`testWith`), and deterministic CI suites |
 | **Stage 2: Single-Node Durable** | Built-in `Sqlite*` WAL repositories (`sqlitePath`) | Single-VM / single-container production with durable checkpoints, pauses, and spend ledgers |
 | **Stage 3: Multi-Instance on One Machine** | Shared `Sqlite*` WAL file + `SqliteExecutionLeaseRepository` | Multiple worker processes on one host sharing WAL storage, 30s leases, and recovery sweeps |
 | **Stage 4: Multi-Machine Cluster Stores** | Custom `@Injectable()` classes extending `ExecutionRecordRepository`, `ExecutionLeaseRepository`, etc. | Distributed Postgres / Redis / DynamoDB backends across Kubernetes nodes |
@@ -271,7 +308,7 @@ One lease exists per execution tree, keyed by `(tenantId, rootExecutionId)`, hel
 
 ## Crash recovery, cross-instance `app.cancel`, and mid-undo recovery
 
-- **Automatic recovery sweep (every 30 s):** At startup and every 30 seconds, each instance scans `ExecutionRecordStatus.Running` records (`findByStatus`), claims any tree whose holder died or released its lease on shutdown, and resumes from the **last committed checkpoint** (`onExecutionResume` with `ResumeReason.Recovered`). Because every finished step is checkpointed before the next starts, only the interrupted step runs again, and external side effects deduplicate via `executionContext.step.idempotencyKey`. The sweep also purges `Taken` / `Cancelled` pause records older than `@Application({ pauseRecordRetention })` (default `hours(24)`).
+- **Automatic recovery sweep (every 30 s):** At startup and every 30 seconds, each instance scans `ExecutionRecordStatus.Running` records (`findByStatus`), claims any tree whose holder died or released its lease on shutdown, and resumes from the **last committed checkpoint** (`onExecutionResume` with `ResumeReason.Recovered`). Because every finished step is checkpointed before the next starts, only the interrupted step runs again, and external side effects deduplicate via `executionContext.step.idempotencyKey`. The sweep also purges `Taken` / `Cancelled` pause records older than `@Application({ retention.pauseRecords })` (default `hours(24)`).
 - **Cross-instance `app.cancel(threadId)`:** Behind a load balancer, `app.cancel` can land on any instance. If the target thread is running on another instance, `app.cancel` writes the reserved key `@agboss/cancel-request` into the shared `ExecutionTreeRepository`. The holding instance checks this key on every lease renewal (every 10s and before each checkpoint write) and aborts the run with `ExecutionCancelledError`.
 - **Durable LIFO saga unwinding (`@agboss/unwinding`):** Before automatic LIFO rollback of [`@Action({ compensateWith })`](/guides/error-handling-and-rollback/) starts, the holder writes `@agboss/unwinding` and marks each completed compensator under `@agboss/compensated/<key>`. If the instance crashes or times out mid-rollback, the next instance taking the lease reads `@agboss/unwinding`, skips already-compensated steps, and finishes the remaining compensators in LIFO order.
 
@@ -301,4 +338,4 @@ You can either subclass a built-in `Sqlite*` store (injecting `SqliteConnection`
 ## Standalone Executable Proofs
 
 - **[Showcase: Distributed Agent Recovery (`agbossjs/distributed-agent-recovery`)](/examples/distributed-agent-recovery/):** Multi-process OS worker cluster and Docker Compose showcase ([GitHub](https://github.com/agbossjs/distributed-agent-recovery)) demonstrating `ChildPlacement.AnyInstance` cross-process load balancing, POSIX `SIGSTOP`/`SIGCONT` worker freeze past the 30s lease TTL, same-task checkpoint takeover (`execution.recovered`, `leaseEpoch 1 → 2`), two-layer zombie worker lease fencing, LIFO saga rollback, and live AI recovery planning across 8 automated invariants.
-- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** Multi-instance cluster harness in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) proving `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository`, bounded recursive `ThisWorkflow` (`maxDepth: 2`), 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck` liveness/readiness probes, and cross-instance pause/resume/cancel (see [7 Verified Examples](/examples/job-scout/)).
+- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** Multi-instance cluster harness in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) proving `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository`, bounded recursive `ThisWorkflow` (`maxDepth: 2`), 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck` liveness/readiness probes, and cross-instance pause/resume/cancel (see [7 Verified Examples](/examples/verified-examples/)).
