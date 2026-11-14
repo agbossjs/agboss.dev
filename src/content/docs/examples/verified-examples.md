@@ -1,13 +1,13 @@
 ---
-title: "Examples: 7 Verified Applications (01–07), flow-patterns & job-scout"
-description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (01–07) alongside examples/flow-patterns and examples/job-scout in agbossjs/agboss.
+title: "Examples: 7 Verified Applications (01–07), flow-patterns & 08-job-scout"
+description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (01–07) alongside examples/flow-patterns in agbossjs/agboss and 08-job-scout in agbossjs/agboss-examples.
 ---
 
 AGBoss provides three complementary repositories of runnable, CI-verified examples so you can prove compile-time and runtime guarantees in seconds for `$0` and inspect production-grade reference architectures.
 
 1. **7 Standalone Verified Examples ([`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)):** Seven self-contained applications (`01-hello-agboss` through `07-langgraph-migration`) following the **`Promise → Failure Injection → Reproducible Proof`** discipline — each with its own `package.json`, canonical `1 class = 1 file` component subfolder layout, symmetric Spring-style `tests/` mirroring `src/`, `.claude/skills/agboss/`, `npx agboss check`, and `$0` offline test & demo suites.
 2. **Distributed Agent Recovery Showcase ([`agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distributed-agent-recovery) · [Architectural Walkthrough →](/examples/distributed-agent-recovery/)):** A multi-process distributed AI release pipeline ("Ghost in the Machine: The Zombie AI Worker") proving `ChildPlacement.AnyInstance` cross-process load balancing, LIFO `compensateWith` saga rollback, live `openai/gpt-4o-mini` recovery planning, same-task checkpoint takeover after 30s lease expiration, and two-layer zombie worker lease fencing across 8 automated invariants.
-3. **In-Repository Examples (`examples/flow-patterns` & `examples/job-scout` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss)):** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `ThisWorkflow` recursion in `< 5 seconds` for `$0`, alongside the interactive `examples/job-scout` career assistant.
+3. **`examples/flow-patterns` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) and [`08-job-scout`](https://github.com/agbossjs/agboss-examples/tree/main/08-job-scout) in `agbossjs/agboss-examples`:** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `ThisWorkflow` recursion in `< 5 seconds` for `$0`; `08-job-scout` is the interactive career assistant.
 
 ---
 
@@ -20,7 +20,7 @@ AGBoss provides three complementary repositories of runnable, CI-verified exampl
 | **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** | **PII roundtrip, tool interception, in-memory BM25 RAG, compaction & 5-layer evals:** Reversible HMAC `@PiiPolicy` (`replaceWithToken`, `revealPii: true`, `PiiRefusedError`), `@ToolInterceptor` (`replyToModel`, `block`), `@InputGuardrail` (`DecidedBy.Code`), `@OutputGuardrail`, `InMemoryKnowledgeIndexService` + `RefundPolicyRetriever` (`@Rag`), `PolicyAwareCompaction`, and `@EvalSuite` with compact git-tracked `eval/baseline/main-baseline.json` and `agboss eval calibrate` (Cohen's $\kappa$). | `@PiiPolicy`, `@ToolInterceptor`, `@InputGuardrail`, `@OutputGuardrail`, `@Rag`, `@Compaction`, `@EvalSuite`, `agboss eval` |
 | **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)** | **Transactional LIFO sagas, idempotency, quorums, HITL withdrawal & HTTP server:** Reverse-order LIFO compensation across `payment-saga`, `budget-saga`, `quorum-saga` (`.joinQuorum({ min: 2, max: 2 })`), and `hitl-hold-saga` (`Channel.withdraw()`, `NotPausedError`), idempotent external ledgers (`step.idempotencyKey`), SQLite WAL crash recovery, and `src/http/server.ts`. | `@Action({ compensateWith, committedBy })`, `.toParallelAgents().acceptedBy().joinQuorum()`, `@ChannelRole`, `@Channel` |
 | **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)** | **Distributed scheduling, 30s leases, fencing & backpressure:** Parent `CoordinatorWorkflow` fans out `ChunkWorkerWorkflow` with `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository`, runs bounded recursive `ThisWorkflow` (`maxDepth: 2`), enforces 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck`, and `IncompatibleResumeError`. | `ChildPlacement.AnyInstance`, `SqliteChildExecutionQueueRepository`, `ThisWorkflow`, `@HealthCheck`, `SqliteExecutionLeaseRepository` |
-| **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)** | **3-service A2A + MCP mesh, Ed25519 envelopes, loop guard & federation Blast Radius:** Connects `apps/1-order-gateway`, `apps/2-billing-a2a` (`@A2AExpose`), and `apps/3-catalog-mcp` (`@McpExpose`) with Ed25519-signed `agboss-mesh` JWS envelopes, `MeshLoopDetectedError` / `HopsLimitExceededError`, MCP `_meta.callId` deduplication (`SqliteMeshRequestRepository`), and `agboss check --federation` (`federation/`). | `@A2AExpose`, `@A2AAgent`, `@McpExpose`, `@McpTool`, `SqliteMeshRequestRepository`, `agboss check --federation`, `agboss hub` |
+| **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)** | **3-service A2A + MCP mesh, Ed25519 envelopes, loop guard & federation Blast Radius:** Connects `apps/1-order-gateway`, `apps/2-billing-a2a` (`@A2AExpose`), and `apps/3-catalog-mcp` (`@McpExpose`) with Ed25519-signed mesh envelopes, `MeshLoopDetectedError` / `HopsLimitExceededError`, MCP `_meta.callId` deduplication (`SqliteMeshRequestRepository`), and `agboss check --federation` (`federation/`). | `@A2AExpose`, `@A2AAgent`, `@McpExpose`, `@McpTool`, `SqliteMeshRequestRepository`, `agboss check --federation`, `agboss hub` |
 | **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration)** | **Side-by-side comparison (`before-langgraph/` vs `after-agboss/`):** Compares a raw 15-field LangGraph `Annotation.Root` God State (`before-langgraph/support.graph.ts`) with the migrated AGBoss implementation (`after-agboss/src/` + `after-agboss/tests/`) using 10 narrow `@Dto`s, `DecidedBy.Model` & `DecidedBy.Code` `@Router`s, bounded `.toParallelAgents()`, idempotent `@Action`, typed `@Channel`, and co-located `.prompt.md` files. | `@Dto`, `@Router`, `.switch(caseOf())`, `.toParallelAgents()`, `@Action`, `@Channel`, `13-migrating-from-langgraph.md` |
 
 ### Canonical Project Layout (`1 class = 1 file` & Symmetric `tests/`)
@@ -139,7 +139,7 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 - **Problem statement:** When independent microservices expose agents (`A2A`) and tools (`MCP`), untyped payloads, missing authentication, circular cross-service loops, duplicate retries, and breaking schema changes cause cascading outages.
 - **Architecture overview:** Three separate AGBoss applications in one workspace — `apps/1-order-gateway` (`TriageGatewayApplication`), `apps/2-billing-a2a` (`BillingApplication` exposing `@A2AExpose`), and `apps/3-catalog-mcp` (`CatalogApplication` exposing `@McpExpose`).
-- **Main mechanisms demonstrated:** `@A2AExpose` + `a2aHttpListener(app, { expose, callerResolver })`, `@A2AAgent`, `@McpExpose` + `@McpServer` + `@McpTool`, Ed25519-signed `agboss-mesh` JWS envelope propagation (`origin`, `budget.remaining`, `deadline.remaining`, `callChain`), `MeshLoopDetectedError` / `HopsLimitExceededError`, `SqliteMeshRequestRepository` idempotency deduplication, `agboss check --federation`, and `agboss hub`.
+- **Main mechanisms demonstrated:** `@A2AExpose` + `a2aHttpListener(app, { expose, callerResolver })`, `@A2AAgent`, `@McpExpose` + `@McpServer` + `@McpTool`, Ed25519-signed mesh envelope propagation (`origin`, `budget.remaining`, `deadline.remaining`, `callChain`), `MeshLoopDetectedError` / `HopsLimitExceededError`, `SqliteMeshRequestRepository` idempotency deduplication, `agboss check --federation`, and `agboss hub`.
 - **Representative code:** `@A2AAgent({ name: "remote-billing-agent", description: "Calls Billing service over A2A", target: "billing-application/billing-workflow", url: "billingA2aUrl", input: BillingInquiryDto, output: BillingResolutionDto, price: usd(0.05) })`
 - **Quickstart commands:**
   ```bash
@@ -173,9 +173,9 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 ---
 
-## How the `examples/job-scout` application works
+## How the `08-job-scout` application works
 
-`examples/job-scout` reads a candidate's resume from disk, proposes a structured search brief, fetches live openings from public Greenhouse boards, ranks every match using the Jev decision model (`JobFitJudge`), explains why top matches fit using a SQLite FTS5 `@Rag` knowledge base (`company_notes`), and saves selected jobs through the official filesystem `@McpServer` after pausing for user approval (`TerminalUserChannel`):
+[`08-job-scout`](https://github.com/agbossjs/agboss-examples/tree/main/08-job-scout) reads a candidate's resume from disk, proposes a structured search brief, fetches live openings from public Greenhouse boards, ranks every match using the Jev decision model (`JobFitJudge`), explains why top matches fit using a SQLite FTS5 `@Rag` knowledge base (`company_notes`), and saves selected jobs through the official filesystem `@McpServer` after pausing for user approval (`TerminalUserChannel`):
 
 <!-- snippet-context
 import {
@@ -308,13 +308,13 @@ test("routes job search queries through MainRouter to ScoutAgent", async ({
 });
 ```
 
-Run `examples/job-scout` from the repository root:
+Run [`08-job-scout`](https://github.com/agbossjs/agboss-examples/tree/main/08-job-scout) from a clone of `agbossjs/agboss-examples`:
 
 ```bash
-npm install && npm run build
-cd examples/job-scout
-npm run chat
-npm run describe
+cd agboss-examples/08-job-scout
+npm install
+npx agboss chat
+npx agboss describe
 ```
 
 ## What patterns are demonstrated in `examples/flow-patterns`?

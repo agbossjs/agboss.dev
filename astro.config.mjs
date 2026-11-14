@@ -83,6 +83,7 @@ function geoSitemapEnricher() {
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://agboss.dev',
+	redirects: { '/examples/job-scout': '/examples/verified-examples/' },
 	integrations: [
 		starlight({
 			title: 'AGBoss',
@@ -226,7 +227,7 @@ export default defineConfig({
 					label: 'CLI, Examples & Releases',
 					items: [
 						{ label: 'agboss CLI', slug: 'cli' },
-						{ label: '7 Verified Examples & job-scout', slug: 'examples/job-scout' },
+						{ label: '7 Verified Examples & job-scout', slug: 'examples/verified-examples' },
 						{ label: 'Showcase: Distributed Agent Recovery', slug: 'examples/distributed-agent-recovery' },
 						{ label: 'Changelog & Releases', slug: 'changelog' },
 						{ label: 'About AGBoss', slug: 'about' },
@@ -273,7 +274,7 @@ export default defineConfig({
 						{
 							label: 'AGBoss Framework GitHub Repository',
 							url: 'https://github.com/agbossjs/agboss',
-							description: 'Source code, issue tracker, examples/job-scout, and examples/flow-patterns.',
+							description: 'Source code, issue tracker, and examples/flow-patterns.',
 						},
 						{
 							label: 'AGBoss Verified Examples Repository',

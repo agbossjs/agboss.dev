@@ -201,7 +201,7 @@ import {
   type ToolHandler,
 } from "@agboss/core";
 import { McpServer, McpServerClient, McpTool, type ServerTools } from "@agboss/core/mcp";
-import { Rag, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
+import { Rag, RagTenancy, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
 import { usd, type Usd } from "@agboss/core/units";
 import {
   CandidateInputDto,
@@ -250,7 +250,12 @@ export class FetchSalaryBandMcpTool implements ToolHandler<CandidateInputDto, Of
   }
 }
 
-@Rag({ name: "compensation_handbook", description: "Compensation handbook", topK: 3 })
+@Rag({
+  name: "compensation_handbook",
+  description: "Compensation handbook",
+  tenancy: RagTenancy.PerTenant,
+  topK: 3,
+})
 export class CompensationHandbookRag implements RagConnector {
   retrieve(): Promise<RagRetrieval> {
     return Promise.resolve({ results: [{ text: "L6 band $200k-$240k", source: "band-l6" }] });

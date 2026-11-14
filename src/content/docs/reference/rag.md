@@ -11,6 +11,7 @@ The `@Rag` decorator (`rag/*.rag.ts`) defines a knowledge base component impleme
 import { ExecutionContext } from "@agboss/core";
 import {
   Rag,
+  RagTenancy,
   SqliteFtsConnector,
   type RagConnector,
   type RagRetrieval,
@@ -21,6 +22,7 @@ import { AppEnvironment, VectorSearchService } from "../services/vector-search.s
 @Rag({
   name: "job_postings_fts",
   description: "Full-text BM25 index of open engineering job descriptions and salary bands",
+  tenancy: RagTenancy.PerTenant,
   topK: 5,
   prompt: "Cite the posting ID in brackets like [job-104] for every compensation figure.",
   deps: [AppEnvironment],
@@ -29,7 +31,7 @@ export class JobPostingsFtsRag extends SqliteFtsConnector {
   constructor(env: AppEnvironment) {
     super({
       folder: "./docs/jobs",
-      dbFile: env.sqlitePath ?? ":memory:",
+      sqlitePath: env.sqlitePath ?? ":memory:",
     });
   }
 }
@@ -38,6 +40,7 @@ export class JobPostingsFtsRag extends SqliteFtsConnector {
 @Rag({
   name: "engineering_runbooks",
   description: "Production architecture runbooks and incident postmortems",
+  tenancy: RagTenancy.PerTenant,
   topK: 4,
   deps: [ExecutionContext, VectorSearchService],
 })

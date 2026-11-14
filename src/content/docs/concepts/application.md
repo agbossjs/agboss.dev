@@ -36,7 +36,7 @@ import { AppEnvironment } from "./environments/app.environment.js";
   environment: AppEnvironment,
   workflows: [AuditWorkflow],
   budgets: [AuditAppBudget, AuditTenantBudget, AuditExecBudget],
-  pauseRecordRetention: hours(24),
+  retention: { pauseRecords: hours(24) },
   shutdownTimeout: seconds(25),
 })
 export class AuditApplication {}
@@ -137,7 +137,7 @@ test("boots AuditApplication, executes AuditWorkflowStart, and checks probes", a
 | `observers` | `@Injectable()` observer classes implementing hooks like `OnExecutionEnd`, `OnAgentStart`, `OnExecutionRejected`, or `OnExecutionResume`. |
 | `healthChecks` | [`@HealthCheck`](/reference/health-check/) classes invoked by `app.checkLiveness()` and `app.checkReadiness()`. |
 | `maxConcurrentSteps` | Instance-wide step ceiling; when saturated, `app.checkReadiness()` reports `Degraded` so Kubernetes load balancers shift new traffic to idle pods. |
-| `pauseRecordRetention` | How long resolved pause records are kept before the 30-second recovery sweep purges them (default `hours(24)`). |
+| `retention.pauseRecords` | How long resolved pause records are kept before the 30-second recovery sweep purges them (default `hours(24)`). |
 | `shutdownTimeout` | Graceful drain window on `app.close()` or `SIGTERM` / `SIGINT` (default `seconds(25)`), after which remaining runs release their leases for peer instances. |
 
 ## 4-Stage Progressive Infrastructure Scaling

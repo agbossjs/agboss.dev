@@ -35,5 +35,5 @@ As a multi-agent system grows beyond a small prototype—especially when maintai
 ## Where to go next
 
 1. [Install `agboss` and `@agboss/cli` from npm](/getting-started/installation/) and follow the [Quick start](/getting-started/quick-start/) to scaffold, statically verify, and test your first workflow.
-2. Explore the 7 standalone, runnable applications in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (documented in the [Examples guide](/examples/job-scout/)).
+2. Explore the 7 standalone, runnable applications in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (documented in the [Examples guide](/examples/verified-examples/)).
 3. Read the [7 Architectural Principles](/concepts/architecture/) and [AI Coding Skills (`AGENTS.md`)](/concepts/ai-coding-skills/).

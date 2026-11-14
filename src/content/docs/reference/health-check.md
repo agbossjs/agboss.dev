@@ -147,7 +147,7 @@ import {
   maxConcurrentSteps: 32,
   compensationTimeout: seconds(15),
   shutdownTimeout: seconds(25),
-  pauseRecordRetention: hours(24),
+  retention: { pauseRecords: hours(24) },
 })
 export class WorkerClusterApplication {}
 ```
@@ -226,5 +226,5 @@ Custom `@HealthCheck` classes return branded results built exclusively with `Hea
 | `maxConcurrentSteps` | `@Application` | Unbounded | Maximum concurrent agent, router, and action steps on this pod (`[limits.max-concurrent-steps-invalid]`). When all slots are busy, `checkReadiness()` reports `HealthStatus.Degraded` (`step-slots`). |
 | `shutdownTimeout` | `@Application` | `seconds(25)` | Grace period on `app.close()` / `SIGTERM` before interrupting active executions and releasing their 30s leases (`< kubernetes terminationGracePeriodSeconds`). |
 | `compensationTimeout` | `@Application` | `seconds(15)` | Clean-up deadline per automatic `@Action({ compensateWith })` rollback step. |
-| `pauseRecordRetention` | `@Application` | `hours(24)` | How long resolved (`Taken`, `Cancelled`) pause records are retained in `PausedExecutionRepository` so duplicate webhook clicks receive `NotPausedError`. |
+| `retention.pauseRecords` | `@Application` | `hours(24)` | How long resolved (`Taken`, `Cancelled`) pause records are retained in `PausedExecutionRepository` so duplicate webhook clicks receive `NotPausedError`. |
 | `OnInit` / `OnStart` / `OnStop` / `OnDestroy` | `@Injectable()` providers | — | Deterministic 4-stage startup and reverse-topological shutdown hooks. |

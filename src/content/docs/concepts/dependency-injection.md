@@ -45,7 +45,7 @@ import {
   type OnStop,
   type ToolHandler,
 } from "@agboss/core";
-import { Rag, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
+import { Rag, RagTenancy, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
 import { Text } from "@agboss/core/dto";
 import { minutes, seconds, usd } from "@agboss/core/units";
 import {
@@ -114,6 +114,7 @@ export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
 @Rag({
   name: "custom_vector_docs",
   description: "Custom vector search over architecture runbooks",
+  tenancy: RagTenancy.PerTenant,
   topK: 3,
   deps: [ConnectionPool, ExecutionContext],
 })

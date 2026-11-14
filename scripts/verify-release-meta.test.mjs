@@ -33,7 +33,7 @@ const SOURCE_FILES = [
   "src/content/docs/getting-started/quick-start.md",
   "src/content/docs/changelog.md",
   "src/content/docs/community.mdx",
-  "src/content/docs/examples/job-scout.md",
+  "src/content/docs/examples/verified-examples.md",
   "SECURITY.md",
 ];
 

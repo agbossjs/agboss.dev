@@ -70,7 +70,7 @@ const DOC_EXPECTATIONS = [
     publishedRequired: ["See what shipped in v0.1.0 and what is currently in progress."],
   },
   {
-    file: "src/content/docs/examples/job-scout.md",
+    file: "src/content/docs/examples/verified-examples.md",
     preReleaseRequired: ["> **Pre-Release Setup (`v0.1.0-rc`):**"],
     publishedRequired: ["> **Setup (`v0.1.0`):**"],
   },
