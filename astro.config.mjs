@@ -162,6 +162,13 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'A2A Extension Specifications',
+					items: [
+						{ label: 'Mesh extension (a2a/mesh/v1)', slug: 'a2a/mesh/v1' },
+						{ label: 'Skills extension (a2a/skills/v1)', slug: 'a2a/skills/v1' },
+					],
+				},
+				{
 					label: 'Decorators: App & Workflow',
 					items: [
 						{ label: '@Application', slug: 'reference/application' },
