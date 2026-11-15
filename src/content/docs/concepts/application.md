@@ -153,5 +153,5 @@ Because `@Application({ providers })` resolves storage contracts by class inheri
 
 - **`app.execute(StartClass, input, options?)`** — Starts or continues a workflow thread scoped by `{ threadId, ownerId, tenant: { tenantId, weight }, onStream }`, checking all budgets before the first step.
 - **`app.resume({ pauseId, reply }, options?)`** — Atomically records a human-in-the-loop reply (`Pending -> Resolved`), acquires the execution tree's 30-second lease, and continues from the checkpoint.
-- **`app.cancel(threadId, { tenantId, ownerId })`** — Aborts a running execution before its next model or tool call (`ExecutionCancelledError`) or withdraws pending pauses (`ChannelHandler.withdraw(info)`) on a paused thread.
+- **`app.cancel(threadId, { tenantId, ownerId })`** — Aborts a running execution before its next model or tool call (`ExecutionCancelledError`) or closes the pending pauses of a paused thread (their channels hear it through `onPauseClosed`, a late `app.resume` gets `PauseClosedError`).
 - **`app.close({ timeout? })`** — Rejects new executions with `ApplicationStoppingError`, stops the recovery sweep, runs `onStop`, waits up to `timeout` for active steps to finish or pause, releases remaining leases so peer instances can recover them immediately, and runs `onDestroy`.

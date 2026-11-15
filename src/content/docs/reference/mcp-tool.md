@@ -65,7 +65,7 @@ export class GithubMcpServer extends McpServerClient<typeof githubTools> {}
   name: "release-approval-channel",
   description: "Approves opening release pull requests",
   approves: CreatePrInputDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
 })
 export abstract class ReleaseApprovalChannel
   extends ChannelOf<ReleaseApprovalChannel> {}

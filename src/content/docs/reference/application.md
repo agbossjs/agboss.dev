@@ -250,7 +250,7 @@ export class ContactPiiPolicy {}
   name: "refund-approval-channel",
   description: "Approves refunds",
   approves: WorkflowStartTextDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
 })
 export abstract class RefundApprovalChannel extends ChannelOf<RefundApprovalChannel> {}
 

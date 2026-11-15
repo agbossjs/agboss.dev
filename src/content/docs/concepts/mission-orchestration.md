@@ -191,7 +191,7 @@ it("creates an idempotent escrow hold from TransferRequestDto", async () => {
 
 Autonomous robots, drones, and smart industrial devices separate control into two distinct loops:
 1. **System 1 — Real-Time Hardware Control Loop (100–1000 Hz):** Low-level firmware, PID/MPC controllers, actuator drivers, and hardware safety interlocks handle sub-millisecond stabilization, collision reflexes, and emergency stops.
-2. **System 2 — Deliberative Mission Orchestrator (`agboss`):** Runs as the high-level "cerebral cortex" that sequences multi-stage physical missions, fuses multimodal VLM/LLM assessments via `.joinQuorum()` and `@Arbiter`, pauses for remote human tele-supervision via `@ChannelRole` (with `withdraw` when resolved), verifies all target coordinates through typed DTOs, and triggers deterministic LIFO compensating actions (`SafeParkManipulatorAction`) whenever a mission is aborted:
+2. **System 2 — Deliberative Mission Orchestrator (`agboss`):** Runs as the high-level "cerebral cortex" that sequences multi-stage physical missions, fuses multimodal VLM/LLM assessments via `.joinQuorum()` and `@Arbiter`, pauses for remote human tele-supervision via `@ChannelRole` (with `onPauseClosed` when resolved), verifies all target coordinates through typed DTOs, and triggers deterministic LIFO compensating actions (`SafeParkManipulatorAction`) whenever a mission is aborted:
 
 <!--
 ```ts file=src/robotics/robotics.dto.ts
