@@ -13,7 +13,7 @@ One unified `@Application` architecture in AGBoss governs both long-running ente
 | :--- | :--- | :--- |
 | **Execution Horizon** | Runs lasting minutes to days across distributed child workflows (`.toParallelWorkflows`) claimed by idle Kubernetes pods via `ExecutionLeaseRepository`. | Deliberative mission planning (1–10 Hz) layered above 100–1000 Hz real-time hardware controllers, motor drivers, and local safety reflexes. |
 | **Multimodal & Multi-Agent Quorum** | Parallel specialist agents (risk, compliance, fraud) joined via `.acceptedBy(Arbiter).joinQuorum({ min, max, deadline })` with instant `AbortSignal` cancellation of stragglers. | Multiple multimodal vision/spatial models cross-checked by a deterministic `@Arbiter` before executing an irreversible physical maneuver. |
-| **Human-in-the-Loop & Withdrawal** | Two-phase `@ChannelRole` pauses (`Pending → Resolved` CAS) in Slack/Teams; `ChannelHandler.withdraw` removes stale buttons when quorum or `FailFast` resolves early. | Safe mission hold requesting operator confirmation with camera/sensor telemetry; `withdraw` dismisses the operator prompt if a sibling branch or abort resolves first. |
+| **Human-in-the-Loop & Closed Prompts** | Two-phase `@ChannelRole` pauses (`Pending → Resolved` CAS) in Slack/Teams; `onPauseClosed` (at least once, `event.reason`) removes stale buttons when quorum, `FailFast`, an expiry or an answer elsewhere closes the pause. | Safe mission hold requesting operator confirmation with camera/sensor telemetry; `onPauseClosed` dismisses the operator prompt if a sibling branch or abort resolves first. |
 | **Static Verification (`agboss check`)** | Compile-time Path Scope proof (`[input.outdated-on-path]`), DTO validation, and static saga verification (`[flow.uncompensated-action]`). | Strict coordinate, velocity, and torque bounds verified via DTO schemas and `agboss check` before any command reaches the hardware bridge. |
 | **Automatic LIFO Saga Compensation** | Reverses external API/database mutations (`ReleaseEscrowAction`, `RevokeOfferAction`) in reverse order on `app.cancel`, `FailFast`, `Surplus`, or `@Budget` breach. | Executes deterministic compensating `@Action` nodes (`ReturnToSafeHoldAction`, `DisarmGripperAction`) in LIFO order under a dedicated `compensationTimeout` cleanup window. |
 
@@ -416,20 +416,20 @@ import {
   ChannelRole,
   PauseAnswerer,
   type ChannelAsk,
-  type ChannelWithdrawal,
+  type ChannelPauseClosedEvent,
 } from "@agboss/core";
 
 @ChannelRole({
   name: "teleop-safety-channel",
   description: "Requests human operator confirmation with camera frame before high-torque actuation",
   approves: ValveTurnCommandDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
 })
 export abstract class TeleopSafetyChannel extends ChannelOf<TeleopSafetyChannel> {}
 
 @Channel({
   name: "console-teleop-safety-channel",
-  description: "Publishes interactive approval card to operator console and withdraws on abort/surplus",
+  description: "Publishes interactive approval card to operator console and closes it on abort/surplus",
   deps: [OperatorConsoleService],
 })
 export class ConsoleTeleopSafetyChannel extends TeleopSafetyChannel {
@@ -442,9 +442,9 @@ export class ConsoleTeleopSafetyChannel extends TeleopSafetyChannel {
     return ChannelOutcome.awaitReply();
   }
 
-  override async withdraw(withdrawal: ChannelWithdrawal<TeleopSafetyChannel>): Promise<void> {
-    // Immediately dismisses the operator prompt if mission is cancelled or quorum resolved
-    await this.operatorConsole.dismissPrompt(withdrawal.pauseId, withdrawal.resolution);
+  override async onPauseClosed(event: ChannelPauseClosedEvent<TeleopSafetyChannel>): Promise<void> {
+    // Dismisses the operator prompt when the pause closes: mission cancelled, quorum resolved, expired, answered
+    await this.operatorConsole.dismissPrompt(event.pauseId, event.reason);
   }
 }
 ```

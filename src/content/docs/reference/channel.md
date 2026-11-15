@@ -1,6 +1,6 @@
 ---
 title: "@ChannelRole & @Channel"
-description: Complete API reference for @ChannelRole and @Channel in AGBoss — out-of-process pauses, ChannelOutcome, withdraw(), and two-phase app.resume().
+description: Complete API reference for @ChannelRole and @Channel in AGBoss — out-of-process pauses, ChannelOutcome, onPauseClosed(), and two-phase app.resume().
 ---
 
 The `@ChannelRole` and `@Channel` decorators (`channels/*.channel.ts`) power human-in-the-loop approvals and external questions in AGBoss. A `@Tool` declares which abstract `@ChannelRole` gates its execution (`@Tool({ channel: RefundApprovalChannel })`), while `@Application({ providers })` binds the concrete `@Channel` implementation (such as Slack, PagerDuty, or email) by class inheritance — and tests can swap in `AutoApproveChannel` or `AutoRejectChannel` without touching tool code.
@@ -16,9 +16,9 @@ import {
   ExecutionContext,
   Injectable,
   PauseAnswerer,
-  PauseResolution,
+  PauseClosedReason,
   type ChannelAsk,
-  type ChannelWithdrawal,
+  type ChannelPauseClosedEvent,
 } from "@agboss/core";
 import { Integer, Text } from "@agboss/core/dto";
 
@@ -62,7 +62,7 @@ export class SlackService {
   name: "refund-approval-channel",
   description: "Approves customer card refunds over $100",
   approves: RefundInputDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
 })
 export abstract class RefundApprovalChannel extends ChannelOf<RefundApprovalChannel> {}
 
@@ -99,12 +99,13 @@ export class SlackRefundApprovalChannel extends RefundApprovalChannel {
     return ChannelOutcome.awaitReply();
   }
 
-  override async withdraw(withdrawal: ChannelWithdrawal<RefundApprovalChannel>): Promise<void> {
-    // Called automatically when a paused branch is cancelled by FailFast, quorum Surplus, or app.cancel(threadId):
+  override async onPauseClosed(event: ChannelPauseClosedEvent<RefundApprovalChannel>): Promise<void> {
+    // At least once, whenever a pause this channel sent closes (FailFast, quorum Surplus, app.cancel,
+    // an expiry, an answer elsewhere): deduplicate by event.deliveryId.
     await this.slackService.disableApprovalButtons({
-      pauseId: withdrawal.pauseId,
+      pauseId: event.pauseId,
       reason:
-        withdrawal.resolution === PauseResolution.Withdrawn
+        event.reason === PauseClosedReason.Withdrawn
           ? "Quorum reached / branch withdrawn"
           : "Cancelled",
     });
@@ -214,7 +215,7 @@ test("pauses on RefundCardPaymentTool and resumes with human approval", async ({
 | :--- | :--- | :--- | :--- | :--- |
 | `@ChannelRole` | `name` | `string` | Yes | Unique kebab-case identifier ending with `-channel` (`"refund-approval-channel"`). |
 | `@ChannelRole` | `description` | `string` | Yes | Describes what this channel role approves or asks. |
-| `@ChannelRole` | `answeredBy` | `PauseAnswerer.Channel \| PauseAnswerer.ThreadOwner` | Yes | Who is authorized to call `app.resume()`: the external channel (`Channel`) or the thread's original `ownerId` (`ThreadOwner`). |
+| `@ChannelRole` | `answerer` | `PauseAnswerer.Channel \| PauseAnswerer.ThreadOwner` | Yes | Who is authorized to call `app.resume()`: the external channel (`Channel`) or the thread's original `ownerId` (`ThreadOwner`). |
 | `@ChannelRole` | `approves` | `DtoClass` | Yes* | Input DTO class of the `@Tool`s this role approves (*mutually exclusive with `ask` / `answer`). |
 | `@ChannelRole` | `ask` & `answer` | `DtoClass` | Yes* | Question and answer DTO classes for workflow-level questions (*mutually exclusive with `approves`). |
 | `@ChannelRole` | `replyInterpreter` | `Class` | No | Optional interpreter class that parses free-text user replies into the typed `answer` DTO. |
@@ -227,9 +228,9 @@ test("pauses on RefundCardPaymentTool and resumes with human approval", async ({
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
 | `ChannelOf<Role>` & `ChannelAsk<Role>` | `"@agboss/core"` | Base class extended by `@ChannelRole` and typed payload passed to `send(ask)` (`ask.pauseId`, `ask.value.arguments`). |
-| `ChannelWithdrawal<Role>` & `PauseResolution` | `"@agboss/core"` | Payload passed to optional `withdraw(withdrawal)` when a paused branch is cancelled due to `FailFast` / quorum `Surplus` (`PauseResolution.Withdrawn`) or `app.cancel` (`PauseResolution.Cancelled`). |
+| `ChannelPauseClosedEvent<Role>` & `PauseClosedReason` | `"@agboss/core"` | Payload passed to optional `onPauseClosed(event)`, at least once, whenever a pause the channel sent closes: `reason` is `Answered`, `Expired`, `Cancelled`, `Withdrawn` (a `FailFast` / quorum `Surplus` branch) or `TreeEnded`; `deliveryId` is the dedupe key. |
 | `ChannelOutcome` (`awaitReply()`, `decided(...)`) | `"@agboss/core"` | Return value of `send(ask)`: either suspends the branch out-of-process (`awaitReply()`) or resolves inline (`decided({ approved })`). |
-| `PauseAnswerer` (`Channel`, `ThreadOwner`) | `"@agboss/core"` | Enforces who is allowed to resume the pause (`answeredBy` vs `ownerId`). |
+| `PauseAnswerer` (`Channel`, `ThreadOwner`) | `"@agboss/core"` | Enforces who is allowed to resume the pause (`answerer` says who may; the resume's `answeredBy` vs `ownerId` is who did). |
 | `app.resume({ pauseId, decision }, options)` | `"@agboss/core"` | Two-phase atomic resume: transitions `Pending → Resolved` via CAS in `PausedExecutionRepository` before acquiring the execution-tree lease. |
 | `AutoApproveChannel`, `AutoRejectChannel`, `TerminalUserChannel` | `"@agboss/core"` | Built-in channel implementations for automated tests and interactive CLI sessions. |
 | `PausedExecutionRepository` & `SqlitePausedExecutionRepository` | `"@agboss/core"` | Durable store persisting `PendingPause` records across restarts and worker pods. |

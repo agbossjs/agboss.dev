@@ -1,6 +1,6 @@
 ---
 title: Channels, Pauses & HTTP Webhook Execution
-description: "Pause workflows for human approval without blocking Node.js threads and trigger active Channel.withdraw() compensation across @Agent, @Tool, and @Action."
+description: "Pause workflows for human approval without blocking Node.js threads and close stale approval messages with onPauseClosed() across @Agent, @Tool, and @Action."
 ---
 
 Production workflows often start from incoming HTTP webhooks (Stripe events, GitHub webhooks, Slack slash commands, CRM triggers) and pause mid-run for human sign-off before executing high-stakes tool calls. AGBoss handles human-in-the-loop pauses **out-of-process**: when a tool's `@Channel` returns `ChannelOutcome.awaitReply()`, the branch pauses while sibling parallel branches continue until nothing else can move, persisting a `PendingPause` record and releasing the worker's 30-second execution lease.
@@ -88,10 +88,10 @@ import {
   ChannelRole,
   ExecutionContext,
   PauseAnswerer,
-  PauseResolution,
+  PauseClosedReason,
   Tool,
   type ChannelAsk,
-  type ChannelWithdrawal,
+  type ChannelPauseClosedEvent,
   type ToolHandler,
 } from "@agboss/core";
 
@@ -100,7 +100,7 @@ import {
   name: "refund-approval-channel",
   description: "Approves card refunds",
   approves: RefundCardInputDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
   replyInterpreter: RefundReplyInterpreter,
 })
 export abstract class RefundApprovalChannel
@@ -109,7 +109,7 @@ export abstract class RefundApprovalChannel
 // 2. Transport implementation registered in @Application({ providers })
 @Channel({
   name: "slack-refund-approval-channel",
-  description: "Asks a finance manager in Slack and withdraws stale buttons",
+  description: "Asks a finance manager in Slack and closes stale buttons",
   deps: [ExecutionContext, SlackService],
 })
 export class SlackRefundApprovalChannel extends RefundApprovalChannel {
@@ -133,13 +133,16 @@ export class SlackRefundApprovalChannel extends RefundApprovalChannel {
     return ChannelOutcome.awaitReply();
   }
 
-  override withdraw(
-    withdrawal: ChannelWithdrawal<RefundApprovalChannel>,
+  // At least once, whenever a pause this channel sent closes — answered (also
+  // elsewhere), expired, cancelled, withdrawn, its tree ended. Deduplicate by
+  // event.deliveryId.
+  override onPauseClosed(
+    event: ChannelPauseClosedEvent<RefundApprovalChannel>,
   ): Promise<void> {
     const statusText =
-      withdrawal.resolution === PauseResolution.Withdrawn
+      event.reason === PauseClosedReason.Withdrawn
         ? "Withdrawn (quorum reached or sibling branch failed)"
-        : "Cancelled by operator";
+        : `Closed: ${event.reason}`;
     void statusText;
     return Promise.resolve();
   }
@@ -199,7 +202,7 @@ export class RefundReplyInterpreter implements ReplyInterpreterHandler<RefundRep
 ```ts title="src/webhooks/refund-webhooks.server.ts" file=src/webhooks/refund-webhooks.server.ts
 import {
   ExecutionStatus,
-  NotPausedError,
+  PauseClosedError,
   UninterpretableReplyError,
   UnknownPauseError,
   type App,
@@ -252,8 +255,8 @@ export async function handleSlackReplyWebhook(
       // Pause remains Pending! Ask the reviewer in Slack to clarify:
       return { httpStatus: 422, clarify: err.reason };
     }
-    if (err instanceof NotPausedError) {
-      // Duplicate button click or webhook retry — idempotent 200 OK:
+    if (err instanceof PauseClosedError) {
+      // Duplicate button click, webhook retry or a late answer (err.reason) — idempotent 200 OK:
       return { httpStatus: 200, status: "already_resolved" };
     }
     if (err instanceof UnknownPauseError) {
@@ -326,7 +329,7 @@ When embedding AGBoss inside an HTTP server (Fastify, Express, Hono, Next.js rou
 4. **Resume with two-phase `app.resume()` on the callback webhook:**
    Your callback endpoint (`POST /webhooks/slack-actions`) can hit *any* replica in your cluster. Calling `app.resume({ pauseId, decision: { approved: true } }, { tenantId, answeredBy })` (or `{ pauseId, reply: freeText }`) atomically flips the pause `Pending → Resolved` in Phase 1 and acquires the 30s execution-tree lease in Phase 2.
 5. **Handle webhook retries & ambiguous replies explicitly:**
-   - **`NotPausedError`:** External webhook providers (Slack, Stripe, GitHub) retry on network timeouts, and humans double-click buttons. Catch `NotPausedError` and return `200 OK` idempotently.
+   - **`PauseClosedError`:** External webhook providers (Slack, Stripe, GitHub) retry on network timeouts, and humans double-click buttons. The pause is closed and `err.reason` says why (`answered`, `expired`, `cancelled`, `withdrawn`, `tree-ended`): catch it and return `200 OK` idempotently.
    - **`UninterpretableReplyError`:** When a human sends a free-text reply that `@ReplyInterpreter` cannot parse (`ReplyInterpretation.notUnderstood({ reason })`), `app.resume` throws `UninterpretableReplyError` and **keeps the pause `Pending`** so your webhook can reply in the Slack thread with `err.reason` and wait for a clearer answer.
    - **`UnknownPauseError`:** The `pauseId` does not exist, belongs to another tenant, or was pruned after `retention.pauseRecords` (`hours(24)` default); return `404 Not Found`.
 
@@ -336,4 +339,4 @@ When embedding AGBoss inside an HTTP server (Fastify, Express, Hono, Next.js rou
 
 - **`PauseAnswerer.Channel` (External Reviewer):** `result.pending` intentionally omits `pauseId` so the caller of `app.execute` (e.g., an end user in chat) cannot approve their own tool call. Only your `@Channel.send(ask)` receives `ask.pauseId`, and `app.resume` requires `{ answeredBy: "<reviewer-id>" }`.
 - **`PauseAnswerer.ThreadOwner` (End-User Confirmation):** `result.pending` includes `pauseId` so the user's client UI can render an inline Confirm/Cancel prompt, and `app.resume` verifies `{ ownerId }` matches the thread owner.
-- **Automatic button cleanup (`ChannelHandler.withdraw`):** If a parallel branch pause becomes obsolete (`FailurePolicy.FailFast`, quorum `BranchVerdict.Surplus`, or `app.cancel`), AGBoss calls `withdraw(withdrawal)` on your `@Channel` with `PauseResolution.Withdrawn` or `PauseResolution.Cancelled` so your Slack/UI integration can disable stale buttons immediately.
+- **Automatic button cleanup (`onPauseClosed`):** Whenever a pause your `@Channel` sent closes — a parallel branch became obsolete (`FailurePolicy.FailFast`, quorum `BranchVerdict.Surplus`), `app.cancel`, an expiry, or an answer given elsewhere — AGBoss tells it, at least once, through `onPauseClosed(event)` with `event.reason` (`PauseClosedReason`), so your Slack/UI integration can disable stale buttons. Deduplicate by `event.deliveryId`.
