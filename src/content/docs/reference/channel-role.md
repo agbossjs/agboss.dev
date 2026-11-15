@@ -39,7 +39,7 @@ export class RefundCardOutputDto {
   name: "refund-approval-channel",
   description: "Finance approval required before executing card refunds",
   approves: RefundCardInputDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
 })
 export abstract class RefundApprovalChannel
   extends ChannelOf<RefundApprovalChannel> {}
@@ -66,7 +66,7 @@ export class LegalSignOffDecisionDto {
   description: "Requests legal counsel sign-off on non-standard liability caps",
   ask: LegalSignOffQuestionDto,
   answer: LegalSignOffDecisionDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
 })
 export abstract class LegalSignOffChannel
   extends ChannelOf<LegalSignOffChannel> {}
@@ -210,13 +210,13 @@ test("pauses tool execution when RefundApprovalChannel returns awaitReply()", as
 
 ## What options does `@ChannelRole` accept?
 
-Every `@ChannelRole` class extends `ChannelOf<Self>`, has a `name` ending with `-channel`, requires `answeredBy` (`PauseAnswerer.Channel` or `PauseAnswerer.ThreadOwner`), and uses one of two forms — **tool approval** (`approves`) or **custom question/answer** (`ask` + `answer`):
+Every `@ChannelRole` class extends `ChannelOf<Self>`, has a `name` ending with `-channel`, requires `answerer` (`PauseAnswerer.Channel` or `PauseAnswerer.ThreadOwner`), and uses one of two forms — **tool approval** (`approves`) or **custom question/answer** (`ask` + `answer`):
 
 | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-channel` (`"refund-approval-channel"`). |
 | `description` | `string` | **Yes** | Explains what human decision this pause role requests. |
-| `answeredBy` | `PauseAnswerer.Channel \| PauseAnswerer.ThreadOwner` | **Yes** | Who may call `app.resume()`: the external channel (`PauseAnswerer.Channel`, requiring `{ answeredBy }`) or the thread's owner (`PauseAnswerer.ThreadOwner`, checked against `ownerId`). |
+| `answerer` | `PauseAnswerer.Channel \| PauseAnswerer.ThreadOwner` | **Yes** | Who may call `app.resume()`: the external channel (`PauseAnswerer.Channel`, requiring `{ answeredBy }`) or the thread's owner (`PauseAnswerer.ThreadOwner`, checked against `ownerId`). |
 | `approves` | `DtoClass` | Form 1* | Input DTO class of the `@Tool`s this role approves (`[channel.wrong-tool]` if a tool with another input DTO names this role). *Mutually exclusive with `ask`/`answer`. |
 | `ask` & `answer` | `DtoClass` | Form 2* | Custom question and answer DTO classes (*mutually exclusive with `approves`). |
 | `replyInterpreter` | `Class` | No | Optional [`@ReplyInterpreter`](/reference/reply-interpreter/) class that turns free-text `app.resume({ pauseId, reply })` messages into the role's typed decision. |

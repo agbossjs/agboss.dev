@@ -88,7 +88,7 @@ import { RefundInputDto } from "../tools/refund-card-payment.tool.js";
   name: "refund-approval-channel",
   description: "Requests human sign-off before executing high-value card refunds",
   approves: RefundInputDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
 })
 export abstract class RefundApprovalChannel
   extends ChannelOf<RefundApprovalChannel> {}

@@ -302,7 +302,7 @@ One lease exists per execution tree, keyed by `(tenantId, rootExecutionId)`, hel
 
 1. **Background renewal & pre-checkpoint renewal:** The active holder renews its `seconds(30)` lease every 10 seconds on the application's `Clock` and immediately before every checkpoint write. Paused or finished trees hold no lease.
 2. **Immediate mid-tool-loop fencing (`ExecutionLeaseLostError`):** If a renewal returns `false` (the instance froze for >30s and another instance took the lease with `leaseEpoch + 1`), or if the lease store fails to confirm a renewal before `confirmedUntil` (local self-fencing), the holder immediately aborts `ExecutionContext.signal` with `ExecutionLeaseLostError` (`execution.lease-lost`). An `@Agent` tool loop starts no further model or tool calls, and the error bypasses `.onError` and `onExecutionError` because the new lease holder now owns the execution.
-3. **Concurrent `app.resume()` calls:** `app.resume` runs in two phases: first it transitions the pause `Pending → Resolved` atomically (a duplicate click gets `NotPausedError`), then it acquires or waits for the tree's lease. When two parallel branch pauses are answered simultaneously on two different instances, both decisions are recorded and drained in a single pass so each branch runs once.
+3. **Concurrent `app.resume()` calls:** `app.resume` runs in two phases: first it transitions the pause `Pending → Resolved` atomically (a duplicate click gets `PauseClosedError`), then it acquires or waits for the tree's lease. When two parallel branch pauses are answered simultaneously on two different instances, both decisions are recorded and drained in a single pass so each branch runs once.
 
 ---
 

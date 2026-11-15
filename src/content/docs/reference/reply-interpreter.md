@@ -156,7 +156,7 @@ export class RefundCodeReplyInterpreter
   name: "refund-approval-channel",
   description: "Approves card refunds from Slack buttons or thread replies",
   approves: RefundInputDto,
-  answeredBy: PauseAnswerer.Channel,
+  answerer: PauseAnswerer.Channel,
   replyInterpreter: RefundCodeReplyInterpreter,
 })
 export abstract class RefundApprovalChannel
