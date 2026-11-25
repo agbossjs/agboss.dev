@@ -1,6 +1,6 @@
 ---
 title: "@Memory"
-description: API reference for the @Memory decorator in AGBoss — what a workflow, agent or router remembers of its thread: window, summaries (CompactionStrategy), ttl, and a compact() of your own. Replaces @Compaction.
+description: "API reference for the @Memory decorator in AGBoss — what a workflow, agent or router remembers of its thread: window, summaries (CompactionStrategy), ttl, and a compact() of your own. Replaces @Compaction."
 ---
 
 `@Memory` (`"@agboss/core"`, `memories/*.memory.ts`) declares what a workflow, an agent or a model router **remembers of its thread**: the last turns in full (its window) and, for what is older, summaries the memory writes. It replaces 0.1.0's `@Compaction`, `uncompactedTurns`, `memoryStrategy` and the `@agboss/core/memory` entry. A memory is named by `memory: MyMemory` on [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/) or a model [`@Router`](/reference/router/) — the lowest level that sets one wins; on a code router it does not compile. **A workflow without `memory` is stateless**: its agents and routers read no earlier turn of a thread (before, they read the last five), and a start that reuses a `threadId` without one is an assembly warning (`memory.thread-reuse-without-memory`). `NoMemory` (built in) on an agent or a router sees no earlier turn.

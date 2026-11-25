@@ -1,6 +1,6 @@
 ---
 title: Error Handling & Rollback (.onError)
-description: Handle step failures, review-loop visit limits, quorum deadlines, and transactional rollbacks in AGBoss using .onError(), .onError(), and LIFO sagas.
+description: Handle step failures, review-loop visit limits, quorum deadlines, and transactional rollbacks in AGBoss using .onError(), and LIFO sagas.
 ---
 
 Production workflows interact with unreliable external systems, rate-limited APIs, and bounded review loops that can fail mid-flight. AGBoss makes failure recovery explicit in **HarnessDSL (`HDSL`)** `@Workflow({ flow })` chains via `.onError(ErrorClass, sidePath)` on individual steps and `.onError(ErrorClass, sidePath)` on parallel joins, keeping compensation logic type-checked and unit-tested alongside the happy path.
@@ -176,7 +176,7 @@ test("reserves stock and ships order on the happy path", async ({ app }) => {
 });
 ```
 
-## What error classes can `.onError()` and `.onError()` catch?
+## What error classes can `.onError()` catch?
 
 | Error Class | Where It Attaches | When It Fires |
 | :--- | :--- | :--- |

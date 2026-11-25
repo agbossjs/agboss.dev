@@ -128,6 +128,7 @@ export default defineConfig({
 				{
 					label: 'Getting Started',
 					items: [
+						{ label: "What's new in 0.1.1", slug: 'upgrading-to-0-1-1' },
 						{ label: 'Introduction', slug: 'getting-started/introduction' },
 						{ label: 'Installation', slug: 'getting-started/installation' },
 						{ label: 'Quick start', slug: 'getting-started/quick-start' },

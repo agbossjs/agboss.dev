@@ -64,6 +64,7 @@ export const NAV: NavItem[] = [
 					{ label: 'Quickstart', href: '/getting-started/quick-start/' },
 					{ label: 'job-scout & flow-patterns', href: '/examples/verified-examples/' },
 					{ label: 'Showcase: Distributed Recovery', href: '/examples/distributed-agent-recovery/' },
+					{ label: "What's new in 0.1.1", href: '/upgrading-to-0-1-1/' },
 					{ label: 'Changelog & releases', href: '/changelog/' },
 				],
 			},

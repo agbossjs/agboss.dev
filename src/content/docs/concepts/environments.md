@@ -77,6 +77,35 @@ it("validates explicit unit factories and masks Secret instances in string seria
 | `env.optional("ENV_VAR")` | `"@agboss/core"` | Returns `string \| undefined` without failing startup when the variable is unset. |
 | `EmptyEnvironment` | `"@agboss/core"` | Built-in empty contract class for applications that do not require environment variables. |
 
+## `defineEnv`: one reader of the process's variables (0.1.1)
+
+`defineEnv` declares typed references to the process's variables in one frozen dictionary. A reference can stand directly in a decorator option (`@DatabaseStorage({ driver: SqliteDriver({ path: appEnv.path }) })`, `signingKey: meshEnv.signingKey`), and the dictionary itself is a dependency token: `deps: [appEnv]` injects its resolved values, with every missing or unparsable variable named at once, never its value, when the application starts. The readers are `env` (text), `env.integer`, `env.number`, `env.boolean`, `env.duration` (`30d`, `24h`), `env.ttl` (`forever`), `env.bytes` (`64kb`, `10mb`) and `env.usd`, each with `{ default }` and `.optional("VAR")`, plus `secret` and `secret.optional`. `configureEnv(appEnv, overrides)` replaces references for a test, and the `agboss/no-process-env` lint rule rejects a raw `process.env` in `src/`.
+
+```ts title="src/app.env.ts" file=src/app.env.ts
+import { defineEnv, env, secret } from "@agboss/core";
+
+export const appEnv = defineEnv({
+  port: env.integer("PORT", { default: 8080 }),
+  debug: env.boolean("DEBUG", { default: false }),
+  apiKey: secret("SUPPORT_API_KEY"),
+  webhookUrl: env.optional("WEBHOOK_URL"),
+});
+```
+
+```ts title="src/services/support-config.service.ts" file=src/services/support-config.service.ts
+import { Injectable, type InferEnv } from "@agboss/core";
+import { appEnv } from "../app.env.js";
+
+@Injectable({ deps: [appEnv] })
+export class SupportConfigService {
+  constructor(private readonly settings: InferEnv<typeof appEnv>) {}
+
+  listenPort(): number {
+    return this.settings.port;
+  }
+}
+```
+
 ## Why AGBoss requires explicit unit factories (`@agboss/core/units`)
 
 Raw numbers in configuration are a major source of production bugs (confusing `30` seconds with `30` milliseconds, or passing negative/NaN floats as dollar budgets). Every timeout, TTL, retention window, and dollar amount in AGBoss uses branded unit factories from `@agboss/core/units`:

@@ -41,21 +41,20 @@ In raw shared-state graphs, a router branch that skips a required producer compi
 ```ts title="missing-input-fixed.workflow.ts" no-check: concise workflow excerpt from 02-path-scope-proof
 @Workflow({
   name: "missing-input-fixed-workflow",
-  version: "0.1.0",
+  version: "0.1.1",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(MissingInputFixedStart)
-      .returns(CheckoutRequestDto)
+    onStart(MissingInputFixedStart)
       .toRouter(TierRouter)
-      .chooseOne(
+      .onRoute(
         // VIP path produces CouponDiscountDto first
-        route(ApplyVipCouponAction)
-          .returns(CouponDiscountDto)
+        toAction(ApplyVipCouponAction)
           .toAction(RenderInvoiceAction)
-          .returns(InvoiceSummaryDto)
           .toFinish(MissingInputFixedFinish),
+      )
+      .onRoute(
         // Standard path needs only CheckoutRequestDto
-        route(RenderStandardInvoiceAction)
-          .returns(InvoiceSummaryDto)
+        toAction(RenderStandardInvoiceAction)
           .toFinish(MissingInputFixedFinish),
       ),
   ],
@@ -83,20 +82,19 @@ ok: cases/01-missing-input/agboss-fixed/application.ts
 ```ts title="missing-input-broken.workflow.ts" no-check: intentional [input.missing-on-path] example from 02-path-scope-proof
 @Workflow({
   name: "missing-input-broken-workflow",
-  version: "0.1.0",
+  version: "0.1.1",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(MissingInputBrokenStart)
-      .returns(CheckoutRequestDto)
+    onStart(MissingInputBrokenStart)
       .toRouter(TierBrokenRouter)
-      .chooseOne(
-        route(ApplyVipCouponAction)
-          .returns(CouponDiscountDto)
+      .onRoute(
+        toAction(ApplyVipCouponAction)
           .toAction(RenderInvoiceAction),
-        // Skips ApplyVipCouponAction (CouponDiscountDto)!
-        route(RenderInvoiceAction),
-      ),
-    action(RenderInvoiceAction)
-      .returns(InvoiceSummaryDto)
+      )
+      // Skips ApplyVipCouponAction (CouponDiscountDto)!
+      .onRoute(toAction(RenderInvoiceAction)),
+
+    onAction(RenderInvoiceAction)
       .toFinish(MissingInputBrokenFinish),
   ],
 })
