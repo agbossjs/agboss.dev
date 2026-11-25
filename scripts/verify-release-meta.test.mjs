@@ -58,7 +58,7 @@ function createFixtureRoot({ distMode }) {
       mkdirSync(dirname(dst), { recursive: true });
       writeFileSync(
         dst,
-        `<!doctype html><html><body data-release-mode="pre-release"><span>v0.1.0-rc</span></body></html>`,
+        `<!doctype html><html><body data-release-mode="pre-release"><span>v0.1.1-rc</span></body></html>`,
         "utf8",
       );
     }
@@ -68,7 +68,7 @@ function createFixtureRoot({ distMode }) {
       mkdirSync(dirname(dst), { recursive: true });
       writeFileSync(
         dst,
-        `<!doctype html><html><body data-release-mode="published"><span>v0.1.0 (latest)</span></body></html>`,
+        `<!doctype html><html><body data-release-mode="published"><span>v0.1.1 (latest)</span></body></html>`,
         "utf8",
       );
     }
@@ -88,7 +88,7 @@ test("Case 1: Pre-release source + stale pre-release dist/ -> --source PASS", ()
     switchMode(root, "--pre-release");
     const res = verifyReleaseMeta({ root, mode: "source" });
     assert.equal(res.isPublishedToRegistry, false);
-    assert.equal(res.displayVersion, "v0.1.0-rc");
+    assert.equal(res.displayVersion, "v0.1.1-rc");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -100,7 +100,7 @@ test("Case 2: Published source + stale pre-release dist/ -> --source PASS", () =
     switchMode(root, "--published");
     const res = verifyReleaseMeta({ root, mode: "source" });
     assert.equal(res.isPublishedToRegistry, true);
-    assert.equal(res.displayVersion, "v0.1.0");
+    assert.equal(res.displayVersion, "v0.1.1");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -139,12 +139,12 @@ test("Case 5: Published mode containing pre-release labels -> FAIL", () => {
     const changelogPath = join(root, "src/content/docs/changelog.md");
     writeFileSync(
       changelogPath,
-      `${readFileSync(changelogPath, "utf8")}\nLeftover v0.1.0-rc label\n`,
+      `${readFileSync(changelogPath, "utf8")}\nLeftover v0.1.1-rc label\n`,
       "utf8",
     );
     assert.throws(
       () => verifyReleaseMeta({ root, mode: "source" }),
-      /must not contain pre-release marker '0\.1\.0-rc'/,
+      /must not contain pre-release marker '0\.1\.1-rc'/,
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -158,12 +158,12 @@ test("Case 6: Pre-release mode containing published-only labels -> FAIL", () => 
     const installPath = join(root, "src/content/docs/getting-started/installation.md");
     writeFileSync(
       installPath,
-      `${readFileSync(installPath, "utf8")}\n> **Current Release (\`v0.1.0\`):** leaked published banner\n`,
+      `${readFileSync(installPath, "utf8")}\n> **Current Release (\`v0.1.1\`):** leaked published banner\n`,
       "utf8",
     );
     assert.throws(
       () => verifyReleaseMeta({ root, mode: "source" }),
-      /must not contain published-only marker '\*\*Current Release \(`v0\.1\.0`\):\*\*'/,
+      /must not contain published-only marker '\*\*Current Release \(`v0\.1\.1`\):\*\*'/,
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

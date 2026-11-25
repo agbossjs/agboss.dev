@@ -5,7 +5,7 @@ description: Build, statically verify with agboss check, run, and unit-test your
 
 Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `@agboss/core/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose **HarnessDSL (`HDSL`)** `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.
 
-> **Current Release (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on `registry.npmjs.org`. Run `npx --yes --package=@agboss/cli agboss create my-app` to scaffold a new project or clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`cd 01-hello-agboss && npm install`) to run the verified starter.
+> **Current Release (`v0.1.1`):** `@agboss/core@0.1.1` and `@agboss/cli@0.1.1` are published on `registry.npmjs.org`. Run `npx --yes --package=@agboss/cli agboss create my-app` to scaffold a new project or clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`cd 01-hello-agboss && npm install`) to run the verified starter.
 
 ### Progressive Learning Path
 

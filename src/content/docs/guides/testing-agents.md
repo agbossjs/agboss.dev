@@ -1,9 +1,9 @@
 ---
-title: "Loop 0–1: Deterministic Harness, 10 Unit Runners & VCR Lock"
-description: "Verify graph and mesh contracts in Loop 0 (agboss check --federation) and harness logic in Loop 1 (npm test) with testWith, 10 unit runners, and VCR locks."
+title: "Loop 0–1: Deterministic Harness, Unit Runners & VCR Lock"
+description: "Verify graph and mesh contracts in Loop 0 (agboss check --federation) and harness logic in Loop 1 (npm test) with testWith, testUnit runners, and VCR locks."
 ---
 
-In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), **Loop 0 (`$ agboss check --federation`, `< 1s`, `$0`)** proves graph topology and cross-service mesh contracts at compile time, while **Loop 1 (`npm test`, `~3s`, `$0`)** tests your entire TypeScript harness (`@Action`, `@Tool`, `@ToolInterceptor`, `DecidedBy.Code` `@Router` and `@Arbiter`, `@PiiPolicy`, `@Compaction`, queues, retries, and LIFO sagas) without calling a live LLM. Together, `@agboss/core/testing` provides `testWith(Application)` on a deterministic `VirtualClock`, ten isolated component runners, `ModelFailure` chaos injection, and VCR cassettes locked to [Loop 2 live PR evals](/guides/evaluation-and-profiles/) via `promptHash` and `schemaHash` (`[vcr.stale-cassette]`).
+In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), **Loop 0 (`$ agboss check --federation`, `< 1s`, `$0`)** proves graph topology and cross-service mesh contracts at compile time, while **Loop 1 (`npm test`, `~3s`, `$0`)** tests your entire TypeScript harness (`@Action`, `@Tool`, `@ToolInterceptor`, code `@Router` and `@Arbiter`, `@PiiPolicy`, `@Memory`, queues, retries, and LIFO sagas) without calling a live LLM. Together, `@agboss/core/testing` provides `testWith(Application)` on a deterministic `VirtualClock`, one isolated unit runner (`testUnit`) for every component kind, `ModelFailure` chaos injection, and VCR cassettes locked to [Loop 2 live PR evals](/guides/evaluation-and-profiles/) via `promptHash` and `schemaHash` (`[vcr.stale-cassette]`).
 
 ---
 
@@ -11,21 +11,21 @@ In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verifica
 
 | Loop | Command | Latency & Cost | Objects Verified | Lock to Next Loop |
 | :--- | :--- | :--- | :--- | :--- |
-| **Loop 0: Static Proof** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save & first CI step) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance (`[input.missing-on-path]`), `{ about }` staleness (`[input.outdated-on-path]`), LIFO saga compensations (`[flow.uncompensated-action]`), and Agent Mesh schemas | Emits `.agboss/types.d.ts` required for Loop 1 |
-| **Loop 1: Deterministic Harness & Chaos** | `npm test` (`@agboss/core/testing` + VCR) | `~3s` · **`$0`** (every commit; no live LLM) | **Object 2 (Harness Code):** 10 unit runners, full-graph `testWith(App)` with `mockLlm`, `ModelFailure` chaos (`429`, timeouts, truncated JSON), `TestConcurrency.inOrder`, and multi-pod `{ instances: 2 }` leases | **`[vcr.stale-cassette]`** (`promptHash` + `schemaHash`) triggers [Loop 2 PR Smoke Gate](/guides/evaluation-and-profiles/) whenever a prompt or DTO schema changes |
+| **Loop 0: Static Proof** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save & first CI step) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance (`[input.missing-on-path]`), outdating of stale values (`[input.outdated-on-path]`), LIFO saga compensations (`[flow.uncompensated-action]`), and Agent Mesh schemas | Emits `.agboss/types.d.ts` required for Loop 1 |
+| **Loop 1: Deterministic Harness & Chaos** | `npm test` (`@agboss/core/testing` + VCR) | `~3s` · **`$0`** (every commit; no live LLM) | **Object 2 (Harness Code):** `testUnit` runners, full-graph `testWith(App)` with `mockLlm`, `ModelFailure` chaos (`429`, timeouts, truncated JSON), `TestConcurrency.inOrder`, and multi-pod `{ instances: 2 }` leases | **`[vcr.stale-cassette]`** (`promptHash` + `schemaHash`) triggers [Loop 2 PR Smoke Gate](/guides/evaluation-and-profiles/) whenever a prompt or DTO schema changes |
 
 ---
 
-## Complete example: `testWith(Application)`, `testUnit` & `testUnit`
+## Complete example: `testWith(Application)` and `testUnit`
 
 `testWith(Application)` boots your real `@Application` container and infrastructure in each test while scripting model turns via `mockLlm`, action calls via `mockAction`, tool failures via `mockTool`, and service methods via `mockOf`:
 
 <!-- snippet-context
-import { Tool, WorkflowFinish, WorkflowStart, type ToolHandler } from "@agboss/core";
+import { Tool, WorkflowFinish, WorkflowStart } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 @Tool({ name: "lookup_order", description: "Looks up order", input: WorkflowStartTextDto, output: WorkflowFinishTextDto })
-export class LookupOrderTool implements ToolHandler<WorkflowStartTextDto, WorkflowFinishTextDto> {
-  run({ text }: WorkflowStartTextDto): Promise<WorkflowFinishTextDto> { return Promise.resolve({ text }); }
+export class LookupOrderTool {
+  execute({ text }: WorkflowStartTextDto): Promise<WorkflowFinishTextDto> { return Promise.resolve({ text }); }
 }
 @WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class SupportWorkflowStart {}
@@ -72,7 +72,7 @@ declare class ReviewerAgent {}
 declare class EditorAgent {}
 declare class SendOfferAction {}
 declare class SearchJobsTool {
-  run(input: { readonly query: string }): Promise<{ readonly jobs: string }>;
+  execute(input: { readonly query: string }): Promise<{ readonly jobs: string }>;
 }
 declare class GroundedJudge implements JudgeHandler<PlainTextDto> {
   judge(input: JudgeInput<PlainTextDto>): Promise<JudgeVerdict>;
@@ -91,7 +91,6 @@ declare const shortlist: never;
 import { expect, it } from "vitest";
 import {
   decideWith,
-  override,
   replyWith,
   testUnit,
   testWith,
@@ -129,9 +128,7 @@ test("reviewer asks for changes, then approves", async ({
 });
 
 it("searches the board it is given in isolation", async () => {
-  const runSearch = testUnit(SearchJobsTool, {
-    overrides: [override(JobBoardService, FakeJobBoardService)],
-  });
+  const runSearch = testUnit(SearchJobsTool, { services: [FakeJobBoardService] }); // a class that extends the real one
 
   const { output, spend } = await runSearch(
     { query: "TS" },
@@ -147,10 +144,10 @@ it("a grounded reply passes the decision judge", async () => {
     model: decideWith({ grounded: 0.9 }),
   });
 
-  const reply = { text: "Acme hires TS engineers [acme.example]" };
+  const answer = { text: "Acme hires TS engineers [acme.example]" };
   const { output } = await runJudge({
     variant: PlainTextDto,
-    reply,
+    output: answer,
     task: "Find TS jobs",
     attempt: 0,
   });
@@ -166,7 +163,7 @@ it("a grounded reply passes the decision judge", async () => {
 1. **Test your graph code in `npm test`, and test prompt behavior in Evals:**
    A scripted `mockLlm(Agent)` reply proves that **your workflow graph, DTO contracts, error edges, and compensators** behave deterministically given any sequence of model decisions. Never assert what a real LLM "would answer" inside a unit test; instead, assert what your step **sent** to the model (`mockLlm(Agent).requests`, `toHaveBeenAskedWith`) and use [Evals & Golden Sets](/guides/evaluation-and-profiles/) (`agboss eval`, `agboss compare`) to evaluate prompt changes on real models.
 2. **Deterministic parallel ordering (`TestConcurrency`):**
-   Parallel branches (`.toParallelAgents()`, `.toParallelWorkflows()`) run one at a time in declaration order by default (`TestConcurrency.Sequential`). To reproduce a specific parallel race or quorum arrival order without flaky `setTimeout` sleeps, pass `concurrency: TestConcurrency.inOrder([step(FastAgent), step(SlowAgent)])` to `testWith`.
+   Parallel branches (`.inParallel([…])`, `.forEachItem(…)`) run one at a time in declaration order by default (`TestConcurrency.Sequential`). To reproduce a specific parallel race or quorum arrival order without flaky `setTimeout` sleeps, pass `concurrency: TestConcurrency.inOrder([step(FastAgent), step(SlowAgent)])` to `testWith`.
 3. **Zero wall-clock waits (`VirtualClock`):**
    Every timeout (`seconds(10)`), quorum `deadline`, retry backoff, and 30-second execution lease runs on the test's shared `clock` (`VirtualClock`). Calling `await clock.advance(seconds(31))` lets started steps reach their next wait point and advances virtual time instantaneously.
 4. **Multi-instance cluster testing (`{ instances: 2 }`):**
@@ -174,22 +171,22 @@ it("a grounded reply passes the decision judge", async () => {
 
 ---
 
-## All 10 isolated unit runners in `@agboss/core/testing`
+## The unit runners in `@agboss/core/testing`
 
-When testing a single component's logic — such as a PII policy, a tool interceptor, a custom compaction handler, or an arbiter's quorum voting — use the dedicated unit runner for that component type. Each runner builds a minimal container with `overrides: [override(Base, Subclass)]` and returns `{ output, spend }`:
+When testing a single component's logic — such as a PII policy, a tool interceptor, a custom compaction handler, or an arbiter's quorum voting — use `testUnit(Component)`. One runner serves every kind below: it builds the component's own container (its `deps`, `services` — fake classes that `extends` the real ones or name a port with `injectAs` —, `provide(TOKEN, value)`, an `environment`), runs every call in the frame of its step, and returns `{ output, spend }`; `run.clock` is its `VirtualClock`. `testDto(Dto)` gives `{ validate, mask, jsonSchema }` and `testService(Class)` runs a multi-method service:
 
 | Unit Runner | Target Component | What It Validates |
 | :--- | :--- | :--- |
-| `testUnit(ToolClass, opts?)` | [`@Tool`](/reference/tool/) | Input/output DTO validation, `deps` injection, timeouts (`clock.advance`), and `run(input)` result |
-| `testUnit(InterceptorClass, opts?)` | [`@ToolInterceptor`](/reference/tool-interceptor/) | `beforeToolCall(ToolClass, input)` (`ToolCallDecision`) and `afterToolCall(ToolClass, input, output)` DTO-validated transformation |
+| `testUnit(ToolClass, opts?)` | [`@Tool`](/reference/tool/) | Input/output DTO validation, `deps` injection, timeouts (`clock.advance`), and `execute(input)` result |
+| `testUnit(InterceptorClass, opts?)` | [`@ToolInterceptor`](/reference/tool-interceptor/) | `beforeToolCall(ToolClass, input)` (a `ToolCallDecision`) and `afterToolCall(ToolClass, input, output)` DTO-validated transformation of the `@BeforeTool` / `@AfterTool` hooks |
 | `testUnit(ActionClass, opts?)` | [`@Action`](/reference/action/) | Deterministic step logic, `SpendRecorder` entries, and `execute(input)` output |
-| `testUnit(RouterClass, opts?)` | [`@Router`](/reference/router/) | Model or code route selection (`DecidedBy.Model` with `routeTo` / `DecidedBy.Code`) |
+| `testUnit(RouterClass, opts?)` | [`@Router`](/reference/router/) | Model or code route selection (a model router with `routeTo`, a code router by its `route()`) |
 | `testUnit(ArbiterClass, opts?)` | [`@Arbiter`](/reference/arbiter/) | Quorum answer acceptance across `@Arbitrate(Agent)` or `decideWith` model criteria |
-| `testUnit(RagClass, opts?)` | [`@Rag`](/reference/rag/) | `retrieve(query, { topK, signal })` results and reported `rag:<name>` spend |
-| `testUnit(JudgeClass, opts?)` | [`@Judge`](/reference/judge/) | Quality gate `judge({ reply, task, attempt, toolCalls })` with `decideWith`, `replyWith`, or `DecidedBy.Code` |
-| `testUnit(CompactionClass, opts?)` | [`@Compaction`](/reference/memory/) | Single-step memory compaction (`CompactionInput` $\to$ `{ summaries, requests }`) across `SummaryQueue`, `SingleSummary`, or `CompactionStrategy.Custom`, verifying that critical constraints are passed and preserved |
+| `testUnit(RagClass, opts?)` | [`@Rag`](/reference/rag/) | `search(query, { topK })` results and reported `rag:<name>` spend |
+| `testUnit(JudgeClass, opts?)` | [`@Judge`](/reference/judge/) | Quality gate `judge({ output, variant, task, attempt, toolCalls })` with `decideWith`, `replyWith`, or code logic |
+| `testUnit(MemoryClass, opts?)` | [`@Memory`](/reference/memory/) | Single-step memory compaction (`CompactionInput` $\to$ `{ summaries, requests }`) across `SummaryQueue`, `SingleSummary`, or a `compact()` of your own, verifying that critical constraints are passed and preserved |
 | `testUnit(Policies, opts?)` | [`@PiiPolicy`](/reference/pii-policy/) | Assembly rule checks, `mask(text)` token generation, and `reveal(text)` restoration |
-| `testUnit(GuardrailClass, opts?)` | [`@InputGuardrail` / `@OutputGuardrail`](/reference/guardrail/) | Pre-model and post-model safety refusal checks (`DecidedBy.Model` with `decideWith` or `DecidedBy.Code` with `GuardrailHandler`) |
+| `testUnit(GuardrailClass, opts?)` | [`@InputGuardrail` / `@OutputGuardrail`](/reference/guardrail/) | Pre-model and post-model safety refusal checks (a model guardrail with `decideWith`, a code guardrail by its `check(content)`) |
 
 ---
 
@@ -220,23 +217,23 @@ Real language models occasionally emit malformed JSON, truncated tool arguments,
 - **Multi-instance tests (`testWith(App, { instances: 2 })`, `#458`):** When `instances: 2` is passed, `testWith` shares the default `InMemory*` stores and `VirtualClock` across all instances automatically. If your application lists `Sqlite*` stores, note that `sqlitePath: ":memory:"` opens a **separate** SQLite in-memory database per instance connection; to test multiple instances sharing one SQLite database, point `sqlitePath` in a test environment (`testWith(App, { instances: 2, env: "instances" })`) at a temporary file path (`mkdtempSync`).
 
 <!-- snippet-context
-import { DecidedBy, Judge, JudgeVerdict, Tool, ToolCallStatus, toolCallsOf, type JudgeHandler, type JudgeInput, type ToolHandler, inline } from "@agboss/core";
+import { DecidedBy, Judge, JudgeVerdict, Tool, ToolCallStatus, toolCallsOf, type JudgeHandler, type JudgeInput, inline } from "@agboss/core";
 import { Text } from "@agboss/core/dto";
 export class OrderIdDto {
   @Text({ prompt: "Order ID" })
   orderId!: string;
 }
 @Tool({ name: "get-order-tool", description: "Gets order", input: OrderIdDto, output: OrderIdDto })
-export class GetOrderTool implements ToolHandler<OrderIdDto, OrderIdDto> {
-  run(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
+export class GetOrderTool {
+  execute(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
 }
 @Tool({ name: "check-policy-tool", description: "Checks policy", input: OrderIdDto, output: OrderIdDto })
-export class CheckPolicyTool implements ToolHandler<OrderIdDto, OrderIdDto> {
-  run(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
+export class CheckPolicyTool {
+  execute(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
 }
 @Tool({ name: "delete-order-tool", description: "Deletes order", input: OrderIdDto, output: OrderIdDto })
-export class DeleteOrderTool implements ToolHandler<OrderIdDto, OrderIdDto> {
-  run(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
+export class DeleteOrderTool {
+  execute(input: OrderIdDto): Promise<OrderIdDto> { return Promise.resolve(input); }
 }
 declare class SupportTestApp {}
 declare class OrderSupportStart {}
@@ -257,8 +254,7 @@ import {
 @Judge({
   name: "no-cross-order-read-judge",
   description: "Fails if the agent inspected any order other than 555 during its tool loop",
-  decidedBy: DecidedBy.Code,
-  reply: OrderIdDto,
+  output: OrderIdDto,
 })
 export class NoCrossOrderReadJudge implements JudgeHandler<OrderIdDto> {
   judge(input: JudgeInput<OrderIdDto>): Promise<JudgeVerdict> {
@@ -268,7 +264,7 @@ export class NoCrossOrderReadJudge implements JudgeHandler<OrderIdDto> {
     );
     return Promise.resolve(
       leaked
-        ? JudgeVerdict.failed({ reason: "Agent read an unauthorized order ID during tool loop." })
+        ? JudgeVerdict.failed("Agent read an unauthorized order ID during tool loop.")
         : JudgeVerdict.passed(),
     );
   }
@@ -300,12 +296,12 @@ test("verifies trajectory invariants and self-correction after invalid tool args
 
 ## Recorded VCR Cassettes & Stale-Cassette Guard (`[vcr.stale-cassette]`)
 
-Between scripted unit tests and live evaluation sits **VCR recording**: `testWith(Application, { vcr: { cassetteName: "onboarding", mode: process.env.CI ? VCRMode.REPLAY : VCRMode.AUTO } })` records real model calls once to `__snapshots__/onboarding.cassette.json` and replays them deterministically in milliseconds in CI (`VCRMode.REPLAY`).
+Between scripted unit tests and live evaluation sits **VCR recording**: `testWith(Application, { vcr: { cassetteName: "onboarding", mode: process.env.CI ? VcrMode.Replay : VcrMode.Auto } })` records real model calls once to `__snapshots__/onboarding.cassette.json` and replays them deterministically in milliseconds in CI (`VcrMode.Replay`).
 
 Each recorded cassette (version 2) embeds the component's **`promptHash`** and **`schemaHash`**. If an engineer or coding agent edits an `@Agent`'s prompt or changes a `@Dto` / `@Tool` schema:
 
-1. **`npx agboss check --cassettes` (in Loop 0) and `VCRMode.REPLAY` (in Loop 1)** fail immediately with `StaleCassetteError` (**`[vcr.stale-cassette]`**, reporting `CassetteChange.Prompt`, `Schema`, or `Removed`) instead of silently passing against an outdated prompt snapshot.
-2. **Surgical re-recording (`VCRMode.RECORD_STALE`):** Run `AGBOSS_VCR_MODE=RECORD_STALE npm test` to replay all unchanged steps from the cassette while re-recording **only** the components whose `promptHash` or `schemaHash` changed, then trigger [Loop 2 (`agboss eval run`)](/guides/evaluation-and-profiles/) to verify the updated behavior.
+1. **`npx agboss check --cassettes` (in Loop 0) and `VcrMode.Replay` (in Loop 1)** fail immediately with `StaleCassetteError` (**`[vcr.stale-cassette]`**, reporting `CassetteChange.Prompt`, `Schema`, or `Removed`) instead of silently passing against an outdated prompt snapshot.
+2. **Surgical re-recording (`record-stale`):** Run `AGBOSS_VCR_MODE=record-stale npm test` to replay all unchanged steps from the cassette while re-recording **only** the components whose `promptHash` or `schemaHash` changed, then trigger [Loop 2 (`agboss eval run`)](/guides/evaluation-and-profiles/) to verify the updated behavior.
 
 ---
 

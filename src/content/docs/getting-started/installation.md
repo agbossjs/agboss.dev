@@ -5,7 +5,7 @@ description: "Install the AGBoss TypeScript runtime (@agboss/core) and static co
 
 Installing AGBoss gives you the lightweight production runtime (`@agboss/core`), focused subpath entries (`@agboss/core/dto`, `@agboss/core/units`, `@agboss/core/models`, `@agboss/core/testing`, `@agboss/core/eval`, `@agboss/core/mcp`, `@agboss/core/rag`, `@agboss/core/a2a`, `@agboss/core/memory`, `@agboss/core/eslint`), 13 bundled AI coding-agent reference modules (`node_modules/@agboss/core/skills/agboss/`), and the `@agboss/cli` static compiler and developer toolkit (`agboss` / `agb`). Importing `@agboss/core` has zero side effects: tracing, MCP, and SQLite load only when an application uses them.
 
-> **Current Release (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on the public npm registry (`registry.npmjs.org`). Scaffold a new project with `npx --yes --package=@agboss/cli agboss create my-app` or explore the 7 verified architecture examples in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).
+> **Current Release (`v0.1.1`):** `@agboss/core@0.1.1` and `@agboss/cli@0.1.1` are published on the public npm registry (`registry.npmjs.org`). Scaffold a new project with `npx --yes --package=@agboss/cli agboss create my-app` or explore the 7 verified architecture examples in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).
 
 ## Option 1: Create a new project (`npx --yes --package=@agboss/cli agboss create my-app`)
 

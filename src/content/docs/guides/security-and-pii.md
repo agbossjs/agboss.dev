@@ -7,28 +7,28 @@ When enterprise workflows process customer tickets, financial records, or medica
 
 ## How `@PiiPolicy` masks and reveals personal data at the model boundary (without breaking KV caches)
 
-A `@PiiPolicy` class (whose `name` must end with `-pii-policy`) can declare built-in `rules: [pii(Kind | Group, Action)]` or implement `PiiPolicyHandler.findMatches(text)` for custom project detectors. Masking happens at the model boundary: models only see masked tokens, while `PiiAction.replaceWithToken()` computes a **deterministic HMAC pseudonym** with `pseudonymKey` so the exact same email or badge ID maps to the exact same token across every turn and step — preserving multi-turn LLM KV prefix cache hits while restoring real values before tools, actions, and finishes run:
+A `@PiiPolicy` class can declare built-in `rules` written on the kind — `PiiKind.Email.tokenize()`, `PiiGroup.Contact.mask()`, `PiiKind.CardNumber.block()` — or have a `findMatches(text)` method for custom project detectors. There are three actions: `mask()` / `mask({ keepLast })`, `tokenize()` and `block(refusal?)`. Masking happens at the model boundary: models only see masked tokens, while `tokenize()` computes a **deterministic HMAC pseudonym** under the policy's `secret` (or the storage's `piiSecret`) so the exact same email or badge ID maps to the exact same token across every turn and step — preserving multi-turn LLM KV prefix cache hits while restoring real values before tools, actions, and finishes run:
 
 ```ts title="src/policies/customer.pii-policy.ts" file=src/policies/customer.pii-policy.ts
-import { ExecutionContext, Injectable, InputGuardrail, OutputGuardrail, PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, secret, type GuardrailRefusal, type PiiMatch, type PiiPolicyHandler, type PiiRefusal, inline } from "@agboss/core";
-import { OneOf, Text } from "@agboss/core/dto";
+import { ExecutionContext, Injectable, InputGuardrail, OutputGuardrail, PiiAction, PiiGroup, PiiKind, PiiPolicy, secret, type GuardrailContent, type PiiMatch, inline } from "@agboss/core";
+import { Enum, Text } from "@agboss/core/dto";
 
 // 1. Declarative PII policy with reversible token replacement and card blocking
 @PiiPolicy({
   name: "customer-pii-policy",
   description: "Contact details hidden, cards refused, names found by a model",
   rules: [
-    pii(PiiGroup.Contact, PiiAction.replaceWithKind()),
-    pii(PiiKind.Email, PiiAction.replaceWithToken()),
-    pii(PiiKind.PersonName, PiiAction.replaceWithKind()),
-    pii(PiiKind.CardNumber, PiiAction.blockWithRefusal()),
+    PiiGroup.Contact.mask(),
+    PiiKind.Email.tokenize(),
+    PiiKind.PersonName.mask(),
+    PiiKind.CardNumber.block(),
   ],
-  detectWithModel: "moonshotai/kimi-k2.6",
-  pseudonymKey: secret("PII_PSEUDONYM_KEY"),
+  model: "moonshotai/kimi-k2.6", // finds names with a model; modelProvider names its provider
+  secret: secret("PII_PSEUDONYM_KEY"), // the key of tokenize(); previousSecret rotates it
 })
-export class CustomerPiiPolicy implements PiiRefusal {
+export class CustomerPiiPolicy {
   refusal(kind: PiiKind): string {
-    return `Please do not send a ${kind} here.`;
+    return `Please do not send a ${kind.id} here.`;
   }
 }
 
@@ -37,13 +37,13 @@ export class EmployeeDirectory {
   readonly ids: readonly string[] = ["EMP-42"];
 }
 
-// 2. Custom project detector implementing PiiPolicyHandler.findMatches(text)
+// 2. Custom project detector with a findMatches(text) method
 @PiiPolicy({
   name: "employee-id-pii-policy",
-  action: PiiAction.replaceWithToken(),
+  action: PiiAction.mask(), // or PiiAction.tokenize() with a policy that has a secret
   deps: [EmployeeDirectory],
 })
-export class EmployeeIdPiiPolicy implements PiiPolicyHandler {
+export class EmployeeIdPiiPolicy {
   constructor(private readonly employeeDirectory: EmployeeDirectory) {}
 
   findMatches(text: string): readonly PiiMatch[] {
@@ -58,14 +58,14 @@ export class EmployeeIdPiiPolicy implements PiiPolicyHandler {
 export class TicketDto {
   @Text({
     prompt: "the customer's account",
-    sensitive: PiiAction.replacePart({ keepLast: 4 }),
+    sensitive: PiiAction.mask({ keepLast: 4 }),
   })
   account!: string;
 }
 
-// 4. Input and output guardrails (DecidedBy.Model and DecidedBy.Code)
+// 4. Input and output guardrails (model guardrails here, a code guardrail below)
 export class ClinicExecutionContext extends ExecutionContext {
-  @OneOf({ values: ["en", "he"] })
+  @Enum(["en", "he"])
   locale!: "en" | "he";
 }
 
@@ -84,13 +84,13 @@ export class RefusalTextService {
   threshold: 0.8,
   deps: [ClinicExecutionContext, RefusalTextService],
 })
-export class LegalAdviceGuardrail implements GuardrailRefusal {
+export class LegalAdviceGuardrail {
   constructor(
     private readonly clinicExecutionContext: ClinicExecutionContext,
     private readonly refusalTextService: RefusalTextService,
   ) {}
 
-  refusal(): Promise<string> {
+  refusal(_content: GuardrailContent): Promise<string> {
     return this.refusalTextService.legalAdvice(this.clinicExecutionContext.locale);
   }
 }
@@ -118,23 +118,22 @@ it("redacts EMP-42 employee badges before model calls and restores them on revea
 });
 ```
 
-## Deterministic Code Guardrails (`DecidedBy.Code`)
+## Deterministic Code Guardrails (`check(content)`)
 
-When a safety rule is deterministic — such as a tenant-specific blocklist from a database, a regex/checksum check, or an external moderation microservice — declare `decidedBy: DecidedBy.Code` on [`@InputGuardrail` or `@OutputGuardrail`](/reference/guardrail/) and implement `GuardrailHandler.check(text)`. Code guardrails receive the PII-masked text, support full DI (`deps: [...]`), emit `GuardrailStartEvent` / `GuardrailEndEvent` with `$0.00` cost, and require no LLM call:
+When a safety rule is deterministic — such as a tenant-specific blocklist from a database, a regex/checksum check, or an external moderation microservice — set no `prompt` or `model` on [`@InputGuardrail` or `@OutputGuardrail`](/reference/guardrail/) and give the class one `check(content)` method. Code guardrails receive the PII-masked content (`content.text`, and the files), support full DI (`deps: [...]`), emit `GuardrailStartEvent` / `GuardrailEndEvent` with `$0.00` cost, and require no LLM call:
 
 ```ts title="src/policies/tenant-blocklist.guardrail.ts" file=src/policies/tenant-blocklist.guardrail.ts
 import {
-  DecidedBy,
   GuardrailVerdict,
   Injectable,
   OutputGuardrail,
   TenantContext,
-  type GuardrailHandler,
+  type GuardrailContent,
 } from "@agboss/core";
-import { OneOf } from "@agboss/core/dto";
+import { Enum } from "@agboss/core/dto";
 
 export class ShopTenantContext extends TenantContext {
-  @OneOf({ values: ["toys", "tools"] })
+  @Enum(["toys", "tools"])
   shop!: "toys" | "tools";
 }
 
@@ -149,19 +148,19 @@ export class BlocklistService {
 @OutputGuardrail({
   name: "tenant-blocklist-guardrail",
   description: "Blocks replies containing terms forbidden for the active tenant",
-  decidedBy: DecidedBy.Code,
-  refusal: "The response contained restricted terms.",
   deps: [ShopTenantContext, BlocklistService],
 })
-export class TenantBlocklistGuardrail implements GuardrailHandler {
+export class TenantBlocklistGuardrail {
   constructor(
     private readonly tenant: ShopTenantContext,
     private readonly blocklist: BlocklistService,
   ) {}
 
-  async check(text: string): Promise<GuardrailVerdict> {
-    const hasForbidden = await this.blocklist.containsBlockedTerms(this.tenant.shop, text);
-    return hasForbidden ? GuardrailVerdict.blocked() : GuardrailVerdict.passed();
+  async check(content: GuardrailContent): Promise<GuardrailVerdict> {
+    const hasForbidden = await this.blocklist.containsBlockedTerms(this.tenant.shop, content.text);
+    return hasForbidden
+      ? GuardrailVerdict.blocked("The response contained restricted terms.")
+      : GuardrailVerdict.passed();
   }
 }
 ```
@@ -189,6 +188,7 @@ it("blocks restricted tenant terms deterministically without a model stub", asyn
 ## How PII inheritance and unit testing work
 
 - **Hierarchical policy lists (`piiPolicies` & `excludePiiPolicies`):** Policies listed on `@Application`, `@Workflow`, `@Agent`, and `@Router` add up automatically. An agent can opt out of an inherited policy for its own model calls via `excludePiiPolicies`, while logs, traces, and `result.record` remain masked by the application and workflow policies.
-- **Cross-instance token consistency:** Set `@Application({ pseudonymKey: "piiPseudonymKey" })` pointing to a `Secret` field in your environment contract so every replica generates identical HMAC tokens for logs and traces.
-- **Unit testing with `testUnit` and `testUnit`:** Validate `mask(text)` and `reveal(text)` offline with `testUnit([CustomerPiiPolicy])` and verify both `DecidedBy.Model` and `DecidedBy.Code` guardrails with `testUnit(TenantBlocklistGuardrail)` from `@agboss/core/testing`.
-- **Standalone executable proof:** Inspect **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) for end-to-end HMAC token roundtrips (`<email:d1ac5c>` $\to$ `revealPii: true` in `IssueRefundTool`), `PiiRefusedError` boundary refusal, `@ToolInterceptor` policy enforcement, and `DecidedBy.Code` / `DecidedBy.Model` guardrails (see [7 Verified Examples](/examples/verified-examples/)).
+- **A child workflow is masked by its chain.** A child is masked by the union of the application's, the root's, every ancestor's and its own policy lists, at its models and in everything observed of it; where a child's agent must see a value, `excludePiiPolicies: [ParentPolicy]` on that agent or router (observability stays masked). Two rules of one kind that differ along a way are `[pii.conflicting-rules]` at assembly; `agboss describe` shows each way's effective sets under `pii chains`.
+- **Cross-instance token consistency:** The key of a `tokenize()` rule is the policy's `secret`, else the storage's `@DatabaseStorage({ piiSecret })` — a `secret(…)` reference from the environment, so every replica generates identical HMAC tokens for logs and traces; a token with no key fails the start (`[pii.secret-required]`). Every use of the key has a key of its own, derived by HKDF-SHA256, and `previousSecret` / `previousPiiSecret` rotate it: a value a thread already holds a token for keeps it, a new value gets one under the new key, and every old token still reveals.
+- **Unit testing with `testUnit`:** Validate `mask(text)` and `reveal(text)` offline with `testUnit([CustomerPiiPolicy])` and verify both model and code guardrails with `testUnit(TenantBlocklistGuardrail)` from `@agboss/core/testing`.
+- **Standalone executable proof:** Inspect **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) for end-to-end HMAC token roundtrips (`<email:d1ac5c>` $\to$ `revealPii: true` in `IssueRefundTool`), `PiiRefusedError` boundary refusal, `@ToolInterceptor` policy enforcement, and code and model guardrails (see [7 Verified Examples](/examples/verified-examples/)).

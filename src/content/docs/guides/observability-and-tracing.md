@@ -7,17 +7,15 @@ Operating multi-agent systems in production requires visibility into every workf
 
 ## How to subscribe to lifecycle events with `ExecutionObserver`
 
-Any `@Injectable()` class listed in `@Application({ observers: [...] })` can implement one or more observer hook interfaces (`OnExecutionStart`, `OnExecutionEnd`, `OnExecutionError`, `OnExecutionRejected`, `OnExecutionPause`, `OnExecutionResume`, `OnAgentStart`, `OnAgentEnd`, `OnValuesOutdated`). All event payloads are pre-masked by the application and workflow `@PiiPolicy` rules before reaching your observer:
+Any class decorated `@Observer({ name?, description?, workflows?, agents?, deps? })` and listed in `@Application({ observers: [...] })` has a method per hook it wants (`onExecutionStart`, `onExecutionEnd`, `onExecutionError`, `onExecutionRejected`, `onExecutionPause`, `onExecutionResume`, `onExecutionCancel`, `onExecutionStop`, `onAgentStart`, `onAgentEnd`, `onAgentRetry`, `onToolStart`, `onToolEnd`, `onInterruptCleanupError`, `onValuesOutdated`, and more — every hook optional). The 0.1.0 single-hook interfaces (`OnExecutionEnd`, `OnAgentStart`, …) and `@Injectable` + `implements On…` are removed; a listed class without `@Observer` is `[observer.not-an-observer]`, a misspelt `on…` method `[observer.unknown-hook]`. `workflows` and `agents` pass only the events of those workflows or agents to the observer, so a hook needs no `if (event.workflow.name !== …) return`. A cancel and a stop are outcomes: `onExecutionCancel` and `onExecutionStop` (a root's cancel no longer reaches `onExecutionError`). Event fields follow the output vocabulary: `ToolStartEvent` has `tool`, `agent?` and `input`; every end event has `output`. All event payloads are pre-masked by the application and workflow `@PiiPolicy` rules before reaching your observer:
 
 ```ts title="src/observers/audit.observer.ts" file=src/observers/audit.observer.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Injectable, Workflow, WorkflowFinish, WorkflowStart, onStart, type AgentStartEvent, type BudgetHandler, type ExecutionEndEvent, type ExecutionRejectedEvent, type OnAgentStart, type OnExecutionEnd, type OnExecutionRejected, Ttl } from "@agboss/core";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Observer, Workflow, WorkflowFinish, WorkflowStart, onStart, type AgentStartEvent, type BudgetHandler, type ExecutionEndEvent, type ExecutionRejectedEvent, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
 
-@Injectable()
-export class MetricsObserver
-  implements OnExecutionEnd, OnAgentStart, OnExecutionRejected
-{
+@Observer()
+export class MetricsObserver {
   onExecutionEnd(event: ExecutionEndEvent): void {
     console.log(
       `${event.workflow.name} ${event.executionId} cost $${String(event.spend.totalUsd)}`,
@@ -122,25 +120,28 @@ test("records execution and agent lifecycle events in MetricsObserver", async ({
 
 ## What events and spans are captured in traces and observers?
 
-Every element of the workflow graph has its own typed `On*Start` / `On*End` callback interface exported from `"@agboss/core"`:
+Every element of the workflow graph has its own typed `on…Start` / `on…End` hook on an `@Observer` class (every hook optional; the event types such as `ExecutionEndEvent` and `AgentStartEvent` are exported from `"@agboss/core"`):
 
-| Hook Interface(s) | Emitted When | Key Payload Fields |
+| Hook(s) | Emitted When | Key Payload Fields |
 | :--- | :--- | :--- |
-| `OnExecutionStart` / `OnExecutionEnd` | Root or child workflow starts or finishes | `executionId`, `parentExecutionId`, `rootExecutionId`, `workflow`, `tenantId`, `spend` |
-| `OnExecutionPause` / `OnExecutionResume` | Execution pauses on a `@Channel` or resumes / recovers | `pending`, `reason` (`ResumeReason.Answered` or `ResumeReason.Recovered`), `decision`, `answeredBy` |
-| `OnExecutionError` / `OnExecutionRejected` | Unhandled failure or pre-flight refusal before execution starts | `error`, `operation` (`Execute`, `Resume`, `Cancel`), `code`, `tenantId` |
-| `OnAgentStart` / `OnAgentEnd` | `@Agent` visit begins or completes | `step` (`component`, `nodeId`, `visitNumber`, `copyNumber`, `idempotencyKey`) |
-| `OnRouterStart` / `OnRouterEnd` | `@Router` decision begins or completes | `step`, chosen route target(s) |
-| `OnToolStart` / `OnToolEnd` | `@Tool` invocation begins or completes | `step`, `callId`, tool name, validated arguments / output |
-| `OnModelStart` / `OnModelEnd` | Model provider call begins or completes | `callerName`, `model`, `usage` (prompt, completion, cached tokens), `cost` |
-| `OnRagStart` / `OnRagEnd` | `@Rag` retrieval begins or completes | `step`, retrieved chunk count and query |
-| `OnActionStart` / `OnActionEnd` | `@Action` step begins or completes | `step`, input and output metadata |
-| `OnGuardrailStart` / `OnGuardrailEnd` | `@Guardrail` check begins or completes | `step`, stage (`Input` / `Output`), pass or block verdict |
-| `OnChannelStart` / `OnChannelEnd` | `@Channel` outbound ask begins or completes | `step`, channel role, `pauseId` |
-| `OnJudgeStart` / `OnJudgeEnd` | `@Judge` verification begins or completes | `step`, verdict (`passed`, `reason`) |
-| `OnValuesOutdated` | Loop or branch write cascades stale dependents | `step`, `trigger` (`valueId`, `slot`, `producer`), `outdated` (`OutdatedReason`) |
-| `OnLaunchItemsTruncated` | Parallel launch trims input list to `maxItems` | `step`, `launch`, `items`, `maxItems` |
-| `OnQuorumDecided` | `.joinQuorum` / `.joinQuorumGroups` reaches a decision | `step`, `isReached`, `branches`, winning `group` |
+| `onExecutionStart` / `onExecutionEnd` | Root or child workflow starts or finishes | `executionId`, `parentExecutionId`, `rootExecutionId`, `workflow`, `tenantId`, `spend`, `output` (what the finish produced) |
+| `onExecutionPause` / `onExecutionResume` | Execution pauses on a target or externally (`isExternallyPaused`, `reason`), or resumes / recovers | `pending`, `reason` (`ResumeReason.Answered`, `Recovered`, `Unpaused`, `Expired`), `decision`, the answering `actor` |
+| `onExecutionCancel` / `onExecutionStop` | A cancel (after its undo) or a stop ends an execution — outcomes, not errors | `reason`, `compensations`, `spend` |
+| `onExecutionError` / `onExecutionRejected` | Unhandled failure or pre-flight refusal before execution starts | `error`, `operation` (`Execute`, `Resume`, `Cancel`, `Stop`, `Pause`, `Unpause`), `code`, `tenantId` |
+| `onAgentStart` / `onAgentEnd` / `onAgentRetry` | `@Agent` visit begins or completes; its own retry loop corrects itself (`AgentRetryReason`: `InvalidAnswer`, `InvalidToolInput`, `JudgeRejected`) | `step` (`component`, `nodeId`, `visitNumber`, `copyNumber`, `idempotencyKey`), `output`, `attempt`, `feedback` |
+| `onRouterStart` / `onRouterEnd` | `@Router` decision begins or completes | `step`, chosen route target(s) |
+| `onToolStart` / `onToolEnd` | `@Tool` invocation begins or completes | `step`, `callId`, `tool`, `agent?`, `input`, `output` |
+| `onModelStart` / `onModelEnd` | Model provider call begins or completes | `callerName`, `model`, `provider`, `messages` (plain role/content), `usage` (prompt, completion, cache read and write tokens), `cost` |
+| `onRagStart` / `onRagEnd` | `@Rag` retrieval begins or completes | `step`, retrieved chunk count and query |
+| `onActionStart` / `onActionEnd` | `@Action` step begins or completes | `step`, input and `output` |
+| `onGuardrailStart` / `onGuardrailEnd` | A guardrail check begins or completes | `step`, side (`Input` / `Output`), pass or block verdict |
+| `onChannelStart` / `onChannelEnd` | A channel's outbound ask begins or completes | `step`, target, `pauseId` |
+| `onJudgeStart` / `onJudgeEnd` | `@Judge` verification begins or completes | `step`, `judge`, `agent`, verdict (`passed`, `reason`), `output` |
+| `onCompactionStart` / `onCompactionEnd` | A `@Memory` compaction runs | `memory`, `turns`, `costUsd`, `summaries` |
+| `onInterruptCleanupError` | A step's `onInterrupted` cleanup threw (it never fails the execution) | the cleanup's error |
+| `onValuesOutdated` | Loop or branch write cascades stale dependents | `step`, `trigger` (`valueId`, `slot`, `producer`), `outdated` (`OutdatedReason`: `Replaced`, `BuiltFromReplaced`) |
+| `onLaunchItemsTruncated` | A per-item launch with `takeFirst` drops the rest | `step`, `launch`, `items`, `taken` |
+| `onQuorumDecided` | `.joinQuorum` / `.joinQuorumGroups` reaches a decision | `step`, `isReached`, `branches`, winning `group` |
 
 ## How to run self-hosted Langfuse locally and correlate traces with `agboss describe --json`
 

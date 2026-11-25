@@ -7,7 +7,7 @@ description: Architectural walkthrough of agbossjs/distributed-agent-recovery â€
 > *It lost its lease. Another worker took over. Then the zombie came back.*  
 > **The worker didn't survive. The workflow did.**
 
-[**`agbossjs/distributed-agent-recovery`**](https://github.com/agbossjs/distributed-agent-recovery) is a standalone, multi-process distributed AI release pipeline built on `@agboss/core@0.1.0` and `@agboss/cli@0.1.0`. It demonstrates how AGBoss coordinates multiple OS worker processes, survives mid-execution worker freezes (`SIGSTOP` / lease expiry), rolls back partial external commits via deterministic LIFO sagas, and delegates root-cause recovery planning to an LLM agent without ever letting a probabilistic model manage distributed locks or cleanup state.
+[**`agbossjs/distributed-agent-recovery`**](https://github.com/agbossjs/distributed-agent-recovery) is a standalone, multi-process distributed AI release pipeline built on AGBoss. The code on this page is the 0.1.1 form of the showcase and compiles against `@agboss/core@0.1.1`; the repository itself was verified on 0.1.0 and is moved to 0.1.1 separately. It demonstrates how AGBoss coordinates multiple OS worker processes, survives mid-execution worker freezes (`SIGSTOP` / lease expiry), rolls back partial external commits via deterministic LIFO sagas, and delegates root-cause recovery planning to an LLM agent without ever letting a probabilistic model manage distributed locks or cleanup state.
 
 - **GitHub Repository:** [`github.com/agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distributed-agent-recovery)
 - **Recorded Live LLM + Real-Clock `SIGSTOP` Evidence:** [`docs/evidence/live-real-clock-cluster-run.json`](https://github.com/agbossjs/distributed-agent-recovery/blob/main/docs/evidence/live-real-clock-cluster-run.json) (`openai/gpt-4o-mini`, `$0.00036255` total spend, 2 OS worker PIDs, 30s lease takeover `epoch 1 -> 2`, linear unbranched checkpoint chain)
@@ -71,7 +71,7 @@ ATTEMPT 2: Same-Task Checkpoint Takeover & Two-Layer Zombie Worker Fencing
 
 `ReleaseCoordinatorWorkflow` expresses the entire distributed release lifecycle in one statically verified HarnessDSL (HDSL) graph:
 
-- **Distributed child fan-out (`ChildPlacement.AnyWorker`):** `.toParallelWorkflows(ModuleWorkerWorkflow, { placement: ChildPlacement.AnyWorker })` writes child workflow tasks to `SqliteChildExecutionQueueRepository` and **yields the parent's own execution lease** while waiting so the coordinator never blocks worker slots.
+- **Distributed child fan-out (`ChildPlacement.AnyWorker`):** `.forEachItem(toWorkflow(ModuleWorkerWorkflow), â€¦)` with `@Workflow({ placement: ChildPlacement.AnyWorker })` on the child writes child workflow tasks to the shared child execution queue and **yields the parent's own execution lease** while waiting so the coordinator never blocks worker slots.
 - **Compile-time compensation enforcement:** Because `LockReleaseCandidateAction` declares `compensateWith: CompensateReleaseCandidateAction`, `agboss check` statically verifies that every `.onError(...)` path leaving `VerifyReleaseSmokeGateAction` invokes `CompensateReleaseCandidateAction` before reaching `ReleaseRecoveryPlannedWorkflowFinish` (otherwise compilation fails with `[flow.uncompensated-action]`).
 - **Role segregation (`@Action` vs `@Agent`):** Deterministic steps (`DecomposeReleaseTasksAction`, `CompensateReleaseCandidateAction`, `PromoteReleaseArtifactsAction`) handle filesystem and database mutations, while `ReleaseRecoveryPlannerAgent` (`model: "openai/gpt-4o-mini"`) runs **only after** compensation completes, querying diagnostics via `InspectFailedAttemptTool` to produce a typed `RecoveryPlanDto`.
 
@@ -84,11 +84,9 @@ import {
   WorkflowFinish,
   WorkflowStart,
   listOf,
-  oneOf,
   type ActionHandler,
   type InputOf,
   type OutputOf,
-  type ToolHandler,
   inline,
 } from "@agboss/core";
 import { Text } from "@agboss/core/dto";
@@ -98,6 +96,118 @@ import {
   StagedModuleArtifactDto,
 } from "./stage-module-artifact.action.js";
 
+// @snippet
+@WorkflowStart({ name: "module-worker-workflow-start", description: "Starts module worker", input: ModuleTaskDto })
+export class ModuleWorkerWorkflowStart {}
+
+@WorkflowFinish({ name: "module-worker-workflow-finish", description: "Module staged", output: StagedModuleArtifactDto })
+export class ModuleWorkerWorkflowFinish {}
+
+@WorkflowFinish({ name: "module-failed-workflow-finish", description: "Module failed", output: ModuleFailedDto })
+export class ModuleFailedWorkflowFinish {}
+
+@Action({ name: "prepare-module-candidate-action", description: "Step 1: compile candidate", input: { task: ModuleTaskDto }, output: PreparedModuleCandidateDto })
+export class PrepareModuleCandidateAction implements ActionHandler<PrepareModuleCandidateAction> {
+  async execute(input: InputOf<PrepareModuleCandidateAction>): Promise<OutputOf<PrepareModuleCandidateAction>> {
+    return { logicalTaskId: input.task.logicalTaskId, moduleName: input.task.moduleName };
+  }
+}
+
+@Action({ name: "mark-module-failed-action", description: "Records module failure", input: { task: ModuleTaskDto }, output: ModuleFailedDto })
+export class MarkModuleFailedAction implements ActionHandler<MarkModuleFailedAction> {
+  async execute(input: InputOf<MarkModuleFailedAction>): Promise<OutputOf<MarkModuleFailedAction>> {
+    return { reason: `Failed ${input.task.moduleName}` };
+  }
+}
+
+@WorkflowStart({ name: "release-coordinator-workflow-start", description: "Starts release pipeline", input: ReleaseRequestDto })
+export class ReleaseCoordinatorWorkflowStart {}
+
+@WorkflowFinish({ name: "release-coordinator-workflow-finish", description: "Release promoted", output: ReleaseSummaryDto })
+export class ReleaseCoordinatorWorkflowFinish {}
+
+@WorkflowFinish({ name: "release-recovery-planned-workflow-finish", description: "Recovery plan ready", output: RecoveryPlanDto })
+export class ReleaseRecoveryPlannedWorkflowFinish {}
+
+@Action({ name: "decompose-release-tasks-action", description: "Splits release into module tasks", input: { request: ReleaseRequestDto }, output: listOf(ModuleTaskDto) })
+export class DecomposeReleaseTasksAction implements ActionHandler<DecomposeReleaseTasksAction> {
+  async execute(input: InputOf<DecomposeReleaseTasksAction>): Promise<OutputOf<DecomposeReleaseTasksAction>> {
+    return [
+      { logicalTaskId: `${input.request.releaseId}:auth-service`, moduleName: "auth-service" },
+      { logicalTaskId: `${input.request.releaseId}:payment-engine`, moduleName: "payment-engine" },
+      { logicalTaskId: `${input.request.releaseId}:telemetry-collector`, moduleName: "telemetry-collector" },
+    ];
+  }
+}
+
+@Action({ name: "compensate-release-candidate-action", description: "Deletes staged files and marks candidate COMPENSATED", input: { candidate: LockedReleaseCandidateDto } })
+export class CompensateReleaseCandidateAction implements ActionHandler<CompensateReleaseCandidateAction> {
+  async execute(input: InputOf<CompensateReleaseCandidateAction>): Promise<void> {
+    void input.candidate.candidateLockId;
+  }
+}
+
+@Action({
+  name: "lock-release-candidate-action",
+  description: "Locks staged artifacts into a release candidate",
+  input: {
+    releaseRequest: ReleaseRequestDto,
+    moduleOutcomes: listOf(StagedModuleArtifactDto, ModuleFailedDto), // the join: one polymorphic list
+  },
+  output: LockedReleaseCandidateDto,
+  compensateWith: CompensateReleaseCandidateAction,
+})
+export class LockReleaseCandidateAction implements ActionHandler<LockReleaseCandidateAction> {
+  async execute(input: InputOf<LockReleaseCandidateAction>): Promise<OutputOf<LockReleaseCandidateAction>> {
+    return { candidateLockId: `lock:${input.releaseRequest.releaseId}` };
+  }
+}
+
+@Action({ name: "verify-release-smoke-gate-action", description: "Verifies ABI compatibility smoke gate", input: { request: ReleaseRequestDto, locked: LockedReleaseCandidateDto } })
+export class VerifyReleaseSmokeGateAction implements ActionHandler<VerifyReleaseSmokeGateAction> {
+  async execute(input: InputOf<VerifyReleaseSmokeGateAction>): Promise<void> {
+    if (!input.request.buildFlags.includes("--abi-compat=v2")) {
+      throw new ReleaseGateFailedError("ABI v2 smoke check failed: missing --abi-compat=v2");
+    }
+  }
+}
+
+@Action({ name: "summarize-compensated-attempt-action", description: "Summarizes rollback state", input: { locked: LockedReleaseCandidateDto }, output: CompensatedReleaseCandidateDto })
+export class SummarizeCompensatedAttemptAction implements ActionHandler<SummarizeCompensatedAttemptAction> {
+  async execute(input: InputOf<SummarizeCompensatedAttemptAction>): Promise<OutputOf<SummarizeCompensatedAttemptAction>> {
+    return { gateFailureDiagnostic: `Compensated ${input.locked.candidateLockId}; missing --abi-compat=v2` };
+  }
+}
+
+@Tool({ name: "inspect-failed-attempt-tool", description: "Queries SQLite release ledger for compensation verification", input: InspectAttemptInputDto, output: InspectAttemptOutputDto })
+export class InspectFailedAttemptTool {
+  async execute(input: InspectAttemptInputDto): Promise<InspectAttemptOutputDto> {
+    return { diagnostic: `allCompensated=true for ${input.releaseId}; required flag --abi-compat=v2` };
+  }
+}
+
+@Agent({
+  name: "release-recovery-planner-agent",
+  description: "Produces a corrected recovery plan after verifying Attempt 1 compensation",
+  prompt: inline("Call inspect-failed-attempt-tool to confirm compensation, then output corrected build flags."),
+  model: "openai/gpt-4o-mini",
+  tools: [InspectFailedAttemptTool],
+  input: {
+    releaseRequest: ReleaseRequestDto,
+    compensatedCandidate: CompensatedReleaseCandidateDto,
+  },
+  output: RecoveryPlanDto,
+})
+export class ReleaseRecoveryPlannerAgent {}
+
+@Action({ name: "promote-release-artifacts-action", description: "Writes final release-manifest.json", input: { locked: LockedReleaseCandidateDto }, output: ReleaseSummaryDto })
+export class PromoteReleaseArtifactsAction implements ActionHandler<PromoteReleaseArtifactsAction> {
+  async execute(input: InputOf<PromoteReleaseArtifactsAction>): Promise<OutputOf<PromoteReleaseArtifactsAction>> {
+    return { manifestPath: `promoted/${input.locked.candidateLockId}/release-manifest.json` };
+  }
+}
+-->
+```ts title="src/release.components.ts" file=release.components.ts
 export class ReleaseRequestDto {
   @Text({ prompt: "Release ID" })
   releaseId!: string;
@@ -155,133 +265,44 @@ export class ReleaseGateFailedError extends AGBossError {
     this.name = "ReleaseGateFailedError";
   }
 }
+```
 
-@WorkflowStart({ name: "module-worker-workflow-start", description: "Starts module worker", input: ModuleTaskDto })
-export class ModuleWorkerWorkflowStart {}
-
-@WorkflowFinish({ name: "module-worker-workflow-finish", description: "Module staged", output: StagedModuleArtifactDto })
-export class ModuleWorkerWorkflowFinish {}
-
-@WorkflowFinish({ name: "module-failed-workflow-finish", description: "Module failed", output: ModuleFailedDto })
-export class ModuleFailedWorkflowFinish {}
-
-@Action({ name: "prepare-module-candidate-action", description: "Step 1: compile candidate", input: { task: ModuleTaskDto }, output: PreparedModuleCandidateDto })
-export class PrepareModuleCandidateAction implements ActionHandler<PrepareModuleCandidateAction> {
-  async execute(input: InputOf<PrepareModuleCandidateAction>): Promise<OutputOf<PrepareModuleCandidateAction>> {
-    return { logicalTaskId: input.task.logicalTaskId, moduleName: input.task.moduleName };
-  }
-}
-
-@Action({ name: "mark-module-failed-action", description: "Records module failure", input: { task: ModuleTaskDto }, output: ModuleFailedDto })
-export class MarkModuleFailedAction implements ActionHandler<MarkModuleFailedAction> {
-  async execute(input: InputOf<MarkModuleFailedAction>): Promise<OutputOf<MarkModuleFailedAction>> {
-    return { reason: `Failed ${input.task.moduleName}` };
-  }
-}
-
-@WorkflowStart({ name: "release-coordinator-workflow-start", description: "Starts release pipeline", input: ReleaseRequestDto })
-export class ReleaseCoordinatorWorkflowStart {}
-
-@WorkflowFinish({ name: "release-coordinator-workflow-finish", description: "Release promoted", output: ReleaseSummaryDto })
-export class ReleaseCoordinatorWorkflowFinish {}
-
-@WorkflowFinish({ name: "release-recovery-planned-workflow-finish", description: "Recovery plan ready", output: RecoveryPlanDto })
-export class ReleaseRecoveryPlannedWorkflowFinish {}
-
-@Action({ name: "decompose-release-tasks-action", description: "Splits release into module tasks", input: { request: ReleaseRequestDto }, output: listOf(ModuleTaskDto) })
-export class DecomposeReleaseTasksAction implements ActionHandler<DecomposeReleaseTasksAction> {
-  async execute(input: InputOf<DecomposeReleaseTasksAction>): Promise<OutputOf<DecomposeReleaseTasksAction>> {
-    return [
-      { logicalTaskId: `${input.request.releaseId}:auth-service`, moduleName: "auth-service" },
-      { logicalTaskId: `${input.request.releaseId}:payment-engine`, moduleName: "payment-engine" },
-      { logicalTaskId: `${input.request.releaseId}:telemetry-collector`, moduleName: "telemetry-collector" },
-    ];
-  }
-}
-
-@Action({ name: "compensate-release-candidate-action", description: "Deletes staged files and marks candidate COMPENSATED", input: { candidate: LockedReleaseCandidateDto } })
-export class CompensateReleaseCandidateAction implements ActionHandler<CompensateReleaseCandidateAction> {
-  async execute(input: InputOf<CompensateReleaseCandidateAction>): Promise<void> {
-    void input.candidate.candidateLockId;
-  }
-}
-
-@Action({
-  name: "lock-release-candidate-action",
-  description: "Locks staged artifacts into a release candidate",
-  input: {
-    releaseRequest: ReleaseRequestDto,
-    moduleOutcomes: listOf(oneOf(StagedModuleArtifactDto, ModuleFailedDto)),
-  },
-  output: LockedReleaseCandidateDto,
-  compensateWith: CompensateReleaseCandidateAction,
-})
-export class LockReleaseCandidateAction implements ActionHandler<LockReleaseCandidateAction> {
-  async execute(input: InputOf<LockReleaseCandidateAction>): Promise<OutputOf<LockReleaseCandidateAction>> {
-    return { candidateLockId: `lock:${input.releaseRequest.releaseId}` };
-  }
-}
-
-@Action({ name: "verify-release-smoke-gate-action", description: "Verifies ABI compatibility smoke gate", input: { request: ReleaseRequestDto, locked: LockedReleaseCandidateDto } })
-export class VerifyReleaseSmokeGateAction implements ActionHandler<VerifyReleaseSmokeGateAction> {
-  async execute(input: InputOf<VerifyReleaseSmokeGateAction>): Promise<void> {
-    if (!input.request.buildFlags.includes("--abi-compat=v2")) {
-      throw new ReleaseGateFailedError("ABI v2 smoke check failed: missing --abi-compat=v2");
-    }
-  }
-}
-
-@Action({ name: "summarize-compensated-attempt-action", description: "Summarizes rollback state", input: { locked: LockedReleaseCandidateDto }, output: CompensatedReleaseCandidateDto })
-export class SummarizeCompensatedAttemptAction implements ActionHandler<SummarizeCompensatedAttemptAction> {
-  async execute(input: InputOf<SummarizeCompensatedAttemptAction>): Promise<OutputOf<SummarizeCompensatedAttemptAction>> {
-    return { gateFailureDiagnostic: `Compensated ${input.locked.candidateLockId}; missing --abi-compat=v2` };
-  }
-}
-
-@Tool({ name: "inspect-failed-attempt-tool", description: "Queries SQLite release ledger for compensation verification", input: InspectAttemptInputDto, output: InspectAttemptOutputDto })
-export class InspectFailedAttemptTool implements ToolHandler<InspectAttemptInputDto, InspectAttemptOutputDto> {
-  async run(input: InspectAttemptInputDto): Promise<InspectAttemptOutputDto> {
-    return { diagnostic: `allCompensated=true for ${input.releaseId}; required flag --abi-compat=v2` };
-  }
-}
-
-@Agent({
-  name: "release-recovery-planner-agent",
-  description: "Produces a corrected recovery plan after verifying Attempt 1 compensation",
-  prompt: inline("Call inspect-failed-attempt-tool to confirm compensation, then output corrected build flags."),
-  model: "openai/gpt-4o-mini",
-  tools: [InspectFailedAttemptTool],
-  input: {
-    releaseRequest: ReleaseRequestDto,
-    compensatedCandidate: CompensatedReleaseCandidateDto,
-  },
-  output: RecoveryPlanDto,
-})
-export class ReleaseRecoveryPlannerAgent {}
-
-@Action({ name: "promote-release-artifacts-action", description: "Writes final release-manifest.json", input: { locked: LockedReleaseCandidateDto }, output: ReleaseSummaryDto })
-export class PromoteReleaseArtifactsAction implements ActionHandler<PromoteReleaseArtifactsAction> {
-  async execute(input: InputOf<PromoteReleaseArtifactsAction>): Promise<OutputOf<PromoteReleaseArtifactsAction>> {
-    return { manifestPath: `promoted/${input.locked.candidateLockId}/release-manifest.json` };
-  }
-}
-// @snippet
--->
 ```ts title="src/workflows/release-coordinator/release-coordinator.workflow.ts" file=release-coordinator.workflow.ts
 import {
   ChildPlacement,
   StepFailedError,
   Workflow,
-  action,
+  onAction,
   onStart,
   toAction,
+  toWorkflow,
   Ttl,
 } from "@agboss/core";
+import {
+  CompensateReleaseCandidateAction,
+  DecomposeReleaseTasksAction,
+  LockReleaseCandidateAction,
+  MarkModuleFailedAction,
+  ModuleFailedWorkflowFinish,
+  ModuleWorkerWorkflowFinish,
+  ModuleWorkerWorkflowStart,
+  PrepareModuleCandidateAction,
+  PromoteReleaseArtifactsAction,
+  ReleaseCoordinatorWorkflowFinish,
+  ReleaseCoordinatorWorkflowStart,
+  ReleaseGateFailedError,
+  ReleaseRecoveryPlannedWorkflowFinish,
+  ReleaseRecoveryPlannerAgent,
+  SummarizeCompensatedAttemptAction,
+  VerifyReleaseSmokeGateAction,
+} from "./release.components.js";
+import { StageModuleArtifactAction } from "./stage-module-artifact.action.js";
 
 @Workflow({
   name: "module-worker-workflow",
   version: "1.0.0",
   historyTtl: Ttl.Forever,
+  placement: ChildPlacement.AnyWorker, // queued: any worker with a free slot claims it
   flow: [
     onStart(ModuleWorkerWorkflowStart)
       .toAction(PrepareModuleCandidateAction)
@@ -290,7 +311,7 @@ import {
       .onError(StepFailedError, toAction(MarkModuleFailedAction))
       .toFinish(ModuleWorkerWorkflowFinish),
 
-    action(MarkModuleFailedAction)
+    onAction(MarkModuleFailedAction)
       .toFinish(ModuleFailedWorkflowFinish),
   ],
 })
@@ -303,11 +324,7 @@ export class ModuleWorkerWorkflow {}
   flow: [
     onStart(ReleaseCoordinatorWorkflowStart)
       .toAction(DecomposeReleaseTasksAction)
-      .toParallelWorkflows(ModuleWorkerWorkflow, {
-        maxConcurrency: 4,
-        maxItems: 8,
-        placement: ChildPlacement.AnyWorker,
-      })
+      .forEachItem(toWorkflow(ModuleWorkerWorkflow), { takeFirst: 8, maxConcurrency: 4 })
       .join()
       .toAction(LockReleaseCandidateAction)
       .toAction(VerifyReleaseSmokeGateAction)
@@ -458,12 +475,12 @@ import {
   InspectFailedAttemptTool,
   LockReleaseCandidateAction,
   RecoveryPlanDto,
-  ReleaseCoordinatorWorkflow,
   ReleaseCoordinatorWorkflowFinish,
   ReleaseCoordinatorWorkflowStart,
   ReleaseRecoveryPlannedWorkflowFinish,
   ReleaseRecoveryPlannerAgent,
-} from "./release-coordinator.workflow.js";
+} from "./release.components.js";
+import { ReleaseCoordinatorWorkflow } from "./release-coordinator.workflow.js";
 
 @Budget({ name: "showcase-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class ShowcaseAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(10); } }
@@ -555,7 +572,7 @@ Every demo and CI run executes `ReleaseInvariantVerifierService` against both th
 | **8** | `INV-8-ORIGINAL-LOGICAL-TASK-COMPLETED-AFTER-TAKEOVER` | `rel-2026.10.0:payment-engine` preserved the **exact same `childExecutionId` and `idempotencyKey`**, with Step 1 prepared by Worker A (`leaseEpoch = 1`), Step 2 completed by Worker B (`leaseEpoch = 2`), `execution_leases.holder_instance_id` matching the committer, and `0` orphaned rows in `child_execution_queue`. |
 
 :::caution[Verification-only internal schema inspection]
-`ClusterSnapshotRepository` queries AGBoss's internal SQLite tables (`execution_leases`, `checkpoints`, `child_execution_queue`) directly so `INV-7` and `INV-8` can audit lease epochs and checkpoint ancestry independently of application event logs. This direct table inspection is a **diagnostic verification dependency coupled to `@agboss/core@0.1.0`'s internal schema**, not a recommended application integration API.
+`ClusterSnapshotRepository` queries AGBoss's internal SQLite tables (`execution_leases`, `checkpoints`, `child_execution_queue`) directly so `INV-7` and `INV-8` can audit lease epochs and checkpoint ancestry independently of application event logs. This direct table inspection is a **diagnostic verification dependency coupled to the internal schema of a given `@agboss/core` version (0.1.1 changed it: one SQLite baseline, `root_id` on checkpoints)**, not a recommended application integration API.
 :::
 
 ---

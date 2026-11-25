@@ -43,7 +43,7 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 ## Detailed Guide to All 7 Standalone Examples (`01–07`)
 
-> **Setup (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.0` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.
+> **Setup (`v0.1.1`):** `@agboss/core@0.1.1` and `@agboss/cli@0.1.1` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.1` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.
 
 ### 1. [`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss) — Starter, Constructor DI, Budgets & HTTP Server (`P0`)
 
@@ -189,7 +189,7 @@ import {
 } from "./job-scout.components.js";
 -->
 ```ts title="src/job-scout.workflow.ts" file=job-scout.workflow.ts
-import { Workflow, route, onStart, Ttl } from "@agboss/core";
+import { Workflow, onStart, toAgent, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 
 @Workflow({
@@ -199,12 +199,16 @@ import { WorkflowStartTextDto } from "@agboss/core/dto";
   flow: [
     onStart(ChatWorkflowStart)
       .toRouter(MainRouter)
-      .chooseOne(
-        route(ProfilerAgent)
+      .onRoute(
+        toAgent(ProfilerAgent)
           .toFinish(ChatWorkflowFinish),
-        route(ScoutAgent)
+      )
+      .onRoute(
+        toAgent(ScoutAgent)
           .toFinish(ChatWorkflowFinish),
-        route(ShortlistAgent)
+      )
+      .onRoute(
+        toAgent(ShortlistAgent)
           .toFinish(ChatWorkflowFinish),
       ),
   ],

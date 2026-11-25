@@ -324,19 +324,13 @@ import { WithdrawOfferAction } from "../src/actions/withdraw-offer.action.js";
 it("executes RegisterOfferAction and compensates with WithdrawOfferAction", async () => {
   const runRegister = testUnit(RegisterOfferAction);
   const { output } = await runRegister({
-    draft: {
-      value: { role: "Principal Distributed Systems Engineer" },
-      producer: OfferSagaStart,
-    },
+    draft: { role: "Principal Distributed Systems Engineer" }, // a plain DTO literal, tracked by default
   });
   expect(output.role).toBe("Principal Distributed Systems Engineer");
 
   const runWithdraw = testUnit(WithdrawOfferAction);
   await runWithdraw({
-    offer: {
-      value: output,
-      producer: RegisterOfferAction,
-    },
+    offer: output, // Metadata.with(output, { createdBy: RegisterOfferAction }) states a producer
   });
 });
 ```

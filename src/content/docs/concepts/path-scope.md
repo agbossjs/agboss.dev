@@ -7,7 +7,7 @@ Every path in an AGBoss `@Workflow` written in **HarnessDSL (`HDSL`)** carries a
 
 ## How slots, writes, and narrowed `Tracked<T, P>` reads work
 
-A Path Scope stores **one slot per shape**: `OfferDraftDto` and `listOf(OfferDraftDto)` are distinct slots, and `listOf(oneOf(ApprovedDto, CritiqueDto))` is a single polymorphic list slot. What a step writes is derived from its declaration: a start its `input` (one value per field of a map), an agent, action, external task or child workflow its `output`, a join the branches' values. Each write replaces the current value in that slot while preserving earlier versions in the slot history.
+A Path Scope stores **one slot per shape**: `OfferDraftDto` and `listOf(OfferDraftDto)` are distinct slots, and `listOf(ApprovedDto, CritiqueDto)` (variadic; `listOf(oneOf(…))` is gone) is a single polymorphic list slot, and a step that gives one also gives a typed slice `listOf(ApprovedDto)` per class. What a step writes is derived from its declaration: a start its `input` (one value per field of a map), an agent, action, external task or child workflow its `output`, a join the branches' values. Each write replaces the current value in that slot while preserving earlier versions in the slot history.
 
 When you run `npx agboss check`, the compiler performs dominance analysis (`[input.missing-on-path]`, `[input.never-produced]`, `[flow.unused-output]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`) over every `@Workflow` and writes `.agboss/types.d.ts`:
 
