@@ -10,7 +10,7 @@ When enterprise workflows process customer tickets, financial records, or medica
 A `@PiiPolicy` class (whose `name` must end with `-pii-policy`) can declare built-in `rules: [pii(Kind | Group, Action)]` or implement `PiiPolicyHandler.findMatches(text)` for custom project detectors. Masking happens at the model boundary: models only see masked tokens, while `PiiAction.replaceWithToken()` computes a **deterministic HMAC pseudonym** with `pseudonymKey` so the exact same email or badge ID maps to the exact same token across every turn and step — preserving multi-turn LLM KV prefix cache hits while restoring real values before tools, actions, and finishes run:
 
 ```ts title="src/policies/customer.pii-policy.ts" file=src/policies/customer.pii-policy.ts
-import { ExecutionContext, Injectable, InputGuardrail, OutputGuardrail, PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, secret, type GuardrailRefusal, type PiiMatch, type PiiPolicyHandler, type PiiRefusal } from "@agboss/core";
+import { ExecutionContext, Injectable, InputGuardrail, OutputGuardrail, PiiAction, PiiGroup, PiiKind, PiiPolicy, pii, secret, type GuardrailRefusal, type PiiMatch, type PiiPolicyHandler, type PiiRefusal, inline } from "@agboss/core";
 import { OneOf, Text } from "@agboss/core/dto";
 
 // 1. Declarative PII policy with reversible token replacement and card blocking
@@ -79,7 +79,7 @@ export class RefusalTextService {
 @InputGuardrail({
   name: "legal-advice-guardrail",
   description: "Blocks requests for legal advice",
-  prompt: "Does the message ask for legal advice?",
+  prompt: inline("Does the message ask for legal advice?"),
   model: "typesafe/jev-1.13",
   threshold: 0.8,
   deps: [ClinicExecutionContext, RefusalTextService],
@@ -98,7 +98,7 @@ export class LegalAdviceGuardrail implements GuardrailRefusal {
 @OutputGuardrail({
   name: "no-legal-advice-guardrail",
   description: "Blocks answers that give legal advice",
-  prompt: "Does the answer give legal advice?",
+  prompt: inline("Does the answer give legal advice?"),
   threshold: 0.8,
   refusal: "I can't give legal advice. Please contact a lawyer.",
 })
@@ -107,11 +107,11 @@ export class NoLegalAdviceGuardrail {}
 
 ```ts title="test/customer.pii-policy.test.ts" file=test/customer.pii-policy.test.ts
 import { expect, it } from "vitest";
-import { testPii } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import { EmployeeIdPiiPolicy } from "../src/policies/customer.pii-policy.js";
 
 it("redacts EMP-42 employee badges before model calls and restores them on reveal", async () => {
-  const pii = testPii([EmployeeIdPiiPolicy]);
+  const pii = testUnit([EmployeeIdPiiPolicy]);
   const { output: masked } = await pii.mask("Badge EMP-42 requested access.");
   expect(masked).not.toContain("EMP-42");
   expect(pii.reveal(masked)).toBe("Badge EMP-42 requested access.");
@@ -168,14 +168,14 @@ export class TenantBlocklistGuardrail implements GuardrailHandler {
 
 ```ts title="test/tenant-blocklist.guardrail.test.ts" file=test/tenant-blocklist.guardrail.test.ts
 import { expect, it } from "vitest";
-import { testGuardrail } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import {
   ShopTenantContext,
   TenantBlocklistGuardrail,
 } from "../src/policies/tenant-blocklist.guardrail.js";
 
 it("blocks restricted tenant terms deterministically without a model stub", async () => {
-  const check = testGuardrail(TenantBlocklistGuardrail, {
+  const check = testUnit(TenantBlocklistGuardrail, {
     tenantContext: ShopTenantContext,
     tenant: { tenantId: "t-1", shop: "toys" },
   });
@@ -190,5 +190,5 @@ it("blocks restricted tenant terms deterministically without a model stub", asyn
 
 - **Hierarchical policy lists (`piiPolicies` & `excludePiiPolicies`):** Policies listed on `@Application`, `@Workflow`, `@Agent`, and `@Router` add up automatically. An agent can opt out of an inherited policy for its own model calls via `excludePiiPolicies`, while logs, traces, and `result.record` remain masked by the application and workflow policies.
 - **Cross-instance token consistency:** Set `@Application({ pseudonymKey: "piiPseudonymKey" })` pointing to a `Secret` field in your environment contract so every replica generates identical HMAC tokens for logs and traces.
-- **Unit testing with `testPii` and `testGuardrail`:** Validate `mask(text)` and `reveal(text)` offline with `testPii([CustomerPiiPolicy])` and verify both `DecidedBy.Model` and `DecidedBy.Code` guardrails with `testGuardrail(TenantBlocklistGuardrail)` from `@agboss/core/testing`.
+- **Unit testing with `testUnit` and `testUnit`:** Validate `mask(text)` and `reveal(text)` offline with `testUnit([CustomerPiiPolicy])` and verify both `DecidedBy.Model` and `DecidedBy.Code` guardrails with `testUnit(TenantBlocklistGuardrail)` from `@agboss/core/testing`.
 - **Standalone executable proof:** Inspect **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) for end-to-end HMAC token roundtrips (`<email:d1ac5c>` $\to$ `revealPii: true` in `IssueRefundTool`), `PiiRefusedError` boundary refusal, `@ToolInterceptor` policy enforcement, and `DecidedBy.Code` / `DecidedBy.Model` guardrails (see [7 Verified Examples](/examples/verified-examples/)).

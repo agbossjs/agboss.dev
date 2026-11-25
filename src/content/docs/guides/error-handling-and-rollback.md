@@ -1,9 +1,9 @@
 ---
 title: Error Handling & Rollback (.onError)
-description: Handle step failures, review-loop visit limits, quorum deadlines, and transactional rollbacks in AGBoss using .onError(), .onJoinError(), and LIFO sagas.
+description: Handle step failures, review-loop visit limits, quorum deadlines, and transactional rollbacks in AGBoss using .onError(), .onError(), and LIFO sagas.
 ---
 
-Production workflows interact with unreliable external systems, rate-limited APIs, and bounded review loops that can fail mid-flight. AGBoss makes failure recovery explicit in **HarnessDSL (`HDSL`)** `@Workflow({ flow })` chains via `.onError(ErrorClass, sidePath)` on individual steps and `.onJoinError(ErrorClass, sidePath)` on parallel joins, keeping compensation logic type-checked and unit-tested alongside the happy path.
+Production workflows interact with unreliable external systems, rate-limited APIs, and bounded review loops that can fail mid-flight. AGBoss makes failure recovery explicit in **HarnessDSL (`HDSL`)** `@Workflow({ flow })` chains via `.onError(ErrorClass, sidePath)` on individual steps and `.onError(ErrorClass, sidePath)` on parallel joins, keeping compensation logic type-checked and unit-tested alongside the happy path.
 
 ## How `.onError()` chains compensation steps in a workflow path
 
@@ -27,16 +27,15 @@ import {
 } from "./order.components.js";
 -->
 ```ts title="src/order.workflow.ts" file=order.workflow.ts
-import { Workflow, start, toAction } from "@agboss/core";
+import { Workflow, onStart, toAction, Ttl } from "@agboss/core";
 
 @Workflow({
   name: "order-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(OrderWorkflowStart)
-      .returns(OrderRequestDto)
+    onStart(OrderWorkflowStart)
       .toAction(ReserveStockAction)
-      .returns(StockReservationDto)
       .toAction(ShipOrderAction)
       .onError(
         CarrierError,
@@ -49,7 +48,6 @@ import { Workflow, start, toAction } from "@agboss/core";
           .toAction(ReleaseStockAction)
           .toFinish(OrderFailedWorkflowFinish),
       )
-      .returns(OrderShippedDto)
       .toFinish(OrderWorkflowFinish),
   ],
 })
@@ -57,7 +55,7 @@ export class OrderWorkflow {}
 ```
 
 ```ts title="src/order.components.ts" file=order.components.ts
-import { Action, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
+import { Action, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf, inline } from "@agboss/core";
 import { Text } from "@agboss/core/dto";
 
 export class OrderRequestDto {
@@ -92,7 +90,7 @@ export class OrderFailedWorkflowFinish {}
 })
 export class ReserveStockAction implements ActionHandler<ReserveStockAction> {
   execute(input: InputOf<ReserveStockAction>): Promise<OutputOf<ReserveStockAction>> {
-    return Promise.resolve({ reservationId: `res-${input.order.value.orderId}` });
+    return Promise.resolve({ reservationId: `res-${input.order.orderId}` });
   }
 }
 
@@ -104,7 +102,7 @@ export class ReserveStockAction implements ActionHandler<ReserveStockAction> {
 })
 export class ShipOrderAction implements ActionHandler<ShipOrderAction> {
   execute(input: InputOf<ShipOrderAction>): Promise<OutputOf<ShipOrderAction>> {
-    return Promise.resolve({ trackingNumber: `trk-${input.reservation.value.reservationId}` });
+    return Promise.resolve({ trackingNumber: `trk-${input.reservation.reservationId}` });
   }
 }
 
@@ -178,7 +176,7 @@ test("reserves stock and ships order on the happy path", async ({ app }) => {
 });
 ```
 
-## What error classes can `.onError()` and `.onJoinError()` catch?
+## What error classes can `.onError()` and `.onError()` catch?
 
 | Error Class | Where It Attaches | When It Fires |
 | :--- | :--- | :--- |
@@ -186,8 +184,8 @@ test("reserves stock and ships order on the happy path", async ({ app }) => {
 | `ChildExecutionFailedError` | `.onError(ChildExecutionFailedError, ...)` after `.toWorkflow(Child)` | When a child workflow execution fails without reaching one of its `@WorkflowFinish` nodes |
 | `VisitsLimitExceededError` | `.onError(VisitsLimitExceededError, ...)` | When an `@Agent` or `@Router` in a review loop exceeds its `maxVisits` ceiling |
 | `BudgetExceededError` / `StepsLimitExceededError` / `DepthLimitExceededError` / `LimitExceededError` | `.onError(LimitExceededError, ...)` | When an execution or step limit is exceeded. **Note (`[graph.limit-handler-uses-model]`):** side paths catching limit errors may only run deterministic `@Action` and `DecidedBy.Code` `@Router` steps — invoking an `@Agent` or `DecidedBy.Model` `@Router` inside a limit handler is rejected at assembly time. |
-| `StepFailedError` | `.onJoinError(StepFailedError, ...)` after `.join()` | When one or more parallel branches fail during `.toParallelAgents()` or `.toParallelWorkflows()` |
-| `QuorumNotReachedError` | `.onJoinError(QuorumNotReachedError, ...)` after `.joinQuorum()` / `.joinQuorumGroups()` | When too many branches fail or the quorum `deadline` expires before the quorum is satisfied |
+| `StepFailedError` | `.onError(StepFailedError, ...)` after `.join()` | When one or more parallel branches fail during `.toParallelAgents()` or `.toParallelWorkflows()` |
+| `QuorumNotReachedError` | `.onError(QuorumNotReachedError, ...)` after `.joinQuorum()` / `.joinQuorumGroups()` | When too many branches fail or the quorum `deadline` expires before the quorum is satisfied |
 
 ## How error matching and checkpoint recovery work
 
@@ -241,7 +239,7 @@ export class ConfirmOfferAction implements ActionHandler<ConfirmOfferAction> {
 ```
 -->
 <!-- snippet-context
-import { ActionFailedError, Workflow, WorkflowFinish, WorkflowStart, start, toAction } from "@agboss/core";
+import { ActionFailedError, Workflow, WorkflowFinish, WorkflowStart, onStart, toAction, Ttl } from "@agboss/core";
 import { ConfirmOfferAction, OfferDraftDto, RegisteredOfferDto } from "./offer.contracts.js";
 // @snippet
 @WorkflowStart({ name: "offer-saga-workflow-start", description: "Start", input: OfferDraftDto })
@@ -251,11 +249,10 @@ export class OfferSagaFinish {}
 @Workflow({
   name: "offer-saga-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(OfferSagaStart)
-      .returns(OfferDraftDto)
+    onStart(OfferSagaStart)
       .toAction(RegisterOfferAction)
-      .returns(RegisteredOfferDto)
       .toAction(ConfirmOfferAction)
       .onError(
         ActionFailedError,
@@ -286,7 +283,7 @@ export class RegisterOfferAction implements ActionHandler<RegisterOfferAction> {
   async execute(input: InputOf<RegisterOfferAction>): Promise<OutputOf<RegisterOfferAction>> {
     return {
       offerId: `ats_${this.executionContext.step.idempotencyKey}`,
-      role: input.draft.value.role,
+      role: input.draft.role,
     };
   }
 }
@@ -309,7 +306,7 @@ export class WithdrawOfferAction implements ActionHandler<WithdrawOfferAction> {
   constructor(private readonly executionContext: ExecutionContext) {}
 
   async execute(input: InputOf<WithdrawOfferAction>): Promise<void> {
-    void input.offer.value.offerId;
+    void input.offer.offerId;
     void this.executionContext.signal;
   }
 }
@@ -317,7 +314,7 @@ export class WithdrawOfferAction implements ActionHandler<WithdrawOfferAction> {
 
 ```ts title="test/offer-saga.test.ts" file=test/offer-saga.test.ts
 import { expect, it } from "vitest";
-import { testAction } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import {
   OfferSagaStart,
   RegisterOfferAction,
@@ -325,7 +322,7 @@ import {
 import { WithdrawOfferAction } from "../src/actions/withdraw-offer.action.js";
 
 it("executes RegisterOfferAction and compensates with WithdrawOfferAction", async () => {
-  const runRegister = testAction(RegisterOfferAction);
+  const runRegister = testUnit(RegisterOfferAction);
   const { output } = await runRegister({
     draft: {
       value: { role: "Principal Distributed Systems Engineer" },
@@ -334,7 +331,7 @@ it("executes RegisterOfferAction and compensates with WithdrawOfferAction", asyn
   });
   expect(output.role).toBe("Principal Distributed Systems Engineer");
 
-  const runWithdraw = testAction(WithdrawOfferAction);
+  const runWithdraw = testUnit(WithdrawOfferAction);
   await runWithdraw({
     offer: {
       value: output,

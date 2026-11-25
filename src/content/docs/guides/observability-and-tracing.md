@@ -10,7 +10,7 @@ Operating multi-agent systems in production requires visibility into every workf
 Any `@Injectable()` class listed in `@Application({ observers: [...] })` can implement one or more observer hook interfaces (`OnExecutionStart`, `OnExecutionEnd`, `OnExecutionError`, `OnExecutionRejected`, `OnExecutionPause`, `OnExecutionResume`, `OnAgentStart`, `OnAgentEnd`, `OnValuesOutdated`). All event payloads are pre-masked by the application and workflow `@PiiPolicy` rules before reaching your observer:
 
 ```ts title="src/observers/audit.observer.ts" file=src/observers/audit.observer.ts
-import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Injectable, Workflow, WorkflowFinish, WorkflowStart, start, type AgentStartEvent, type BudgetHandler, type ExecutionEndEvent, type ExecutionRejectedEvent, type OnAgentStart, type OnExecutionEnd, type OnExecutionRejected } from "@agboss/core";
+import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, Injectable, Workflow, WorkflowFinish, WorkflowStart, onStart, type AgentStartEvent, type BudgetHandler, type ExecutionEndEvent, type ExecutionRejectedEvent, type OnAgentStart, type OnExecutionEnd, type OnExecutionRejected, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
 
@@ -54,9 +54,9 @@ export class PingWorkflowFinish {}
 @Workflow({
   name: "ping-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(PingWorkflowStart)
-      .returns(WorkflowStartTextDto)
+    onStart(PingWorkflowStart)
       .toFinish(PingWorkflowFinish),
   ],
 })

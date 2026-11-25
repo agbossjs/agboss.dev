@@ -9,33 +9,10 @@ description: "How AGBoss structures agent verification as a 5-loop cost and dete
 
 ## Complete example: Fail-Fast Cascade from `$0` code guards to calibrated `@Judge`
 
-Before looking at each axis of the funnel, here is how Loops 0, 1, and 2 work together in code — combining a deterministic [`@Tool`](/reference/tool/), a deterministic `$0` [`@Judge`](/reference/judge/) (`CitationFormatJudge`, `0ms`), a calibrated `DecidedBy.Model` `@Judge` (`RefundPolicyGroundedJudge`), and a `testWith(Application)` + `testTool` + `testJudge` verification suite:
+Before looking at each axis of the funnel, here is how Loops 0, 1, and 2 work together in code — combining a deterministic [`@Tool`](/reference/tool/), a deterministic `$0` [`@Judge`](/reference/judge/) (`CitationFormatJudge`, `0ms`), a calibrated `DecidedBy.Model` `@Judge` (`RefundPolicyGroundedJudge`), and a `testWith(Application)` + `testUnit` verification suite:
 
-```ts title="src/funnel/refund-verification.components.ts" file=src/funnel/refund-verification.components.ts
-import {
-  Agent,
-  Application,
-  Budget,
-  BudgetPeriod,
-  BudgetScope,
-  DecidedBy,
-  Decision,
-  EmptyEnvironment,
-  Judge,
-  JudgeModel,
-  JudgeVerdict,
-  Tool,
-  Workflow,
-  WorkflowFinish,
-  WorkflowStart,
-  start,
-  type BudgetHandler,
-  type JudgeHandler,
-  type JudgeInput,
-  type ToolHandler,
-} from "@agboss/core";
+```ts title="src/funnel/refund.dto.ts" file=src/funnel/refund.dto.ts
 import { Integer, Text } from "@agboss/core/dto";
-import { usd, type Usd } from "@agboss/core/units";
 
 export class RefundTaskDto {
   @Text({ prompt: "Order ID and customer refund request" })
@@ -54,6 +31,54 @@ export class RefundReplyDto {
   @Text({ prompt: "Refund confirmation citing [ORD-id]" })
   confirmation!: string;
 }
+```
+
+```ts title="src/funnel/refund-providers.ts" file=src/funnel/refund-providers.ts
+import { secret } from "@agboss/core";
+import { DecisionsDriver, ModelCost, ModelProvider, OpenRouterDriver } from "@agboss/core/models";
+import { minutes, seconds } from "@agboss/core/units";
+
+// there is no built-in provider: the application names the providers that serve its models
+@ModelProvider({
+  name: "openrouter-model-provider",
+  description: "OpenRouter chat models",
+  driver: OpenRouterDriver({ apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: minutes(2),
+  cost: ModelCost.fromResponse(),
+})
+export class OpenRouterModelProvider {}
+
+@ModelProvider({
+  name: "decisions-model-provider",
+  description: "Decision models on OpenRouter's Decisions API",
+  driver: DecisionsDriver({ baseUrl: "https://openrouter.ai/api/v1", apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: seconds(30),
+  cost: ModelCost.fromResponse(),
+})
+export class DecisionsModelProvider {}
+```
+
+```ts title="src/funnel/refund-verification.components.ts" file=src/funnel/refund-verification.components.ts
+import {
+  Agent,
+  Application,
+  Budget,
+  BudgetPeriod,
+  BudgetScope,
+  EmptyEnvironment,
+  Tool,
+  Workflow,
+  WorkflowFinish,
+  WorkflowStart,
+  onStart,
+  type BudgetHandler,
+  inline,
+  Ttl,
+} from "@agboss/core";
+import { usd, type Usd } from "@agboss/core/units";
+import { OpenRouterModelProvider, DecisionsModelProvider } from "./refund-providers.js";
+import { RefundReplyDto, RefundTaskDto, RefundToolInputDto } from "./refund.dto.js";
+import { CitationFormatJudge, RefundPolicyGroundedJudge } from "./refund-judges.js";
 
 @Tool({
   name: "issue-refund-tool",
@@ -61,52 +86,9 @@ export class RefundReplyDto {
   input: RefundToolInputDto,
   output: RefundReplyDto,
 })
-export class IssueRefundTool implements ToolHandler<RefundToolInputDto, RefundReplyDto> {
-  run(input: RefundToolInputDto): Promise<RefundReplyDto> {
-    return Promise.resolve({
-      confirmation: `Refunded ${String(input.amountCents)} cents for [${input.orderId}]`,
-    });
-  }
-}
-
-// Cascade Step 1 ($0, 0ms): Deterministic DecidedBy.Code @Judge runs BEFORE any paid LLM judge
-@Judge({
-  name: "citation-format-judge",
-  description: "Verifies deterministically that confirmation contains an [ORD-...] citation",
-  decidedBy: DecidedBy.Code,
-  reply: RefundReplyDto,
-})
-export class CitationFormatJudge implements JudgeHandler<RefundReplyDto> {
-  judge(input: JudgeInput<RefundReplyDto>): Promise<JudgeVerdict> {
-    return Promise.resolve(
-      /\[ORD-\d+\]/.test(input.reply.confirmation)
-        ? JudgeVerdict.passed()
-        : JudgeVerdict.failed({ reason: "Confirmation must cite [ORD-<digits>]." }),
-    );
-  }
-}
-
-// Cascade Step 2 (Paid Decision Model): Runs only after $0 code invariants pass
-@Judge({
-  name: "refund-policy-grounded-judge",
-  description: "Evaluates whether the refund explanation matches tool evidence",
-  model: "typesafe/jev-1.13",
-  reply: RefundReplyDto,
-  deps: [JudgeModel],
-})
-export class RefundPolicyGroundedJudge implements JudgeHandler<RefundReplyDto> {
-  constructor(private readonly judgeModel: JudgeModel) {}
-
-  async judge(input: JudgeInput<RefundReplyDto>): Promise<JudgeVerdict> {
-    const res = await this.judgeModel.decide({
-      state: { task: input.task, confirmation: input.reply.confirmation },
-      questions: {
-        grounded: Decision.noul("Does the confirmation match the issue_refund tool output?"),
-      },
-    });
-    return res.grounded.noul >= 0.85
-      ? JudgeVerdict.passed({ metrics: { grounded: res.grounded.noul } })
-      : JudgeVerdict.failed({ reason: "Confirmation does not match tool output." });
+export class IssueRefundTool {
+  execute(input: RefundToolInputDto): RefundReplyDto {
+    return { confirmation: `Refunded ${String(input.amountCents)} cents for [${input.orderId}]` };
   }
 }
 
@@ -120,23 +102,22 @@ export class RefundWorkflowFinish {}
   name: "refund-specialist-agent",
   description: "Processes customer refunds using IssueRefundTool",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Call issue_refund and confirm with [ORD-id].",
+  prompt: inline("Call issue_refund and confirm with [ORD-id]."),
   input: { task: RefundTaskDto },
   output: RefundReplyDto,
   tools: [IssueRefundTool],
   judges: [CitationFormatJudge, RefundPolicyGroundedJudge],
-  maxRetries: 1,
+  executionLimits: { maxRetries: 1 },
 })
 export class RefundSpecialistAgent {}
 
 @Workflow({
   name: "refund-verification-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(RefundWorkflowStart)
-      .returns(RefundTaskDto)
+    onStart(RefundWorkflowStart)
       .toAgent(RefundSpecialistAgent)
-      .returns(RefundReplyDto)
       .toFinish(RefundWorkflowFinish),
   ],
 })
@@ -154,23 +135,69 @@ export class FunnelExecBudget implements BudgetHandler { maxSpend(): Usd { retur
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [RefundVerificationWorkflow],
+  modelProvider: OpenRouterModelProvider,
+  providers: [OpenRouterModelProvider, DecisionsModelProvider],
   budgets: [FunnelAppBudget, FunnelTenantBudget, FunnelExecBudget],
 })
 export class RefundVerificationApplication {}
 ```
 
+```ts title="src/funnel/refund-judges.ts" file=src/funnel/refund-judges.ts
+import { Decision, Judge, JudgeModel, JudgeVerdict, type JudgeHandler, type JudgeInput } from "@agboss/core";
+import { DecisionsModelProvider } from "./refund-providers.js";
+import { RefundReplyDto } from "./refund.dto.js";
+
+// Cascade Step 1 ($0, 0ms): a code @Judge (no JudgeModel in deps) runs BEFORE any paid LLM judge
+@Judge({
+  name: "citation-format-judge",
+  description: "Verifies deterministically that confirmation contains an [ORD-...] citation",
+  output: RefundReplyDto,
+})
+export class CitationFormatJudge implements JudgeHandler<RefundReplyDto> {
+  judge(input: JudgeInput<RefundReplyDto>): JudgeVerdict {
+    return /\[ORD-\d+\]/.test(input.output.confirmation)
+      ? JudgeVerdict.passed()
+      : JudgeVerdict.failed("Confirmation must cite [ORD-<digits>].");
+  }
+}
+
+// Cascade Step 2 (Paid Decision Model): Runs only after $0 code invariants pass
+@Judge({
+  name: "refund-policy-grounded-judge",
+  description: "Evaluates whether the refund explanation matches tool evidence",
+  model: "typesafe/jev-1.13",
+  modelProvider: DecisionsModelProvider,
+  output: RefundReplyDto,
+  deps: [JudgeModel],
+})
+export class RefundPolicyGroundedJudge implements JudgeHandler<RefundReplyDto> {
+  constructor(private readonly judgeModel: JudgeModel) {}
+
+  async judge(input: JudgeInput<RefundReplyDto>): Promise<JudgeVerdict> {
+    const res = await this.judgeModel.decide({
+      state: { task: input.task, confirmation: input.output.confirmation },
+      questions: {
+        grounded: Decision.boolean("Does the confirmation match the issue_refund tool output?"),
+      },
+    });
+    return res.grounded.probability >= 0.85
+      ? JudgeVerdict.passed({ metrics: { grounded: res.grounded.probability } })
+      : JudgeVerdict.failed("Confirmation does not match tool output.");
+  }
+}
+```
+
 ```ts title="test/refund-verification.funnel.test.ts" file=test/refund-verification.funnel.test.ts
 import { expect } from "vitest";
-import { decideWith, replyWith, testJudge, testTool, testWith } from "@agboss/core/testing";
+import { decideWith, replyWith, testUnit, testWith } from "@agboss/core/testing";
 import {
-  CitationFormatJudge,
   IssueRefundTool,
-  RefundPolicyGroundedJudge,
-  RefundReplyDto,
   RefundSpecialistAgent,
   RefundVerificationApplication,
   RefundWorkflowStart,
 } from "../src/funnel/refund-verification.components.js";
+import { RefundReplyDto } from "../src/funnel/refund.dto.js";
+import { CitationFormatJudge, RefundPolicyGroundedJudge } from "../src/funnel/refund-judges.js";
 
 const test = testWith(RefundVerificationApplication);
 
@@ -179,14 +206,14 @@ test("runs $0 unit runners and cascading judges in Loop 1", async ({
   mockLlm,
 }) => {
   // 1. Isolated unit runners ($0, 1ms):
-  const runTool = testTool(IssueRefundTool);
+  const runTool = testUnit(IssueRefundTool);
   const toolRes = await runTool({ orderId: "ORD-101", amountCents: 2500 });
   expect(toolRes.output.confirmation).toContain("[ORD-101]");
 
-  const runFormatJudge = testJudge(CitationFormatJudge);
+  const runFormatJudge = testUnit(CitationFormatJudge);
   const badFormat = await runFormatJudge({
     variant: RefundReplyDto,
-    reply: { confirmation: "Refunded without order tag" },
+    output: { confirmation: "Refunded without order tag" },
     task: "Refund order ORD-101",
     attempt: 0,
   });
@@ -215,10 +242,10 @@ Every failure in a multi-agent system originates in one of **4 distinct architec
 
 | # | Object of Verification | What Can Go Wrong | Primary AGBoss Primitives |
 | :--- | :--- | :--- | :--- |
-| **1** | **Topology & Mesh Contracts (`Graph & Mesh Contracts`)** | Missing upstream inputs on a branch, reading a stale draft in a review loop (`{ about }`), forgetting a saga compensator, or breaking a schema consumed by a remote server | [`agboss check`](/cli/), `$ agboss check --federation`, `.agboss/types.d.ts`, [`Path Scope`](/concepts/path-scope/), [`compensateWith` / `committedBy`](/guides/error-handling-and-rollback/) |
-| **2** | **Harness Code (`Harness Code`)** | Bugs in deterministic TypeScript surrounding the model: [`@Action`](/reference/action/), `DecidedBy.Code` [`@Router`](/reference/router/) & [`@Arbiter`](/reference/arbiter/), [`@Tool`](/reference/tool/), [`@ToolInterceptor`](/reference/tool-interceptor/), code guardrails, [`@PiiPolicy`](/reference/pii-policy/) masking, rate-limit queues, retries, and LIFO rollbacks | [`10 unit runners`](/guides/testing-agents/#all-10-isolated-unit-runners-in-agbosstesting), `testWith(App)`, `mockLlm`, `TestConcurrency.inOrder`, `VirtualClock`, `instances: 2` |
+| **1** | **Topology & Mesh Contracts (`Graph & Mesh Contracts`)** | Missing upstream inputs on a branch, reading a stale draft in a review loop, forgetting a saga compensator, or breaking a schema consumed by a remote server | [`agboss check`](/cli/), `$ agboss check --federation`, `.agboss/types.d.ts`, [`Path Scope`](/concepts/path-scope/), [`compensateWith` / `committedBy`](/guides/error-handling-and-rollback/) |
+| **2** | **Harness Code (`Harness Code`)** | Bugs in deterministic TypeScript surrounding the model: [`@Action`](/reference/action/), `DecidedBy.Code` [`@Router`](/reference/router/) & [`@Arbiter`](/reference/arbiter/), [`@Tool`](/reference/tool/), [`@ToolInterceptor`](/reference/tool-interceptor/), code guardrails, [`@PiiPolicy`](/reference/pii-policy/) masking, rate-limit queues, retries, and LIFO rollbacks | [`testUnit` runners](/guides/testing-agents/#the-unit-runners-in-agbosstesting), `testWith(App)`, `mockLlm`, `TestConcurrency.inOrder`, `VirtualClock`, `instances: 2` |
 | **3** | **Model & Tool Trajectory (`Model & Trajectory`)** | The model misunderstands the prompt, skips `requiredTools`, calls `forbiddenTools`, passes another tenant's ID in tool arguments, or hallucinates an ungrounded answer | `toHaveCalledTools`, `toHaveToolCallMatching`, `toolInvariant`, [`@Judge`](/reference/judge/), [`@EvalSuite`](/guides/evaluation-and-profiles/) (`pass@k` & `pass^k`) |
-| **4** | **Memory & Compaction (`Memory & Compaction`)** | A critical safety constraint disappears after [`@Compaction`](/reference/compaction/), or the agent relies on an outdated fact from an old turn when a `@Tool` or [`@Rag`](/reference/rag/) returns updated rules | `testCompaction()`, multi-turn `pastTurn()` + `turn()` in `@EvalSuite`, `{ about }` staleness invalidation |
+| **4** | **Memory & Compaction (`Memory & Compaction`)** | A critical safety constraint disappears after [`@Memory`](/reference/memory/) summarisation, or the agent relies on an outdated fact from an old turn when a `@Tool` or [`@Rag`](/reference/rag/) returns updated rules | `testUnit()`, multi-turn `pastTurn()` + `turn()` in `@EvalSuite`, outdating of stale values |
 
 ---
 
@@ -229,7 +256,7 @@ AGBoss arranges verification into **5 concentric loops** ordered strictly by **s
 ```mermaid
 flowchart TD
     L0["<b>Loop 0: Static Compiler Proof</b><br/><code>agboss check</code> &amp; <code>--federation</code> · &lt; 1s · $0 · Every save"]
-    L1["<b>Loop 1: Deterministic Harness &amp; Chaos</b><br/><code>npm test</code> (10 Unit Runners + <code>testWith</code> + VCR) · ~3s · $0 · Every commit"]
+    L1["<b>Loop 1: Deterministic Harness &amp; Chaos</b><br/><code>npm test</code> (<code>testUnit</code> + <code>testWith</code> + VCR) · ~3s · $0 · Every commit"]
     LOCK["<b>Freshness Lock: <code>[vcr.stale-cassette]</code></b><br/>Compares cassette <code>promptHash</code> &amp; <code>schemaHash</code> against current code"]
     L2["<b>Loop 2: Live-Model PR Smoke Gate</b><br/><code>agboss eval run --runs 5 --baseline</code> · ~1 min · $ · On PR when hash changes"]
     L3["<b>Loop 3: Nightly Polygon</b><br/><code>agboss eval run --runs 20 --metamorphic --chaos</code> · ~15 min · $$ · Nightly / Pre-release"]
@@ -243,9 +270,9 @@ flowchart TD
 | Loop | Command / Stage | Latency | LLM Cost | When It Runs | What It Catches |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Loop 0** | `agboss check` (`--federation`, `--cassettes`) | **`< 1s`** | **`$0.00`** | Every file save & first CI step | 100% of graph wiring errors (`[input.missing-on-path]`), stale loop inputs (`[input.outdated-on-path]`), uncompensated sagas (`[flow.uncompensated-action]`), and broken cross-repo MCP/A2A schemas |
-| **Loop 1** | [`npm test` (`@agboss/core/testing`)](/guides/testing-agents/) | **`~3s`** | **`$0.00`** | Every commit (live LLM is **never** called) | Logic bugs in all 10 component types, workflow branching, parallel quorum races (`TestConcurrency.inOrder`), `ModelFailure` retries, 30s lease handoff (`instances: 2`), and VCR schema integration |
+| **Loop 1** | [`npm test` (`@agboss/core/testing`)](/guides/testing-agents/) | **`~3s`** | **`$0.00`** | Every commit (live LLM is **never** called) | Logic bugs in every component kind, workflow branching, parallel quorum races (`TestConcurrency.inOrder`), `ModelFailure` retries, 30s lease handoff (`instances: 2`), and VCR schema integration |
 | **Loop 2** | [`$ agboss eval run --runs 5 --baseline`](/guides/evaluation-and-profiles/) | **`~1 min`** | **`$`** | Pull Requests that modify `promptHash`, `schemaHash`, or tools | Prompt regressions on the critical smoke suite (`K = 5` trials per case) using a Fail-Fast `$0 -> $$$` judge cascade and `flaky-on-baseline` quarantine |
-| **Loop 3** | `$ agboss eval run --runs 20 --metamorphic --chaos` | **`~15 min`** | **`$$`** | Nightly on `main` & before releases / model upgrades | Paraphrase fragility (`--metamorphic`), multi-turn `@Compaction` memory loss, live provider fault recovery (`--chaos`), and silent upstream model quantization drift |
+| **Loop 3** | `$ agboss eval run --runs 20 --metamorphic --chaos` | **`~15 min`** | **`$$`** | Nightly on `main` & before releases / model upgrades | Paraphrase fragility (`--metamorphic`), multi-turn `@Memory` loss, live provider fault recovery (`--chaos`), and silent upstream model quantization drift |
 | **Loop 4** | [`ExecutionRecord` $\to$ `$ agboss eval ui`](/guides/observability-and-tracing/) | **`24/7`** | **—** | Continuously on production traffic | Real-world edge cases, new failure modes, `@Judge` rubric drift (`eval calibrate` Cohen's $\kappa$), and candidates for [Progressive Crystallization](/concepts/progressive-crystallization/) |
 
 ---
@@ -253,14 +280,14 @@ flowchart TD
 ### Loop 0: Static Compiler Proof (`agboss check` + `--federation`) — `$0`, `< 1s`
 
 - **When:** On every file save during development and as the very first gate in CI.
-- **What it proves:** 100% of graph edge types, [`Path Scope`](/concepts/path-scope/) dominance, `{ about }` review-loop freshness, saga compensation closure (`[flow.uncompensated-action]`), prompt cache invariance (`[prompt.input-in-instructions]`), and cross-service `@McpServer` / `@A2AAgent` contracts (`$ agboss check --federation`).
+- **What it proves:** 100% of graph edge types, [`Path Scope`](/concepts/path-scope/) dominance, review-loop freshness (outdating), saga compensation closure (`[flow.uncompensated-action]`), prompt cache invariance (`[prompt.input-in-instructions]`), and cross-service `@McpServer` / `@A2AAgent` contracts (`$ agboss check --federation`).
 - **Why it exists:** Eliminates architectural and contract errors before a single unit test or model token is spent.
 
 ### Loop 1: Deterministic Harness & Infrastructure Chaos (`npm test`) — `$0`, `~3s`
 
 - **When:** On every commit. **A live LLM is never called in Loop 1.**
 - **What runs inside Loop 1:**
-  - **[10 isolated unit runners](/guides/testing-agents/#all-10-isolated-unit-runners-in-agbosstesting):** `testTool`, `testToolInterceptor`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testCompaction`, `testPii`, and `testGuardrail` validate individual components in `1ms`.
+  - **[isolated unit runners](/guides/testing-agents/#the-unit-runners-in-agbosstesting):** `testUnit(Component)` validates one `@Tool`, `@Action`, `@Router`, `@Arbiter`, `@Rag`, `@Judge`, guardrail, `@ChannelInterpreter`, `@PiiPolicy`, `@Memory` or `@ToolInterceptor` in `1ms`.
   - **Full-graph `testWith(Application)` tests:** Execute complete workflows against scripted `mockLlm` replies and recorded VCR cassettes (`VcrMode.Replay`).
   - **Resilience & chaos injection:** Deterministically inject `failWith(ModelFailure.RateLimit)`, `ModelFailure.Timeout`, `ModelFailure.InvalidOutput`, and `ModelFailure.InvalidToolArguments`, control parallel race arrival order via `TestConcurrency.inOrder()`, and verify multi-pod 30-second lease failover (`testWith(App, { instances: 2 })`) on a `VirtualClock`.
 - **The Freshness Lock to Loop 2 (`[vcr.stale-cassette]`):**
@@ -287,7 +314,7 @@ flowchart TD
 - **What it verifies:**
   - **Full domain benchmark with pinned hosts (`only`, `quantizations`):** Runs 30–50+ real domain cases with strict [`@ModelProvider`](/reference/model-provider/) host and quantization pinning (`quantizations: ["fp8", "bf16"]`, `allowFallbacks: false`) and exports a fresh `--baseline` artifact for tomorrow's PRs.
   - **Paraphrase invariance (`--metamorphic`):** Varies the phrasing or language of the user prompt (`paraphrases` in `evalCase`) and verifies that the sequence of `@Tool` calls and their semantic arguments remain invariant.
-  - **Multi-turn memory & `@Compaction` survival:** Uses `pastTurn()` + `turn()` to verify that (a) critical negative constraints survive `@Compaction` summarization, and (b) fresh `@Tool` / `@Rag` evidence overrides outdated facts from earlier turns in the thread.
+  - **Multi-turn memory & `@Memory` survival:** Uses `pastTurn()` + `turn()` to verify that (a) critical negative constraints survive `@Memory` summarization, and (b) fresh `@Tool` / `@Rag` evidence overrides outdated facts from earlier turns in the thread.
   - **Live-graph fault injection (`--chaos`):** Injects transient upstream `429`s, network timeouts, and malformed tool JSON mid-run on the live graph to prove retry and `.onError()` resilience under real model nondeterminism.
   - **Silent provider drift detection:** Catches unannounced upstream model weight or quantization changes when `main` code has not changed but nightly `pass^k` drops.
 
@@ -318,5 +345,5 @@ The relationship between **`pass@k`** (passed at least once in $k$ trials — *c
 ## Summary in Three Lines
 
 1. **`agboss check` (`--federation`)** proves statically in `< 1s` (`$0`) that your graph topology, Path Scope DTOs, saga compensations, and cross-service mesh contracts are sound (see [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof) and [`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)).
-2. **`npm test` (`testWith` + 10 unit runners + hash-locked VCR cassettes)** verifies 100% of your TypeScript harness code, chaos recovery, and concurrency deterministically in seconds (`$0`) on every commit, using a symmetric Spring-style `tests/` directory mirroring `src/` (see [`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss)).
+2. **`npm test` (`testWith` + `testUnit` + hash-locked VCR cassettes)** verifies 100% of your TypeScript harness code, chaos recovery, and concurrency deterministically in seconds (`$0`) on every commit, using a symmetric Spring-style `tests/` directory mirroring `src/` (see [`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss)).
 3. **`agboss eval` (`--runs K` + `--baseline` + `--ui` / Mesh Hub)** measures true model reliability (`pass^k`), blocks regressions against a compact git-diff-friendly baseline (`eval/baseline/main-baseline.json`), calibrates judges by Cohen's $\kappa$, and pinpoints which stochastic nodes are ready to crystallize into deterministic code (see [`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)).

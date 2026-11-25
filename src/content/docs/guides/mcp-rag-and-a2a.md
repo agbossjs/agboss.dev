@@ -85,7 +85,7 @@ export class ReadFileMcpTool implements ToolHandler<ReadFileInputDto, ReadFileOu
 In AGBoss, a knowledge base is any `@Rag` class implementing `RagConnector` (`retrieve(query, { topK, signal })` and optional `index()`), or extending the built-in `SqliteFtsConnector`. The `tenancy` (`RagTenancy.PerTenant`, or one corpus every tenant may read) and `topK` settings are required on every `@Rag` decorator, and reported retrieval spend (`costUsd`) is tracked automatically under `rag:<name>`:
 
 ```ts title="src/rag/company-docs.rag.ts" file=src/rag/company-docs.rag.ts
-import { Agent, RagMode, env } from "@agboss/core";
+import { Agent, RagMode, env, inline } from "@agboss/core";
 import { Rag, RagTenancy, SqliteFtsConnector } from "@agboss/core/rag";
 
 export class AppEnvironment {
@@ -111,7 +111,7 @@ export class CompanyDocs extends SqliteFtsConnector {
 @Agent({
   name: "onboarding-agent",
   description: "Answers questions from the handbook with citations",
-  prompt: "Answer from company_docs and cite [source].",
+  prompt: inline("Answer from company_docs and cite [source]."),
   model: "moonshotai/kimi-k2.6",
   rag: [{ use: CompanyDocs, mode: RagMode.Tool }],
 })
@@ -120,11 +120,11 @@ export class OnboardingAgent {}
 
 ```ts title="test/company-docs.rag.test.ts" file=test/company-docs.rag.test.ts
 import { expect, it } from "vitest";
-import { testRag } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import { AppEnvironment, CompanyDocs } from "../src/rag/company-docs.rag.js";
 
-it("retrieves BM25 chunks with [source] IDs via testRag", async () => {
-  const runRag = testRag(CompanyDocs);
+it("retrieves BM25 chunks with [source] IDs via testUnit", async () => {
+  const runRag = testUnit(CompanyDocs);
   const { output, spend } = await runRag("refund timeframe");
   expect(output).toBeDefined();
   expect(spend.totalUsd).toBe(0);
@@ -135,8 +135,8 @@ it("retrieves BM25 chunks with [source] IDs via testRag", async () => {
 
 When a workflow grows beyond a single responsibility or crosses service boundaries, compose child `@Workflow` classes in-process / across instances or delegate over HTTP using Agent-to-Agent (`@agboss/core/a2a`):
 
-1. **Workflow as a step (`.toWorkflow(ChildWorkflow, { placement? })`):** Runs an ordinary `@Workflow` listed in the application as an isolated child execution with its own `maxSteps` and path scope, while sharing the parent's checkpoint and budgets. Pass `{ placement: ChildPlacement.AnyInstance }` to queue the child in `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`) so any worker instance with free slots can steal it while the parent yields its tree lease. Branch on the child's finishes using `.returns(oneOf(ScoreDto, RejectedDto)).switch(caseOf(...)...)`.
-2. **Parallel child workflows (`.toParallelWorkflows(ChildWorkflow, { maxConcurrency, maxItems, placement? })`):** Fans out a `listOf(ItemDto)` across concurrent child workflow executions (in-process via `ChildPlacement.ParentInstance` or distributed across worker pods via `ChildPlacement.AnyInstance` with per-child 30s leases and per-child crash recovery) and joins their outputs with `.join().returns(listOf(oneOf(...)))`.
+1. **Workflow as a step (`.toWorkflow(ChildWorkflow, { placement? })`):** Runs an ordinary `@Workflow` listed in the application as an isolated child execution with its own `maxSteps` and path scope, while sharing the parent's checkpoint and budgets. Pass `{ placement: ChildPlacement.AnyWorker }` to queue the child in `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`) so any worker instance with free slots can steal it while the parent yields its tree lease. Branch on the child's finishes using `.returns(oneOf(ScoreDto, RejectedDto)).switch(caseOf(...)...)`.
+2. **Parallel child workflows (`.toParallelWorkflows(ChildWorkflow, { maxConcurrency, maxItems, placement? })`):** Fans out a `listOf(ItemDto)` across concurrent child workflow executions (in-process via `ChildPlacement.CurrentProcess` or distributed across worker pods via `ChildPlacement.AnyWorker` with per-child 30s leases and per-child crash recovery) and joins their outputs with `.join().returns(listOf(oneOf(...)))`.
 3. **Self-recursion (`ThisWorkflow`):** A workflow with `@Workflow({ maxDepth: 3, maxConcurrentExecutions: 6 })` can launch itself via `.toWorkflow(ThisWorkflow)` or `.toParallelWorkflows(ThisWorkflow, { maxItems })` to decompose recursive tasks safely.
 4. **Agent-to-Agent over A2A v1.0 (`@A2AExpose`, `a2aHttpListener`, `A2ACallerResolver`, `@A2AAgent`):** an AGBoss application is served as an [A2A v1.0](https://a2a-protocol.org/v1.0.0/specification/) agent and calls other A2A v1.0 agents, on the official `@a2a-js/sdk`: an Agent Card, a JSON-RPC 2.0 binding, tasks. Any v1.0 client or server interoperates; the full surface is in the [A2A reference](/reference/a2a-agent/).
 

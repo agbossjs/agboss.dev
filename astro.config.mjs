@@ -83,7 +83,17 @@ function geoSitemapEnricher() {
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://agboss.dev',
-	redirects: { '/examples/job-scout': '/examples/verified-examples/' },
+	redirects: {
+		'/examples/job-scout': '/examples/verified-examples/',
+		// 0.1.1 renamed or removed these pages' subjects (hard break, no compatibility with 0.1.0)
+		'/reference/compaction': '/reference/memory/',
+		'/reference/channel-role': '/reference/pause-target/',
+		'/reference/reply-interpreter': '/reference/channel-interpreter/',
+		'/reference/mcp-expose': '/reference/mcp-endpoint/',
+		'/reference/on-answer': '/reference/arbiter/',
+		'/reference/bind-tool': '/reference/tool/',
+		'/reference/mcp-tool': '/reference/mcp/',
+	},
 	integrations: [
 		starlight({
 			title: 'AGBoss',
@@ -186,15 +196,13 @@ export default defineConfig({
 						{ label: '@Action', slug: 'reference/action' },
 						{ label: '@Router', slug: 'reference/router' },
 						{ label: '@Arbiter', slug: 'reference/arbiter' },
-						{ label: '@OnAnswer', slug: 'reference/on-answer' },
-						{ label: '@Compaction', slug: 'reference/compaction' },
+						{ label: '@Memory', slug: 'reference/memory' },
 					],
 				},
 				{
 					label: 'Decorators: Tools, Quality & DI',
 					items: [
 						{ label: '@Tool', slug: 'reference/tool' },
-						{ label: '@BindTool', slug: 'reference/bind-tool' },
 						{ label: '@ToolInterceptor', slug: 'reference/tool-interceptor' },
 						{ label: '@Judge', slug: 'reference/judge' },
 						{ label: '@Injectable', slug: 'reference/injectable' },
@@ -205,12 +213,14 @@ export default defineConfig({
 					label: 'Decorators: Governance & Safety',
 					items: [
 						{ label: '@ModelProvider', slug: 'reference/model-provider' },
+						{ label: 'DecisionModel', slug: 'reference/decision-model' },
+						{ label: '@DatabaseStorage', slug: 'reference/database-storage' },
 						{ label: '@Budget', slug: 'reference/budget' },
 						{ label: '@PiiPolicy', slug: 'reference/pii-policy' },
 						{ label: '@InputGuardrail & @OutputGuardrail', slug: 'reference/guardrail' },
-						{ label: '@ChannelRole', slug: 'reference/channel-role' },
+						{ label: '@ToolApproval & @ExternalTask', slug: 'reference/pause-target' },
 						{ label: '@Channel', slug: 'reference/channel' },
-						{ label: '@ReplyInterpreter', slug: 'reference/reply-interpreter' },
+						{ label: '@ChannelInterpreter', slug: 'reference/channel-interpreter' },
 					],
 				},
 				{
@@ -218,9 +228,9 @@ export default defineConfig({
 					items: [
 						{ label: '@Rag', slug: 'reference/rag' },
 						{ label: '@McpServer', slug: 'reference/mcp' },
-						{ label: '@McpTool', slug: 'reference/mcp-tool' },
-						{ label: '@McpExpose', slug: 'reference/mcp-expose' },
+						{ label: '@McpEndpoint', slug: 'reference/mcp-endpoint' },
 						{ label: '@A2AAgent', slug: 'reference/a2a-agent' },
+						{ label: '@A2AEndpoint', slug: 'reference/a2a-endpoint' },
 					],
 				},
 				{
@@ -245,9 +255,9 @@ export default defineConfig({
 				starlightLlmsTxt({
 					projectName: 'AGBoss (Agent Graph Builder Open Source System)',
 					description:
-						'AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework with static verification (agboss check) for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed DTO dataflow, and HarnessDSL (HDSL) — its declarative workflow grammar enforcing 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Produced<Dto, Producer>, about, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC replaceWithToken), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & Progressive Infrastructure Scaling (InMemory* to Sqlite* WAL, 30s leases, ChildPlacement.AnyInstance work-stealing, health probes, and 10 unit runners), and (7) Progressive Crystallization (agboss describe --json + trace join + agboss hub Crystallization Radar from DecidedBy.Model to DecidedBy.Code).',
+						'AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework with static verification (agboss check) for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed DTO dataflow, and HarnessDSL (HDSL) — its declarative workflow grammar enforcing 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Tracked<Dto, Producer>, Metadata, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC tokenize()), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & Progressive Infrastructure Scaling (the in-memory database to a @DatabaseStorage on SQLite WAL, Postgres or MongoDB, 30s leases, ChildPlacement.AnyWorker work-stealing, health probes, and testUnit runners), and (7) Progressive Crystallization (agboss describe --json + trace join + agboss hub Crystallization Radar from DecidedBy.Model to DecidedBy.Code).',
 					details:
-						'AGBoss is designed for TypeScript engineers building multi-agent workflows with or without AI coding assistants. Instead of relying on an untyped mutable shared state object where missing branch inputs or stale loop outputs fail at runtime, AGBoss verifies workflow topology and Path Scope before runtime via `agboss check` (emitting `.agboss/types.d.ts`) and ships with auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`) and `@agboss/core/eslint`. Workflows use one chained method call per line (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`@agboss/core/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
+						'AGBoss is designed for TypeScript engineers building multi-agent workflows with or without AI coding assistants. Instead of relying on an untyped mutable shared state object where missing branch inputs or stale loop outputs fail at runtime, AGBoss verifies workflow topology and Path Scope before runtime via `agboss check` (emitting `.agboss/types.d.ts`) and ships with auto-synced `AGENTS.md` + 13 skill reference modules (`references/01..13`) and `@agboss/core/eslint`. Workflows use one chained method call per line (`onStart(Start).toAgent(Agent).toFinish(Finish)`), DTOs are plain objects validated by field decorators (`@agboss/core/dto`), and durations/money/sizes use unit factories (`seconds()`, `minutes()`, `hours()`, `usd()`, `kilobytes()`).',
 					customSets: [
 						{
 							label: 'Core Concepts & HarnessDSL (HDSL)',
@@ -257,7 +267,7 @@ export default defineConfig({
 						{
 							label: 'Production, FinOps, Security & Testing Guides',
 							paths: ['guides/**'],
-							description: 'Testing with testWith and 10 unit runners, @EvalSuite and pass@k / pass^k, error handling and rollback, channels and two-phase pauses, FinOps budgets, PII policies, SQLite durability, ChildPlacement.AnyInstance work-stealing, Langfuse tracing, MCP, RAG, A2A mesh + agboss hub, and AI coding skills.',
+							description: 'Testing with testWith and testUnit, @EvalSuite and pass@k / pass^k, error handling and rollback, channels and two-phase pauses, FinOps budgets, PII policies, SQLite durability, ChildPlacement.AnyWorker work-stealing, Langfuse tracing, MCP, RAG, A2A mesh + agboss hub, and AI coding skills.',
 						},
 						{
 							label: 'API Reference, CLI & Changelog',

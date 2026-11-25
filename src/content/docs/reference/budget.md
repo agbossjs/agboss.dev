@@ -3,7 +3,7 @@ title: "@Budget"
 description: Complete API reference for the @Budget decorator in AGBoss — Application, Tenant, and Execution spend scopes, BudgetPeriod, and CostLedgerRepository.
 ---
 
-The `@Budget` decorator (`config/budget.config.ts`) defines a FinOps spend ceiling registered in `@Application({ budgets })`. Budgets are checked before the first step of an execution and reconciled after every model call and `SpendRecorder.record()` entry across three hierarchical scopes: **`BudgetScope.Application`**, **`BudgetScope.Tenant`**, and **`BudgetScope.Execution`**.
+The `@Budget` decorator (`budgets/*.budget.ts`) defines a FinOps ceiling in dollars (`maxSpend`) and/or tokens (`maxTokens`) registered in `@Application({ budgets })` or attached to a workflow with `@Workflow({ budget })`. Budgets are checked before the first step of an execution and reconciled after every model call and `SpendRecorder.record()` entry across three hierarchical scopes: **`BudgetScope.Application`**, **`BudgetScope.Tenant`**, and **`BudgetScope.Execution`**.
 
 ## Complete `@Budget` example across all 3 scopes
 
@@ -84,7 +84,7 @@ export class DeepResearchExecutionBudget implements BudgetHandler {
 ```
 
 ```ts title="src/support.application.ts" file=src/support.application.ts
-import { Application, EmptyEnvironment, SqliteCostLedgerRepository } from "@agboss/core";
+import { Application, EmptyEnvironment } from "@agboss/core";
 import {
   ApplicationDailyBudget,
   DeepResearchExecutionBudget,
@@ -100,7 +100,6 @@ import { DeepResearchWorkflow, SupportWorkflow } from "./workflows/support.workf
   environment: EmptyEnvironment,
   tenantContext: SupportTenantContext,
   workflows: [SupportWorkflow, DeepResearchWorkflow],
-  providers: [SqliteCostLedgerRepository],
   budgets: [
     ApplicationDailyBudget,
     TenantDailyBudget,
@@ -113,7 +112,7 @@ export class SupportApplication {}
 
 <!--
 ```ts file=src/workflows/support.workflow.ts
-import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { Agent, Workflow, WorkflowFinish, WorkflowStart, onStart, inline, Ttl } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 
 @WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
@@ -125,15 +124,15 @@ export class ResearchStart {}
 @WorkflowFinish({ name: "support-workflow-finish", description: "Finish", output: WorkflowFinishTextDto })
 export class SupportFinish {}
 
-@Agent({ name: "support-agent", description: "Support", model: "moonshotai/kimi-k2.6", prompt: "Help." })
+@Agent({ name: "support-agent", description: "Support", model: "moonshotai/kimi-k2.6", prompt: inline("Help.") })
 export class SupportAgent {}
 
 @Workflow({
   name: "support-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(SupportStart)
-      .returns(WorkflowStartTextDto)
+    onStart(SupportStart)
       .toAgent(SupportAgent)
       .toFinish(SupportFinish),
   ],
@@ -143,9 +142,9 @@ export class SupportWorkflow {}
 @Workflow({
   name: "deep-research-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ResearchStart)
-      .returns(WorkflowStartTextDto)
+    onStart(ResearchStart)
       .toAgent(SupportAgent)
       .toFinish(SupportFinish),
   ],
@@ -180,23 +179,27 @@ test("halts execution when simulated spend exceeds DefaultExecutionBudget", asyn
 
 ## What options does `@Budget` accept?
 
-Every `@Budget` class implements `BudgetHandler` (`maxSpend(): Usd | Promise<Usd>`) and its `name` ends with `-budget`:
+Every `@Budget` limits something in exactly one place: constants in the decorator (`maxSpend`, `maxTokens`, or `defineEnv` values such as `env.usd(…)` / `env.integer(…)`), a `maxSpend()` method (`BudgetHandler`), or a `limit()` method returning `{ maxSpend?, maxTokens? }` (`[budget.missing-limit]`, `[budget.conflicting-limit]`). Its `name` ends with `-budget`. Both caps are enforced and each fails closed; a `$0` call with tokens (an unpriced CLI or local model) is written to the ledger and counted by `maxTokens`:
 
 | Option | Applies To | Type | Required | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `name` | All scopes | `string` | Yes | Unique kebab-case identifier ending with `-budget` (e.g., `"tenant-daily-budget"`). |
 | `scope` | All scopes | `BudgetScope` | Yes | `BudgetScope.Application`, `BudgetScope.Tenant`, or `BudgetScope.Execution`. |
 | `period` | `Application` & `Tenant` | `BudgetPeriod` | Yes | UTC accounting window: `BudgetPeriod.Day`, `BudgetPeriod.Week`, or `BudgetPeriod.Month`. Forbidden on `BudgetScope.Execution`. |
-| `workflow` | `Execution` | `Class` | No | Optional `@Workflow` class this execution cap applies to; omit to set the default cap for all root executions. |
-| `deps` | All scopes | `readonly Token[]` | No | Constructor dependencies (`AppEnvironment`, `TenantContext`, `ExecutionContext`, or `@Injectable` billing services). |
+| `workflow` | `Execution` | `Class` | No | Optional `@Workflow` class this execution cap applies to; omit to set the default cap for all root executions. `@Workflow({ budget })` attaches a budget to one workflow without listing it in the application. |
+| `maxSpend` | All scopes | `Usd \| EnvRef<Usd>` | One of three | A dollar cap, constant in the decorator. |
+| `maxTokens` | All scopes | `number \| EnvRef<number>` | One of three | A token cap, counted over every model call of the window. |
+| `description` | All scopes | `string` | No | Summary for `agboss describe`. |
+| `deps` | All scopes | `readonly Token[]` | No | Constructor dependencies (`AppEnvironment`, `TenantContext`, `ExecutionContext`, or `@Injectable` billing services) for a `maxSpend()` / `limit()` method. |
 
 ## What related entities work with `@Budget`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `BudgetHandler` | `"@agboss/core"` | Interface implemented by every `@Budget` class (`maxSpend(): Usd \| Promise<Usd>`). |
+| `BudgetHandler` | `"@agboss/core"` | Interface for a `@Budget` class whose limit is computed (`maxSpend(): Usd \| Promise<Usd>`); `limit(): BudgetLimit` is the form for dollars and tokens. |
 | `BudgetScope` & `BudgetPeriod` | `"@agboss/core"` | Enums specifying what is capped (`Application`, `Tenant`, `Execution`) and over which UTC period (`Day`, `Week`, `Month`). |
 | `usd(amount)` & `Usd` | `"@agboss/core/units"` | Exact monetary unit factory required for all budget caps and spend reporting. |
+| `BudgetExceededError` & `LimitError.Budget` | `"@agboss/core"` | Carry `unit` (`BudgetUnit.Usd` or `Tokens`), `maxSpend?`, `spent`, `maxTokens?` and `usedTokens`. A counter is keyed by the budget's name, scope key and period — never by a workflow — so workflows sharing one budget share one cap. |
 | `SpendRecorder` | `"@agboss/core"` | Injected into `@Tool` and `@Action` classes via `deps: [SpendRecorder]` to count paid external API calls toward `@Budget` caps. |
 | `CostLedgerRepository` & `SqliteCostLedgerRepository` | `"@agboss/core"` | Atomic multi-instance ledger storing period and execution spend counters; required in production (`agboss check --strict`). |
 | `BudgetExceededError` | `"@agboss/core"` | Thrown when a pre-call reservation or post-call spend exceeds any active `@Budget` ceiling. |

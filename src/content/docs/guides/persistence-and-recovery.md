@@ -51,7 +51,7 @@ export const durableStores = [
 ```
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, onStart, type BudgetHandler, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
 import { StoreEnvironment } from "./environments/prod.environment.js";
@@ -64,9 +64,9 @@ export class SupportFinish {}
 @Workflow({
   name: "support-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(SupportStart)
-      .returns(WorkflowStartTextDto)
+    onStart(SupportStart)
       .toFinish(SupportFinish),
   ],
 })
@@ -284,9 +284,9 @@ Every store is an infrastructure contract with a built-in in-memory default (`In
 | `ExecutionRecordRepository` | `SqliteExecutionRecordRepository` | Persists tenant-isolated threads, owners, `Tern` records, and atomic CAS status transitions |
 | `ExecutionHistoryRepository` | `SqliteExecutionHistoryRepository` | Persists completed `ExecutionRecord` snapshots (`steps[].decision`, `inputHash`, `toolCalls`, `origin`, retained for `executionRecordRetention`) for `agboss records export`, `agboss generate eval-case --from-execution`, and `agboss hub` |
 | `CostLedgerRepository` | `SqliteCostLedgerRepository` | Aggregates token and tool spend across all instances for `Execution`, `Tenant`, and `Application` `@Budget` scopes |
-| `ExecutionLeaseRepository` | `SqliteExecutionLeaseRepository` | Guarantees a single active holder (`seconds(30)` lease) per `(tenantId, rootExecutionId)` tree and per remote child (`ChildPlacement.AnyInstance`) |
+| `ExecutionLeaseRepository` | `SqliteExecutionLeaseRepository` | Guarantees a single active holder (`seconds(30)` lease) per `(tenantId, rootExecutionId)` tree and per remote child (`ChildPlacement.AnyWorker`) |
 | `ExecutionTreeRepository` | `SqliteExecutionTreeRepository` | Shares request-scoped keys (`saveIfAbsent`), `@agboss/cancel-request`, and `@agboss/unwinding` across the execution tree |
-| `ChildExecutionQueueRepository` | `SqliteChildExecutionQueueRepository` | Distributes `ChildPlacement.AnyInstance` child workflow tasks (`Queued → Running → Finished`) across worker instances with work-stealing and per-child crash recovery |
+| `ChildExecutionQueueRepository` | `SqliteChildExecutionQueueRepository` | Distributes `ChildPlacement.AnyWorker` child workflow tasks (`Queued → Running → Finished`) across worker instances with work-stealing and per-child crash recovery |
 | `RateLimitRepository` | `SqliteRateLimitRepository` | Shares `@ModelProvider` concurrency slots (`<provider>:slots`), shared tree concurrency slots (`SharedTreeSlots`), per-minute call/token windows, 429 cooldowns, and open circuit breakers |
 | `MeshRequestRepository` | `SqliteMeshRequestRepository` | Deduplicates incoming signed Agent Mesh (`@A2AExpose` / `@McpExpose`) requests by `origin.step.idempotencyKey` |
 
@@ -314,17 +314,17 @@ One lease exists per execution tree, keyed by `(tenantId, rootExecutionId)`, hel
 
 ---
 
-## Instance step caps (`maxConcurrentSteps`) & distributed child work-stealing (`ChildPlacement.AnyInstance`)
+## Instance step caps (`maxConcurrentSteps`) & distributed child work-stealing (`ChildPlacement.AnyWorker`)
 
 - **Local pod ceiling (`@Application({ maxConcurrentSteps: 32 })`):** Caps how many `@Agent`, `@Router`, and `@Action` steps run concurrently inside one process across all tenants and trees. When all slots are busy, additional steps wait in a deadlock-free priority queue:
   1. **Priority 1:** Steps that close a branch (right after a child workflow or `.join()` / `.joinQuorum()`).
   2. **Priority 2:** Deeper in-flight executions (`depth`, with +1 depth aging per 10s waited on the `Clock`).
   3. **Priority 3:** Newly arriving root `app.execute` calls.
 - **Load-balancer readiness shedding (`step-slots`):** While all `maxConcurrentSteps` slots are busy, `await app.checkReadiness()` reports component `step-slots` as `HealthStatus.Degraded` so Kubernetes / load balancers route new requests to idle pods, and the recovery sweep claims at most as many orphans as the instance has free slots.
-- **Distributed child workflow queue (`ChildPlacement.AnyInstance` & `ChildExecutionQueueRepository`, `#333`):** By default, `.toWorkflow(Child)` and `.toParallelWorkflows(Child, ...)` run on the parent's instance (`ChildPlacement.ParentInstance`). Passing `{ placement: ChildPlacement.AnyInstance }` (on `.toWorkflow`, `.toParallelWorkflows`, or `route(Child, { placement: ChildPlacement.AnyInstance })`) dispatches child workflow executions through `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`) so any instance with free `maxConcurrentSteps` slots can claim and run them:
+- **Distributed child workflow queue (`ChildPlacement.AnyWorker` & `ChildExecutionQueueRepository`, `#333`):** By default, `.toWorkflow(Child)` and `.toParallelWorkflows(Child, ...)` run on the parent's instance (`ChildPlacement.CurrentProcess`). Passing `{ placement: ChildPlacement.AnyWorker }` (on `.toWorkflow`, `.toParallelWorkflows`, or `route(Child, { placement: ChildPlacement.AnyWorker })`) dispatches child workflow executions through `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`) so any instance with free `maxConcurrentSteps` slots can claim and run them:
   - **Shared tree concurrency slots (`RateLimitRepository`):** The root workflow's `maxConcurrentExecutions` cap (`SharedTreeSlots`) is enforced across all worker instances via `RateLimitRepository`.
   - **Parent lease yielding while waiting:** While the parent workflow waits for remote `AnyInstance` children to finish, it **releases its own tree lease** (`ExecutionLeaseRepository`) and local step slot so the parent pod is never blocked. Whichever instance finishes the last child wakes the parent from its checkpoint.
-  - **Per-child 30s lease & per-child crash recovery:** Each `AnyInstance` child holds its own 30-second lease (`ExecutionLeaseRepository`) renewed every 10s. If the worker running Child #3 crashes mid-wave, another instance reclaims **only Child #3** (`Running` row with expired child lease) from its last checkpoint while sibling children continue uninterrupted. (If `ChildPlacement.AnyInstance` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`, `agboss check` warns with `[application.in-memory-child-queue]`.)
+  - **Per-child 30s lease & per-child crash recovery:** Each `AnyInstance` child holds its own 30-second lease (`ExecutionLeaseRepository`) renewed every 10s. If the worker running Child #3 crashes mid-wave, another instance reclaims **only Child #3** (`Running` row with expired child lease) from its last checkpoint while sibling children continue uninterrupted. (If `ChildPlacement.AnyWorker` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`, `agboss check` warns with `[application.in-memory-child-queue]`.)
 - **Shared `@ModelProvider` rate limits (`RateLimitRepository`):** Across all instances, `RateLimitRepository` enforces a provider's `maxConcurrentCalls` slots (`acquire` / `renew` / `release`), per-minute call and token windows (`addToWindow`), and 429 `Retry-After` pauses / open circuit breakers (`pauseUntil` / `pausedUntil`).
 
 ---
@@ -337,5 +337,5 @@ You can either subclass a built-in `Sqlite*` store (injecting `SqliteConnection`
 
 ## Standalone Executable Proofs
 
-- **[Showcase: Distributed Agent Recovery (`agbossjs/distributed-agent-recovery`)](/examples/distributed-agent-recovery/):** Multi-process OS worker cluster and Docker Compose showcase ([GitHub](https://github.com/agbossjs/distributed-agent-recovery)) demonstrating `ChildPlacement.AnyInstance` cross-process load balancing, POSIX `SIGSTOP`/`SIGCONT` worker freeze past the 30s lease TTL, same-task checkpoint takeover (`execution.recovered`, `leaseEpoch 1 → 2`), two-layer zombie worker lease fencing, LIFO saga rollback, and live AI recovery planning across 8 automated invariants.
-- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** Multi-instance cluster harness in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) proving `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository`, bounded recursive `ThisWorkflow` (`maxDepth: 2`), 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck` liveness/readiness probes, and cross-instance pause/resume/cancel (see [7 Verified Examples](/examples/verified-examples/)).
+- **[Showcase: Distributed Agent Recovery (`agbossjs/distributed-agent-recovery`)](/examples/distributed-agent-recovery/):** Multi-process OS worker cluster and Docker Compose showcase ([GitHub](https://github.com/agbossjs/distributed-agent-recovery)) demonstrating `ChildPlacement.AnyWorker` cross-process load balancing, POSIX `SIGSTOP`/`SIGCONT` worker freeze past the 30s lease TTL, same-task checkpoint takeover (`execution.recovered`, `leaseEpoch 1 → 2`), two-layer zombie worker lease fencing, LIFO saga rollback, and live AI recovery planning across 8 automated invariants.
+- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** Multi-instance cluster harness in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) proving `ChildPlacement.AnyWorker` over `SqliteChildExecutionQueueRepository`, bounded recursive `ThisWorkflow` (`maxDepth: 2`), 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck` liveness/readiness probes, and cross-instance pause/resume/cancel (see [7 Verified Examples](/examples/verified-examples/)).

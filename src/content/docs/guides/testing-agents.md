@@ -16,7 +16,7 @@ In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verifica
 
 ---
 
-## Complete example: `testWith(Application)`, `testTool` & `testJudge`
+## Complete example: `testWith(Application)`, `testUnit` & `testUnit`
 
 `testWith(Application)` boots your real `@Application` container and infrastructure in each test while scripting model turns via `mockLlm`, action calls via `mockAction`, tool failures via `mockTool`, and service methods via `mockOf`:
 
@@ -34,13 +34,13 @@ export class SupportWorkflowFinish {}
 // @snippet
 -->
 ```ts title="src/support.workflow.ts" file=src/support.workflow.ts
-import { Agent, Workflow, start } from "@agboss/core";
+import { Agent, Workflow, onStart, inline, Ttl } from "@agboss/core";
 
 @Agent({
   name: "support-agent",
   description: "Answers support questions using LookupOrderTool",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Look up the order and answer the customer.",
+  prompt: inline("Look up the order and answer the customer."),
   tools: [LookupOrderTool],
 })
 export class SupportAgent {}
@@ -48,9 +48,9 @@ export class SupportAgent {}
 @Workflow({
   name: "support-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(SupportWorkflowStart)
-      .returns(WorkflowStartTextDto)
+    onStart(SupportWorkflowStart)
       .toAgent(SupportAgent)
       .toFinish(SupportWorkflowFinish),
   ],
@@ -59,7 +59,7 @@ export class SupportWorkflow {}
 ```
 
 <!-- snippet-context
-import { ExecutionCancelledError, Injectable, type JudgeHandler, type JudgeInput, type JudgeVerdict } from "@agboss/core";
+import { ExecutionCancelledError, Injectable, type JudgeHandler, type JudgeInput, type JudgeVerdict, inline } from "@agboss/core";
 import { PlainTextDto, Text } from "@agboss/core/dto";
 export class ChangesRequestedDto {
   @Text({ prompt: "what to change" })
@@ -93,8 +93,7 @@ import {
   decideWith,
   override,
   replyWith,
-  testJudge,
-  testTool,
+  testUnit,
   testWith,
   waitFor,
 } from "@agboss/core/testing";
@@ -130,7 +129,7 @@ test("reviewer asks for changes, then approves", async ({
 });
 
 it("searches the board it is given in isolation", async () => {
-  const runSearch = testTool(SearchJobsTool, {
+  const runSearch = testUnit(SearchJobsTool, {
     overrides: [override(JobBoardService, FakeJobBoardService)],
   });
 
@@ -144,7 +143,7 @@ it("searches the board it is given in isolation", async () => {
 });
 
 it("a grounded reply passes the decision judge", async () => {
-  const runJudge = testJudge(GroundedJudge, {
+  const runJudge = testUnit(GroundedJudge, {
     model: decideWith({ grounded: 0.9 }),
   });
 
@@ -181,16 +180,16 @@ When testing a single component's logic — such as a PII policy, a tool interce
 
 | Unit Runner | Target Component | What It Validates |
 | :--- | :--- | :--- |
-| `testTool(ToolClass, opts?)` | [`@Tool`](/reference/tool/) | Input/output DTO validation, `deps` injection, timeouts (`clock.advance`), and `run(input)` result |
-| `testToolInterceptor(InterceptorClass, opts?)` | [`@ToolInterceptor`](/reference/tool-interceptor/) | `beforeToolCall(ToolClass, input)` (`ToolCallDecision`) and `afterToolCall(ToolClass, input, output)` DTO-validated transformation |
-| `testAction(ActionClass, opts?)` | [`@Action`](/reference/action/) | Deterministic step logic, `SpendRecorder` entries, and `execute(input)` output |
-| `testRouter(RouterClass, opts?)` | [`@Router`](/reference/router/) | Model or code route selection (`DecidedBy.Model` with `routeTo` / `DecidedBy.Code`) |
-| `testArbiter(ArbiterClass, opts?)` | [`@Arbiter`](/reference/arbiter/) | Quorum answer acceptance across `@OnAnswer(Agent)` or `decideWith` model criteria |
-| `testRag(RagClass, opts?)` | [`@Rag`](/reference/rag/) | `retrieve(query, { topK, signal })` results and reported `rag:<name>` spend |
-| `testJudge(JudgeClass, opts?)` | [`@Judge`](/reference/judge/) | Quality gate `judge({ reply, task, attempt, toolCalls })` with `decideWith`, `replyWith`, or `DecidedBy.Code` |
-| `testCompaction(CompactionClass, opts?)` | [`@Compaction`](/reference/compaction/) | Single-step memory compaction (`CompactionInput` $\to$ `{ summaries, requests }`) across `SummaryQueue`, `SingleSummary`, or `CompactionStrategy.Custom`, verifying that critical constraints are passed and preserved |
-| `testPii(Policies, opts?)` | [`@PiiPolicy`](/reference/pii-policy/) | Assembly rule checks, `mask(text)` token generation, and `reveal(text)` restoration |
-| `testGuardrail(GuardrailClass, opts?)` | [`@InputGuardrail` / `@OutputGuardrail`](/reference/guardrail/) | Pre-model and post-model safety refusal checks (`DecidedBy.Model` with `decideWith` or `DecidedBy.Code` with `GuardrailHandler`) |
+| `testUnit(ToolClass, opts?)` | [`@Tool`](/reference/tool/) | Input/output DTO validation, `deps` injection, timeouts (`clock.advance`), and `run(input)` result |
+| `testUnit(InterceptorClass, opts?)` | [`@ToolInterceptor`](/reference/tool-interceptor/) | `beforeToolCall(ToolClass, input)` (`ToolCallDecision`) and `afterToolCall(ToolClass, input, output)` DTO-validated transformation |
+| `testUnit(ActionClass, opts?)` | [`@Action`](/reference/action/) | Deterministic step logic, `SpendRecorder` entries, and `execute(input)` output |
+| `testUnit(RouterClass, opts?)` | [`@Router`](/reference/router/) | Model or code route selection (`DecidedBy.Model` with `routeTo` / `DecidedBy.Code`) |
+| `testUnit(ArbiterClass, opts?)` | [`@Arbiter`](/reference/arbiter/) | Quorum answer acceptance across `@Arbitrate(Agent)` or `decideWith` model criteria |
+| `testUnit(RagClass, opts?)` | [`@Rag`](/reference/rag/) | `retrieve(query, { topK, signal })` results and reported `rag:<name>` spend |
+| `testUnit(JudgeClass, opts?)` | [`@Judge`](/reference/judge/) | Quality gate `judge({ reply, task, attempt, toolCalls })` with `decideWith`, `replyWith`, or `DecidedBy.Code` |
+| `testUnit(CompactionClass, opts?)` | [`@Compaction`](/reference/memory/) | Single-step memory compaction (`CompactionInput` $\to$ `{ summaries, requests }`) across `SummaryQueue`, `SingleSummary`, or `CompactionStrategy.Custom`, verifying that critical constraints are passed and preserved |
+| `testUnit(Policies, opts?)` | [`@PiiPolicy`](/reference/pii-policy/) | Assembly rule checks, `mask(text)` token generation, and `reveal(text)` restoration |
+| `testUnit(GuardrailClass, opts?)` | [`@InputGuardrail` / `@OutputGuardrail`](/reference/guardrail/) | Pre-model and post-model safety refusal checks (`DecidedBy.Model` with `decideWith` or `DecidedBy.Code` with `GuardrailHandler`) |
 
 ---
 
@@ -221,7 +220,7 @@ Real language models occasionally emit malformed JSON, truncated tool arguments,
 - **Multi-instance tests (`testWith(App, { instances: 2 })`, `#458`):** When `instances: 2` is passed, `testWith` shares the default `InMemory*` stores and `VirtualClock` across all instances automatically. If your application lists `Sqlite*` stores, note that `sqlitePath: ":memory:"` opens a **separate** SQLite in-memory database per instance connection; to test multiple instances sharing one SQLite database, point `sqlitePath` in a test environment (`testWith(App, { instances: 2, env: "instances" })`) at a temporary file path (`mkdtempSync`).
 
 <!-- snippet-context
-import { DecidedBy, Judge, JudgeVerdict, Tool, ToolCallStatus, toolCallsOf, type JudgeHandler, type JudgeInput, type ToolHandler } from "@agboss/core";
+import { DecidedBy, Judge, JudgeVerdict, Tool, ToolCallStatus, toolCallsOf, type JudgeHandler, type JudgeInput, type ToolHandler, inline } from "@agboss/core";
 import { Text } from "@agboss/core/dto";
 export class OrderIdDto {
   @Text({ prompt: "Order ID" })

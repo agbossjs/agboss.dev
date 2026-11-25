@@ -11,9 +11,9 @@ Early in a feature's lifecycle, you *want* the flexibility of [`DecidedBy.Model`
 
 **Progressive Crystallization** is the architectural practice of systematically identifying these settled stochastic **Desire Paths** via content-addressed revision hashes (`agboss describe --json`), multi-run `pass@k` vs `pass^k` reliability benchmarks, and execution traces (`ExecutionRecord` and Langfuse / OpenTelemetry spans), and replacing them in place without changing neighbor contracts:
 - `DecidedBy.Model` `@Router` and `@Arbiter` $\to$ `DecidedBy.Code` (`0ms` LLM latency, `$0.00` token spend)
-- `DecidedBy.Model` `@InputGuardrail`, `@OutputGuardrail`, and `@Judge` $\to$ `DecidedBy.Code` (`GuardrailHandler` / deterministic `JudgeHandler` inspecting DTOs and `toolCalls` at `$0.00` cost)
+- `DecidedBy.Model` `@InputGuardrail`, `@OutputGuardrail`, and `@Judge` $\to$ `DecidedBy.Code` (one `check(content)` / deterministic `JudgeHandler` inspecting DTOs and `toolCalls` at `$0.00` cost)
 - Repetitive `@Tool` sequences inside an `@Agent` $\to$ deterministic `@Action` steps or `@ToolInterceptor` gates
-- Model-summarized `@Compaction` $\to$ `CompactionStrategy.Custom` (`CompactionHandler`) writing structured facts into a knowledge graph or vector store
+- Model-summarized `@Memory` $\to$ a `@Memory` with a window and no summaries, or your own service writing structured facts into a knowledge graph or vector store
 - Human-in-the-loop `ChannelOutcome.awaitReply()` pauses on low-risk cases $\to$ immediate auto-approved `ChannelOutcome.decided(...)`
 
 ---
@@ -32,9 +32,9 @@ The JSON envelope includes three cryptographic content hashes:
 
 | Hash Field | Scope | What It Hashes |
 | :--- | :--- | :--- |
-| **`configHash`** | Per `@Workflow` | Complete graph topology: start/finish nodes, step sequence, `.switch()` / `.chooseOne()` edges, `.joinQuorum()` rules, and `.onError()` paths |
-| **`promptHash`** | Per `@Agent` / `@Router` / `@Arbiter` / `@Guardrail` | Resolved system prompt template (`prompt` + `promptUrls`) and model configuration |
-| **`schemaHash`** | Per DTO Class | Normalized JSON Schema compiled from `@Text`, `@Integer`, `@Decimal`, `@Flag`, `@OneOf`, `@ListOf`, and `@Nested` decorators |
+| **`configHash`** | Per `@Workflow` | Complete graph topology: start/finish nodes, step sequence, `.onRoute()` / `.toOneOf()` edges, `.joinQuorum()` rules, and `.onError()` paths |
+| **`promptHash`** | Per `@Agent` / `@Router` / `@Arbiter` / `@InputGuardrail` / `@OutputGuardrail` | Resolved system prompt template (the resolved `prompt`) and model configuration |
+| **`schemaHash`** | Per DTO Class | Normalized JSON Schema compiled from `@Text`, `@Integer`, `@Float`, `@Bool`, `@Enum`, `@List`, and `@Nested` decorators |
 
 Every `ExecutionRecord` (`result.record`) and step trace emitted to [`OnExecutionEnd`](/guides/observability-and-tracing/) records these exact hashes (`configHash`, `promptHash`, `schemaHash`).
 
@@ -42,12 +42,12 @@ Every `ExecutionRecord` (`result.record`) and step trace emitted to [`OnExecutio
 
 ## Step 2: Crystallizing a `DecidedBy.Model` Router into `DecidedBy.Code`
 
-Suppose you launch a workflow with a `DecidedBy.Model` router (`OrderTriageModelRouter`) that classifies incoming orders using a fast decision model (`typesafe/jev-1.13`). Once execution traces for `OrderTriageModelRouter`'s `promptHash` and `OrderTriageDto`'s `schemaHash` confirm that the routing boundary is a pure function of `OrderTriageDto` fields (or a deterministic database lookup via an `@Injectable()` service), you (or your coding agent) crystallize the router in place by switching `decidedBy` to `DecidedBy.Code`:
+Suppose you launch a workflow with a `DecidedBy.Model` router (`OrderTriageModelRouter`) that classifies incoming orders using a fast decision model (`typesafe/jev-1.13`). Once execution traces for `OrderTriageModelRouter`'s `promptHash` and `OrderTriageDto`'s `schemaHash` confirm that the routing boundary is a pure function of `OrderTriageDto` fields (or a deterministic database lookup via an `@Injectable()` service), you (or your coding agent) crystallize the router in place by switching `decidedBy` to `DecidedBy.Code` (a model router's route is `{ target, prompt }`, a code router's route is the class):
 
 <!--
 ```ts file=src/routers/order-triage.contracts.ts
-import { Action, Agent, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
-import { Flag, Integer, Text } from "@agboss/core/dto";
+import { Action, Agent, type ActionHandler, type InputOf, type OutputOf, inline } from "@agboss/core";
+import { Bool, Integer, Text } from "@agboss/core/dto";
 
 export class OrderTriageDto {
   @Text({ prompt: "Customer tier: free or enterprise" })
@@ -56,16 +56,16 @@ export class OrderTriageDto {
   @Integer({ min: 0, prompt: "Total order value in cents" })
   amountCents!: number;
 
-  @Flag({ prompt: "Whether the shipping address is international" })
+  @Bool({ prompt: "Whether the shipping address is international" })
   isInternational!: boolean;
 }
 
-@Agent({ name: "compliance-review-agent", description: "Reviews order", model: "moonshotai/kimi-k2.6", prompt: "Review.", input: { order: OrderTriageDto }, output: OrderTriageDto })
+@Agent({ name: "compliance-review-agent", description: "Reviews order", model: "moonshotai/kimi-k2.6", prompt: inline("Review."), input: { order: OrderTriageDto }, output: OrderTriageDto })
 export class ComplianceReviewAgent {}
 
 @Action({ name: "fast-track-capture-action", description: "Captures order", input: { order: OrderTriageDto }, output: OrderTriageDto })
 export class FastTrackCaptureAction implements ActionHandler<FastTrackCaptureAction> {
-  execute(input: InputOf<FastTrackCaptureAction>): Promise<OutputOf<FastTrackCaptureAction>> { return Promise.resolve(input.order.value); }
+  execute(input: InputOf<FastTrackCaptureAction>): Promise<OutputOf<FastTrackCaptureAction>> { return Promise.resolve(input.order); }
 }
 ```
 -->
@@ -74,8 +74,8 @@ import { ComplianceReviewAgent, FastTrackCaptureAction } from "./order-triage.co
 // @snippet
 -->
 ```ts title="src/routers/order-triage-model.router.ts" file=src/routers/order-triage-model.router.ts
-import { DecidedBy, Router } from "@agboss/core";
-import { Flag, Integer, Text } from "@agboss/core/dto";
+import { DecidedBy, Router, inline } from "@agboss/core";
+import { Bool, Integer, Text } from "@agboss/core/dto";
 
 export class OrderTriageDto {
   @Text({ prompt: "Customer tier: free or enterprise" })
@@ -84,7 +84,7 @@ export class OrderTriageDto {
   @Integer({ min: 0, prompt: "Total order value in cents" })
   amountCents!: number;
 
-  @Flag({ prompt: "Whether the shipping address is international" })
+  @Bool({ prompt: "Whether the shipping address is international" })
   isInternational!: boolean;
 }
 
@@ -93,7 +93,7 @@ export class OrderTriageDto {
   description: "Routes orders to compliance review or fast-track capture",
   decidedBy: DecidedBy.Model,
   model: "typesafe/jev-1.13",
-  prompt: "Route international orders or orders over $5,000 to compliance review; fast-track the rest.",
+  prompt: inline("Route international orders or orders over $5,000 to compliance review; fast-track the rest."),
   input: { order: OrderTriageDto },
   routes: [
     {
@@ -110,7 +110,7 @@ export class OrderTriageModelRouter {}
 ```
 
 <!-- snippet-context
-import { Workflow, WorkflowFinish, WorkflowStart, route, start } from "@agboss/core";
+import { Workflow, WorkflowFinish, WorkflowStart, onStart, toAction, toAgent, Ttl } from "@agboss/core";
 import { ComplianceReviewAgent, FastTrackCaptureAction, OrderTriageDto } from "./order-triage.contracts.js";
 export { ComplianceReviewAgent, FastTrackCaptureAction };
 // @snippet
@@ -121,16 +121,16 @@ export class TriageFinish {}
 @Workflow({
   name: "order-triage-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(TriageStart)
-      .returns(OrderTriageDto)
+    onStart(TriageStart)
       .toRouter(OrderTriageRouter)
-      .chooseOne(
-        route(ComplianceReviewAgent)
-          .returns(OrderTriageDto)
+      .onRoute(
+        toAgent(ComplianceReviewAgent)
           .toFinish(TriageFinish),
-        route(FastTrackCaptureAction)
-          .returns(OrderTriageDto)
+      )
+      .onRoute(
+        toAction(FastTrackCaptureAction)
           .toFinish(TriageFinish),
       ),
   ],
@@ -151,14 +151,11 @@ import {
   description: "Deterministically routes international or high-value orders to compliance review",
   decidedBy: DecidedBy.Code,
   input: { order: OrderTriageDto },
-  routes: [
-    { target: ComplianceReviewAgent },
-    { target: FastTrackCaptureAction },
-  ],
+  routes: [ComplianceReviewAgent, FastTrackCaptureAction], // a code router's route is its class
 })
 export class OrderTriageRouter implements RouterHandler<OrderTriageRouter> {
   route(input: InputOf<OrderTriageRouter>): Route<OrderTriageRouter> {
-    const { amountCents, isInternational } = input.order.value;
+    const { amountCents, isInternational } = input.order;
     return isInternational || amountCents > 500_000
       ? ComplianceReviewAgent
       : FastTrackCaptureAction;
@@ -168,29 +165,26 @@ export class OrderTriageRouter implements RouterHandler<OrderTriageRouter> {
 
 ```ts title="test/order-triage.router.test.ts" file=test/order-triage.router.test.ts
 import { expect, it } from "vitest";
-import { testRouter } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import {
   ComplianceReviewAgent,
   FastTrackCaptureAction,
   OrderTriageRouter,
-  TriageStart,
 } from "../src/routers/order-triage.router.js";
 
 it("verifies crystallized DecidedBy.Code router with zero LLM calls", async () => {
-  const runRouter = testRouter(OrderTriageRouter);
+  const runRouter = testUnit(OrderTriageRouter);
 
   const highValue = await runRouter({
     order: {
-      value: { tier: "enterprise", amountCents: 750_000, isInternational: false },
-      producer: TriageStart,
+      tier: "enterprise", amountCents: 750_000, isInternational: false,
     },
   });
   expect(highValue.output).toBe(ComplianceReviewAgent);
 
   const standard = await runRouter({
     order: {
-      value: { tier: "free", amountCents: 25_000, isInternational: false },
-      producer: TriageStart,
+      tier: "free", amountCents: 25_000, isInternational: false,
     },
   });
   expect(standard.output).toBe(FastTrackCaptureAction);
@@ -198,8 +192,8 @@ it("verifies crystallized DecidedBy.Code router with zero LLM calls", async () =
 ```
 
 Notice what **did not change**:
-- The `@Workflow` definition (`*.workflow.ts`) is completely untouched — `.toRouter(OrderTriageRouter).chooseOne(...)` works identically whether `OrderTriageRouter` is `DecidedBy.Model` or `DecidedBy.Code`.
-- Downstream Path Scope availability (`Produced<Dto, P>`) is preserved.
+- The `@Workflow` definition (`*.workflow.ts`) is completely untouched — `.toRouter(OrderTriageRouter).onRoute(…)` works identically whether `OrderTriageRouter` is `DecidedBy.Model` or `DecidedBy.Code`.
+- Downstream Path Scope availability (`Tracked<Dto, P>`) is preserved.
 - Latency for this node drops from ~150–400ms to `<0.1ms`, and token spend drops to `$0.00`.
 
 ---
@@ -210,7 +204,7 @@ A second prime target for crystallization is an `@Agent` whose traces show a fix
 
 Instead of paying an LLM to orchestrate `ToolA -> ToolB` on every turn:
 1. Extract the deterministic API/database calls into an [`@Injectable()`](/reference/injectable/) service or a dedicated [`@Action`](/reference/action/) node upstream of the `@Agent`.
-2. Wire `.toAction(FetchAndEnrichAction).returns(EnrichedContextDto).toAgent(AnalystAgent)` in the workflow.
+2. Wire `.toAction(FetchAndEnrichAction).toAgent(AnalystAgent)` in the workflow (the action's `output: EnrichedContextDto` is what the agent reads).
 3. Now the deterministic data fetching executes with `0` LLM tokens and full [`ExecutionContext.step.idempotencyKey`](/concepts/application/) deduplication, while `AnalystAgent` receives the pre-fetched `EnrichedContextDto` in a single, KV-cache-friendly turn.
 
 ---
@@ -237,7 +231,7 @@ npx agboss eval run --suite order-triage-eval-suite --runs 5 --baseline .artifac
 
 # 4. Export execution history and inspect the Progressive Crystallization Radar in AGBoss Mesh Hub (#401):
 npx agboss describe --json > .artifacts/describe.json
-npx agboss records export --all-tenants --out .artifacts/records.jsonl
+npx agboss executions export --all-tenants --out .artifacts/records.jsonl
 npx agboss hub show .artifacts --html .artifacts/hub.html
 npx agboss hub ui .artifacts
 ```

@@ -3,14 +3,14 @@ title: Parallel, Quorums & Child Workflows
 description: "Fan out parallel agents and child workflows, evaluate quorum consensus with @Arbiter, and distribute child workflows across workers with AnyInstance."
 ---
 
-AGBoss provides first-class **HarnessDSL (`HDSL`)** flow primitives for deterministic fan-out/fan-in (`.toParallelAgents()`, `.toParallelWorkflows()`), deadline-bounded quorum consensus (`.acceptedBy()`, `.joinQuorum()`, `.joinQuorumGroups(group(...).priority(1))`, [`@Arbiter`](/reference/arbiter/)), modular child workflows (`.toWorkflow(Child)`), and depth-bounded recursion (`ThisWorkflow`).
+AGBoss provides first-class **HarnessDSL (`HDSL`)** flow primitives for deterministic fan-out/fan-in (`.toParallelAgents()`, `.toParallelWorkflows()`), deadline-bounded quorum consensus (`.arbitratedBy()`, `.joinQuorum()`, `.joinQuorumGroups(group(...).priority(1))`, [`@Arbiter`](/reference/arbiter/)), modular child workflows (`.toWorkflow(Child)`), and depth-bounded recursion (`ThisWorkflow`).
 
 ## How parallel fan-out, `.join()`, and quorum consensus work
 
 When a step fans out across multiple specialists or a dynamic list of items (`maxItems`, `maxConcurrency`), every branch receives an isolated copy of the Path Scope. You then merge results in one of three ways:
 - **Wait for all (`.join()`):** Waits for every branch to complete and binds all outputs via `.returns(...)`.
-- **Count-based quorum (`.acceptedBy(Arbiter).joinQuorum({ min, max, deadline })`):** Evaluates each arriving branch output with one or more [`@Arbiter`](/reference/arbiter/) classes (`anyOf(A, B)` accepts if either passes; chaining `.acceptedBy(A).acceptedBy(B)` requires both). As soon as `max` (default `min`) accepted answers arrive, the join proceeds immediately and aborts slower in-flight branches (`BranchVerdict.Surplus`). Unless `min` equals the total number of launched agents, single-agent outputs after `.joinQuorum()` are typed as `optional(Dto)` in `.returns(...)`.
-- **Priority group quorum (`.acceptedBy(Arbiter).joinQuorumGroups(group(...).priority(1)..., { deadline })`):** Defines prioritized combinations of agents (`priority(1)` is highest), where each `group(...)` declares its own `.returns(...)` and continuation path:
+- **Count-based quorum (`.arbitratedBy(Arbiter).joinQuorum({ min, max, deadline })`):** Evaluates each arriving branch output with one or more [`@Arbiter`](/reference/arbiter/) classes (`anyOf(A, B)` accepts if either passes; chaining `.arbitratedBy(A).arbitratedBy(B)` requires both). As soon as `max` (default `min`) accepted answers arrive, the join proceeds immediately and aborts slower in-flight branches (`BranchVerdict.Surplus`). Unless `min` equals the total number of launched agents, single-agent outputs after `.joinQuorum()` are typed as `optional(Dto)` in `.returns(...)`.
+- **Priority group quorum (`.arbitratedBy(Arbiter).joinQuorumGroups(group(...).priority(1)..., { deadline })`):** Defines prioritized combinations of agents (`priority(1)` is highest), where each `group(...)` declares its own `.returns(...)` and continuation path:
 
 <!-- snippet-context
 import {
@@ -23,15 +23,16 @@ import {
   BudgetScope,
   DecidedBy,
   EmptyEnvironment,
-  OnAnswer,
+  Arbitrate,
   WorkflowFinish,
   WorkflowStart,
   type ActionHandler,
   type BudgetHandler,
   type InputOf,
   type OutputOf,
+  inline,
 } from "@agboss/core";
-import { Flag, Integer, Text } from "@agboss/core/dto";
+import { Bool, Integer, Text } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
 
 export class ProposalDto {
@@ -40,19 +41,19 @@ export class ProposalDto {
 }
 
 export class SecurityVerdictDto {
-  @Flag({ prompt: "passed security review" })
+  @Bool({ prompt: "passed security review" })
   passed!: boolean;
   @Integer({ prompt: "confidence 0-100" })
   confidence!: number;
 }
 
 export class LegalVerdictDto {
-  @Flag({ prompt: "passed legal review" })
+  @Bool({ prompt: "passed legal review" })
   passed!: boolean;
 }
 
 export class BackupVerdictDto {
-  @Flag({ prompt: "passed backup audit" })
+  @Bool({ prompt: "passed backup audit" })
   passed!: boolean;
 }
 
@@ -74,7 +75,7 @@ export class ProposalRejectedFinish {}
   name: "security-review-agent",
   description: "Evaluates security posture",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Review security posture.",
+  prompt: inline("Review security posture."),
   input: { proposal: ProposalDto },
   output: SecurityVerdictDto,
 })
@@ -84,7 +85,7 @@ export class SecurityAgent {}
   name: "legal-review-agent",
   description: "Evaluates legal compliance",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Review legal compliance.",
+  prompt: inline("Review legal compliance."),
   input: { proposal: ProposalDto },
   output: LegalVerdictDto,
 })
@@ -94,7 +95,7 @@ export class LegalAgent {}
   name: "backup-audit-agent",
   description: "Fast fallback compliance check",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Run fast compliance check.",
+  prompt: inline("Run fast compliance check."),
   input: { proposal: ProposalDto },
   output: BackupVerdictDto,
 })
@@ -102,17 +103,17 @@ export class BackupAuditAgent {}
 
 @Arbiter({ name: "review-quorum-arbiter", decidedBy: DecidedBy.Code })
 export class ReviewQuorumArbiter {
-  @OnAnswer(SecurityAgent)
+  @Arbitrate(SecurityAgent)
   fromSecurity(v: SecurityVerdictDto): boolean {
     return v.passed && v.confidence >= 80;
   }
 
-  @OnAnswer(LegalAgent)
+  @Arbitrate(LegalAgent)
   fromLegal(v: LegalVerdictDto): boolean {
     return v.passed;
   }
 
-  @OnAnswer(BackupAuditAgent)
+  @Arbitrate(BackupAuditAgent)
   fromBackupAudit(v: BackupVerdictDto): boolean {
     return v.passed;
   }
@@ -172,35 +173,29 @@ export class ReviewExecBudget implements BudgetHandler { maxSpend(): Usd { retur
 export class ReviewApplication {}
 -->
 ```ts title="src/workflows/parallel-review.workflow.ts" file=src/parallel-review.workflow.ts
-import { QuorumNotReachedError, Workflow, group, start, toAction } from "@agboss/core";
+import { QuorumNotReachedError, Workflow, group, onStart, toAction, Ttl } from "@agboss/core";
 import { seconds } from "@agboss/core/units";
 
 @Workflow({
   name: "parallel-review-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ProposalStart)
-      .returns(ProposalDto)
+    onStart(ProposalStart)
       .toParallelAgents(SecurityAgent, LegalAgent, BackupAuditAgent)
-      .acceptedBy(ReviewQuorumArbiter)
+      .arbitratedBy(ReviewQuorumArbiter)
       .joinQuorumGroups(
         group(SecurityAgent, LegalAgent)
           .priority(1)
-          .returns(SecurityVerdictDto)
-          .returns(LegalVerdictDto)
           .toAction(MergePrimaryVerdictsAction)
-          .returns(ApprovedProposalDto)
           .toFinish(ProposalApprovedFinish),
         group(SecurityAgent, BackupAuditAgent)
           .priority(2)
-          .returns(SecurityVerdictDto)
-          .returns(BackupVerdictDto)
           .toAction(MergeFallbackVerdictsAction)
-          .returns(ApprovedProposalDto)
           .toFinish(ProposalApprovedFinish),
         { deadline: seconds(10) },
       )
-      .onJoinError(
+      .onError(
         QuorumNotReachedError,
         toAction(RecordQuorumFailureAction)
           .toFinish(ProposalRejectedFinish),
@@ -245,10 +240,10 @@ test("reaches priority-2 quorum when SecurityAgent and BackupAuditAgent finish f
 A workflow can invoke a modular child workflow (`.toWorkflow(ChildWorkflow)`) or recursively invoke itself (`ThisWorkflow`) either deterministically or as a model-driven tool call:
 
 <!-- snippet-context
-import { Action, Agent, WorkflowFinish, WorkflowStart, oneOf, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
-import { ListOf, Text } from "@agboss/core/dto";
+import { Action, Agent, WorkflowFinish, WorkflowStart, oneOf, type ActionHandler, type InputOf, type OutputOf, inline, Ttl } from "@agboss/core";
+import { List, Text } from "@agboss/core/dto";
 export class TopicDto { @Text() topic!: string; }
-export class SubTopicsDto { @ListOf(TopicDto) items!: TopicDto[]; }
+export class SubTopicsDto { @List(TopicDto) items!: TopicDto[]; }
 export class ResolvedDto { @Text() draft!: string; }
 export class VerifiedSummaryDto { @Text() summary!: string; }
 @WorkflowStart({ name: "research-workflow-start", description: "Start", input: TopicDto })
@@ -259,19 +254,20 @@ export class ResearchFinish {}
 export class FactCheckStart {}
 @WorkflowFinish({ name: "fact-check-workflow-finish", description: "Child finish", output: VerifiedSummaryDto })
 export class FactCheckFinish {}
-@Agent({ name: "fact-checker-agent", description: "Checks facts", model: "moonshotai/kimi-k2.6", prompt: "Verify facts.", input: { resolved: ResolvedDto }, output: VerifiedSummaryDto })
+@Agent({ name: "fact-checker-agent", description: "Checks facts", model: "moonshotai/kimi-k2.6", prompt: inline("Verify facts."), input: { resolved: ResolvedDto }, output: VerifiedSummaryDto })
 export class FactCheckerAgent {}
 @Workflow({
   name: "fact-check-child-workflow",
   version: "1.0.0",
-  flow: [start(FactCheckStart).returns(ResolvedDto).toAgent(FactCheckerAgent).returns(VerifiedSummaryDto).toFinish(FactCheckFinish)],
+  historyTtl: Ttl.Forever,
+  flow: [onStart(FactCheckStart).toAgent(FactCheckerAgent).toFinish(FactCheckFinish)],
 })
 export class FactCheckChildWorkflow {}
 @Agent({
   name: "decompose-topic-agent",
   description: "Either resolves the topic or splits it into sub-topics",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Resolve or split into sub-topics.",
+  prompt: inline("Resolve or split into sub-topics."),
   input: { topic: TopicDto },
   output: oneOf(ResolvedDto, SubTopicsDto),
 })
@@ -284,7 +280,7 @@ export class DecomposeTopicAgent {}
 })
 export class ExtractSubTopicsAction implements ActionHandler<ExtractSubTopicsAction> {
   execute(input: InputOf<ExtractSubTopicsAction>): Promise<OutputOf<ExtractSubTopicsAction>> {
-    return Promise.resolve(input.subTopics.value.items);
+    return Promise.resolve(input.subTopics.items);
   }
 }
 @Action({
@@ -301,35 +297,30 @@ export class MergeFindingsAction implements ActionHandler<MergeFindingsAction> {
 // @snippet
 -->
 ```ts title="src/workflows/recursive-research.workflow.ts" file=src/recursive-research.workflow.ts
-import { ChildPlacement, ThisWorkflow, Workflow, caseOf, listOf, start } from "@agboss/core";
+import { ChildPlacement, ThisWorkflow, Workflow, caseOf, listOf, onStart, Ttl } from "@agboss/core";
 
 @Workflow({
   name: "recursive-research-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ResearchStart)
-      .returns(TopicDto)
+    onStart(ResearchStart)
       .toAgent(DecomposeTopicAgent)
-      .returns(oneOf(ResolvedDto, SubTopicsDto))
       .switch(
         caseOf(ResolvedDto)
           .toWorkflow(FactCheckChildWorkflow, {
-            placement: ChildPlacement.AnyInstance,
+            placement: ChildPlacement.AnyWorker,
           })
-          .returns(VerifiedSummaryDto)
           .toFinish(ResearchFinish),
         caseOf(SubTopicsDto)
           .toAction(ExtractSubTopicsAction)
-          .returns(listOf(TopicDto))
           .toParallelWorkflows(ThisWorkflow, {
             maxItems: 5,
             maxConcurrency: 2,
-            placement: ChildPlacement.AnyInstance,
+            placement: ChildPlacement.AnyWorker,
           })
           .join()
-          .returns(listOf(VerifiedSummaryDto))
           .toAction(MergeFindingsAction)
-          .returns(VerifiedSummaryDto)
           .toFinish(ResearchFinish),
       ),
   ],
@@ -341,7 +332,7 @@ export class RecursiveResearchWorkflow {}
 
 ```ts title="test/recursive-research.workflow.test.ts" file=test/recursive-research.workflow.test.ts
 import { expect, it } from "vitest";
-import { testAction } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import {
   DecomposeTopicAgent,
   ExtractSubTopicsAction,
@@ -350,7 +341,7 @@ import {
 
 it("extracts sub-topic items for recursive ThisWorkflow fan-out", async () => {
   expect(RecursiveResearchWorkflow).toBeDefined();
-  const runExtract = testAction(ExtractSubTopicsAction);
+  const runExtract = testUnit(ExtractSubTopicsAction);
   const { output } = await runExtract({
     subTopics: {
       value: { items: [{ topic: "Raft" }, { topic: "Paxos" }] },
@@ -373,8 +364,8 @@ Every recursive workflow requires `maxDepth` on `@Workflow` (`[graph.missing-max
 | :--- | :--- | :--- |
 | **Fan-out truncation** | `maxItems` + `OnLaunchItemsTruncated` | Caps dynamic list fan-out and emits a typed observer event when excess items are truncated. |
 | **Bounded branch concurrency** | `maxConcurrency` | Limits how many parallel branches execute simultaneously within a fan-out step. |
-| **Tree-wide execution throttle** | `maxConcurrentExecutions` | Caps how many executions across the root and all child workflow trees run a step simultaneously (default `10`; enforced across instances via `RateLimitRepository` when `ChildPlacement.AnyInstance` is used). |
-| **Distributed child placement** | `placement: ChildPlacement.AnyInstance` | Enqueues `.toWorkflow()`, `.toParallelWorkflows()`, or `route(Workflow)` children into `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`), yielding the parent's lease while waiting and recovering each child independently under its own 30s lease (`[flow.conflicting-placement]` if two paths to the same child disagree). |
+| **Tree-wide execution throttle** | `maxConcurrentExecutions` | Caps how many executions across the root and all child workflow trees run a step simultaneously (default `10`; enforced across instances via `RateLimitRepository` when `ChildPlacement.AnyWorker` is used). |
+| **Distributed child placement** | `placement: ChildPlacement.AnyWorker` | Enqueues `.toWorkflow()`, `.toParallelWorkflows()`, or `route(Workflow)` children into `ChildExecutionQueueRepository` (`SqliteChildExecutionQueueRepository`), yielding the parent's lease while waiting and recovering each child independently under its own 30s lease (`[flow.conflicting-placement]` if two paths to the same child disagree). |
 | **Quorum cancellation** | `deadline: seconds(10)` | Automatically aborts slower losing branches (`BranchVerdict.Surplus`) via `AbortSignal` the instant quorum is decided. |
 | **Recursion ceiling** | `maxDepth` | Required on every `ThisWorkflow` graph (`[graph.missing-max-depth]`); omits the recursion tool at `depth === maxDepth` for model launches (soft stop) and throws `DepthLimitExceededError` if exceeded by deterministic launches. |
 
@@ -382,5 +373,5 @@ Every recursive workflow requires `maxDepth` on `@Workflow` (`[graph.missing-max
 
 ## Standalone Executable Proofs
 
-- **[Showcase: Distributed Agent Recovery (`agbossjs/distributed-agent-recovery`)](/examples/distributed-agent-recovery/):** Multi-process distributed release pipeline ([GitHub](https://github.com/agbossjs/distributed-agent-recovery)) demonstrating `.toParallelWorkflows(ModuleWorkerWorkflow, { placement: ChildPlacement.AnyInstance })` across independent OS worker processes, sibling fairness load balancing, same-task checkpoint takeover after 30s lease expiration, two-layer zombie worker lease fencing, and LIFO saga compensation.
-- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** Multi-instance cluster harness in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) proving `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository` and bounded recursive `ThisWorkflow` (`maxDepth: 2`) (see [7 Verified Examples](/examples/verified-examples/)).
+- **[Showcase: Distributed Agent Recovery (`agbossjs/distributed-agent-recovery`)](/examples/distributed-agent-recovery/):** Multi-process distributed release pipeline ([GitHub](https://github.com/agbossjs/distributed-agent-recovery)) demonstrating `.toParallelWorkflows(ModuleWorkerWorkflow, { placement: ChildPlacement.AnyWorker })` across independent OS worker processes, sibling fairness load balancing, same-task checkpoint takeover after 30s lease expiration, two-layer zombie worker lease fencing, and LIFO saga compensation.
+- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** Multi-instance cluster harness in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) proving `ChildPlacement.AnyWorker` over `SqliteChildExecutionQueueRepository` and bounded recursive `ThisWorkflow` (`maxDepth: 2`) (see [7 Verified Examples](/examples/verified-examples/)).

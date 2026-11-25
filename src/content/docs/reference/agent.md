@@ -3,12 +3,12 @@ title: "@Agent"
 description: Complete API reference for the @Agent decorator in AGBoss — all options, prompts, input/output shapes, tools, RAG, @Judge gates, reasoning, and testing.
 ---
 
-The `@Agent` decorator defines an LLM-powered workflow node (`agents/*.agent.ts`) in AGBoss. An agent is a pure declarative class that binds a model, static instructions (`prompt` or `promptUrls`), typed Path Scope `input` fields, structured `output` DTOs (including `oneOf(...)` union variants), `@Tool` and `@McpTool` capabilities, `@Rag` knowledge bases, `@Judge` quality gates, and loop/token limits.
+The `@Agent` decorator defines an LLM-powered workflow node (`agents/*.agent.ts`) in AGBoss. An agent is a pure declarative class that binds a model, static instructions (`prompt`, a `PromptSource`), typed Path Scope `input` fields, structured `output` DTOs (including `oneOf(...)` union variants), `@Tool` capabilities (a tool may call an `@McpServer`), `@Rag` knowledge bases, `@Judge` quality gates, a `@Memory`, and loop/token limits.
 
 ## Complete `@Agent` example with all capabilities
 
 ```ts title="src/agents/offer-reviewer.agent.ts" file=src/agents/offer-reviewer.agent.ts
-import { Agent, RagMode, TokenLimit, historyOf, oneOf } from "@agboss/core";
+import { Agent, TokenLimit, historyOf, oneOf } from "@agboss/core";
 import {
   CacheRetention,
   CachedPart,
@@ -19,9 +19,10 @@ import {
 import {
   CandidatePiiPolicy,
   CompensationHandbookRag,
-  FetchSalaryBandMcpTool,
+  FetchSalaryBandTool,
   GroundedOfferJudge,
   OfferComplianceGuardrail,
+  OfferMemory,
   SearchJobsTool,
 } from "./offer-deps.js";
 import {
@@ -35,34 +36,27 @@ import {
   name: "offer-reviewer-agent",
   description: "Audits offer drafts against compensation bands and either approves or requests changes",
   model: "moonshotai/kimi-k2.6",
-  promptUrls: ["./offer-reviewer.prompt.md"],
+  prompt: "./offer-reviewer.prompt.md", // a PromptSource: a file next to this one (./, ../, /), inline("…") or a list
   promptVariables: {
     department: "Core Engineering",
   },
   input: {
     candidate: CandidateInputDto,
-    drafts: historyOf(OfferDraftDto, { limit: 3 }),
+    drafts: historyOf(OfferDraftDto, { maxPrevious: 3 }),
   },
   output: oneOf(DraftApprovedDto, ChangesRequestedDto),
-  tools: [SearchJobsTool, FetchSalaryBandMcpTool],
-  rag: [
-    {
-      use: CompensationHandbookRag,
-      mode: RagMode.Tool,
-    },
-  ],
+  tools: [SearchJobsTool, FetchSalaryBandTool],
+  rag: [CompensationHandbookRag], // retrieved before the first model call; search(query) is for a tool
   judges: [GroundedOfferJudge],
-  maxRetries: 2,
-  maxToolCalls: 6,
-  maxVisits: 4,
+  executionLimits: { maxRetries: 2, maxToolCalls: 6, maxVisits: 4 },
   temperature: 0.1,
-  maxTokens: TokenLimit.MODEL_MAX,
+  maxTokens: TokenLimit.ModelMax,
   reasoning: Reasoning.on({ effort: ReasoningEffort.Medium }),
-  cache: PromptCaching.whereSupported({
+  cache: PromptCaching.on({
     retention: CacheRetention.FiveMinutes,
     cachedParts: [CachedPart.SystemPrompt, CachedPart.Tools, CachedPart.History],
   }),
-  uncompactedTurns: 8,
+  memory: OfferMemory,
   piiPolicies: [CandidatePiiPolicy],
   guardrails: [OfferComplianceGuardrail],
 })
@@ -101,40 +95,28 @@ export class ChangesRequestedDto {
 ```
 
 ```ts title="src/workflows/offer-review.workflow.ts" file=src/workflows/offer-review.workflow.ts
-import { Workflow, agent, caseOf, oneOf, start } from "@agboss/core";
+import { Workflow, onAgent, onStart, toAgent, toFinish, Ttl } from "@agboss/core";
 import { OfferReviewerAgent } from "../agents/offer-reviewer.agent.js";
 import {
-  CompensationMcpServer,
   OfferReviewFinish,
   OfferReviewStart,
   OfferWriterAgent,
 } from "../agents/offer-deps.js";
-import {
-  CandidateInputDto,
-  ChangesRequestedDto,
-  DraftApprovedDto,
-  OfferDraftDto,
-} from "../dto/offer.dto.js";
 
 @Workflow({
   name: "offer-review-workflow",
   version: "1.0.0",
-  mcp: [CompensationMcpServer],
+  historyTtl: Ttl.Forever,
   flow: [
-    start(OfferReviewStart)
-      .returns(CandidateInputDto)
+    onStart(OfferReviewStart)
       .toAgent(OfferWriterAgent),
 
-    agent(OfferWriterAgent)
-      .returns(OfferDraftDto)
+    onAgent(OfferWriterAgent)
       .toAgent(OfferReviewerAgent)
-      .returns(oneOf(DraftApprovedDto, ChangesRequestedDto))
-      .switch(
-        caseOf(DraftApprovedDto)
-          .toFinish(OfferReviewFinish),
-        caseOf(ChangesRequestedDto, { about: OfferDraftDto })
-          .toAgent(OfferWriterAgent),
-      ),
+      .toOneOf([
+        toFinish(OfferReviewFinish),
+        toAgent(OfferWriterAgent),
+      ]),
   ],
 })
 export class OfferReviewWorkflow {}
@@ -142,7 +124,7 @@ export class OfferReviewWorkflow {}
 
 ```ts title="src/offer.application.ts" file=src/offer.application.ts
 import { Application, EmptyEnvironment } from "@agboss/core";
-import { AgAppBudget, AgExecBudget, AgTenantBudget } from "./agents/offer-deps.js";
+import { AgAppBudget, AgExecBudget, AgModelProvider, AgTenantBudget } from "./agents/offer-deps.js";
 import { OfferReviewWorkflow } from "./workflows/offer-review.workflow.js";
 
 @Application({
@@ -150,6 +132,8 @@ import { OfferReviewWorkflow } from "./workflows/offer-review.workflow.js";
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [OfferReviewWorkflow],
+  modelProvider: AgModelProvider,
+  providers: [AgModelProvider],
   budgets: [AgAppBudget, AgTenantBudget, AgExecBudget],
 })
 export class OfferApplication {}
@@ -186,23 +170,24 @@ import {
   BudgetScope,
   Judge,
   JudgeVerdict,
+  Memory,
   OutputGuardrail,
-  PiiAction,
   PiiKind,
   PiiPolicy,
   Tool,
   WorkflowFinish,
   WorkflowStart,
+  inline,
   oneOf,
-  pii,
+  secret,
   type BudgetHandler,
   type JudgeHandler,
   type JudgeInput,
-  type ToolHandler,
 } from "@agboss/core";
-import { McpServer, McpServerClient, McpTool, type ServerTools } from "@agboss/core/mcp";
-import { Rag, RagTenancy, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
-import { usd, type Usd } from "@agboss/core/units";
+import { McpServer, McpServerClient, McpTransport } from "@agboss/core/mcp";
+import { ModelCost, ModelProvider, OpenRouterDriver } from "@agboss/core/models";
+import { Rag, RagScope, RagSource, type RagRetrieval } from "@agboss/core/rag";
+import { days, minutes, usd, type Usd } from "@agboss/core/units";
 import {
   CandidateInputDto,
   ChangesRequestedDto,
@@ -210,42 +195,59 @@ import {
   OfferDraftDto,
 } from "../dto/offer.dto.js";
 
+@ModelProvider({
+  name: "ag-model-provider",
+  description: "OpenRouter for the agents of this page",
+  driver: OpenRouterDriver({ apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: minutes(2),
+  cost: ModelCost.fromResponse(),
+})
+export class AgModelProvider {}
+
+@Memory({
+  name: "offer-memory",
+  description: "Remembers eight turns in full",
+  ttl: days(30),
+  uncompactedTurns: 8,
+})
+export class OfferMemory {}
+
 @Tool({
   name: "search_jobs",
   description: "Searches open roles",
   input: CandidateInputDto,
   output: OfferDraftDto,
 })
-export class SearchJobsTool implements ToolHandler<CandidateInputDto, OfferDraftDto> {
-  run(_input: CandidateInputDto): Promise<OfferDraftDto> {
-    return Promise.resolve({ text: "Band L6", baseSalaryUsd: 220_000 });
+export class SearchJobsTool {
+  execute(_input: CandidateInputDto): OfferDraftDto {
+    return { text: "Band L6", baseSalaryUsd: 220_000 };
   }
 }
 
 const serverTools = {
   fetch_salary_band: { input: CandidateInputDto, output: OfferDraftDto },
-} as const satisfies ServerTools;
+};
 
 @McpServer({
   name: "compensation-mcp",
-  transport: "stdio",
+  transport: McpTransport.Stdio,
   command: "npx",
   args: ["comp-mcp"],
   tools: serverTools,
 })
 export class CompensationMcpServer extends McpServerClient<typeof serverTools> {}
 
-@McpTool({
+// the model sees the @Tool; the tool calls the server it lists in deps (there is no @McpTool)
+@Tool({
   name: "fetch_salary_band",
   description: "Fetches salary band from MCP",
-  server: CompensationMcpServer,
   input: CandidateInputDto,
   output: OfferDraftDto,
   deps: [CompensationMcpServer],
 })
-export class FetchSalaryBandMcpTool implements ToolHandler<CandidateInputDto, OfferDraftDto> {
+export class FetchSalaryBandTool {
   constructor(private readonly server: CompensationMcpServer) {}
-  run(input: CandidateInputDto): Promise<OfferDraftDto> {
+  execute(input: CandidateInputDto): Promise<OfferDraftDto> {
     return this.server.call("fetch_salary_band", input);
   }
 }
@@ -253,40 +255,37 @@ export class FetchSalaryBandMcpTool implements ToolHandler<CandidateInputDto, Of
 @Rag({
   name: "compensation_handbook",
   description: "Compensation handbook",
-  tenancy: RagTenancy.PerTenant,
+  scope: RagScope.Tenant,
   topK: 3,
 })
-export class CompensationHandbookRag implements RagConnector {
-  retrieve(): Promise<RagRetrieval> {
-    return Promise.resolve({ results: [{ text: "L6 band $200k-$240k", source: "band-l6" }] });
+export class CompensationHandbookRag extends RagSource {
+  protected override retrieve(): RagRetrieval {
+    return { results: [{ text: "L6 band $200k-$240k", source: "band-l6" }] };
   }
 }
 
 @Judge({
   name: "grounded-offer-judge",
   description: "Verifies offer review grounding",
-  model: "typesafe/jev-1.13",
-  reply: oneOf(DraftApprovedDto, ChangesRequestedDto),
+  output: oneOf(DraftApprovedDto, ChangesRequestedDto),
 })
-export class GroundedOfferJudge
-  implements JudgeHandler<DraftApprovedDto | ChangesRequestedDto>
-{
-  judge(_input: JudgeInput<DraftApprovedDto | ChangesRequestedDto>): Promise<JudgeVerdict> {
-    return Promise.resolve(JudgeVerdict.passed());
+export class GroundedOfferJudge implements JudgeHandler<DraftApprovedDto | ChangesRequestedDto> {
+  judge(_input: JudgeInput<DraftApprovedDto | ChangesRequestedDto>): JudgeVerdict {
+    return JudgeVerdict.passed();
   }
 }
 
 @PiiPolicy({
   name: "candidate-pii-policy",
   description: "Masks candidate emails",
-  rules: [pii(PiiKind.Email, PiiAction.replaceWithKind())],
+  rules: [PiiKind.Email.mask()],
 })
 export class CandidatePiiPolicy {}
 
 @OutputGuardrail({
   name: "offer-compliance-guardrail",
   description: "Checks offer compliance",
-  prompt: "Does the reply violate offer policy?",
+  prompt: inline("Does the reply violate offer policy?"),
   model: "typesafe/jev-1.13",
   threshold: 0.85,
   refusal: "Offer review blocked by compliance policy.",
@@ -303,7 +302,7 @@ export class OfferReviewFinish {}
   name: "offer-writer-agent",
   description: "Writes offer draft",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Write the offer draft.",
+  prompt: inline("Write the offer draft."),
   input: { candidate: CandidateInputDto },
   output: OfferDraftDto,
 })
@@ -320,44 +319,42 @@ export class AgExecBudget implements BudgetHandler { maxSpend(): Usd { return us
 
 ## What options does `@Agent` accept?
 
-Every `@Agent` class name ends with `Agent` and its `name` option ends with `-agent`:
+Every `@Agent` class name ends with `Agent` and its `name` option ends with `-agent`. An option that is not on the list is `[decorator.unknown-option]` at assembly:
 
 | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | Yes | Unique kebab-case identifier ending with `-agent` (e.g., `"draft-reviewer-agent"`). |
 | `description` | `string` | Yes | Describes the agent's responsibility for traces, Studio graphs, and CLI inspection. |
-| `model` | `string` | Yes | Model identifier (e.g., `"moonshotai/kimi-k2.6"`); must match a `@ModelProvider({ serves })` pattern. |
-| `prompt` | `string` | No* | Inline system prompt instructions (*either `prompt` or `promptUrls` is required). |
-| `promptUrls` | `readonly string[]` | No* | Relative paths to Markdown prompt files (`["./reviewer.prompt.md"]`) verified at assembly. |
-| `promptVariables` | `Readonly<Record<string, string>>` | No | Static `{{key}}` template values substituted into the agent's prompt at assembly time. |
-| `input` | `InputFields` | No | Map of DTOs read from the workflow's Path Scope (`{ draft: OfferDraftDto, history: historyOf(CritiqueDto, { limit: 3 }) }`). |
-| `output` | `OutputShape` | No | Structured output DTO class, `listOf(Dto)`, or `oneOf(ApprovedDto, ChangesRequestedDto)`. Defaults to `WorkflowFinishTextDto` when omitted. |
-| `tools` | `readonly Class[]` | No | `@Tool` and `@McpTool` classes the agent can invoke during its tool-calling loop. |
-| `rag` | `readonly AgentRag[]` | No | Knowledge bases attached as `[{ use: DocsRag, mode: RagMode.Tool \| RagMode.Context }]`. |
+| `model` | `string` | No | Model identifier (e.g., `"moonshotai/kimi-k2.6"`); left out, `defaults.models.model` or the provider's default role is used. It must be served by the provider the cascade resolves. |
+| `modelProvider` | `Class` | No | The `@ModelProvider` of this agent's model; left out, the workflow's, then the application's. No provider anywhere: `[model.missing-provider]`. |
+| `prompt` | `PromptSource` | No | The system prompt: a file path (a string starting with `./`, `../` or `/`, read next to the declaring file), `inline("…")` (or the tagged `` inline`…` ``), or a list of them joined by one blank line. Bare text does not compile (`[prompt.bare-text]`); `promptUrls` and `file()` are gone. |
+| `promptVariables` | `Record<string, string \| EnvRef<string>>` | No | Static `{{key}}` template values substituted into the prompt at assembly time (the nearest declaration wins; a `secret(…)` is `[prompt.secret-in-instructions]`, a key no prompt uses `[prompt.unused-variable]`). |
+| `input` | `InputFields` | No | Map of DTOs read from the workflow's Path Scope (`{ draft: OfferDraftDto, history: historyOf(CritiqueDto, { maxPrevious: 3 }) }`). |
+| `output` | `OutputShape` | No | Structured output DTO class, `listOf(Dto)`, or `oneOf(ApprovedDto, ChangesRequestedDto)`. A text agent (no `output`) answers `WorkflowFinishTextDto`. |
+| `tools` | `readonly Class[]` | No | `@Tool` classes the agent can invoke during its tool-calling loop. A tool that reaches an MCP server lists its `@McpServer` in `deps`. |
+| `rag` | `readonly Class[]` | No | `@Rag` knowledge bases retrieved before the agent's first model call and put in its input; a `@Tool` that injects one calls `search(query)` instead. A class listed twice is `[agent.duplicate-rag]`. |
 | `judges` | `readonly Class[]` | No | `@Judge` classes that verify the agent's reply and trigger self-correction retries on failure. |
-| `maxRetries` | `number` | No | Maximum self-correction retries when a `@Judge` rejects the agent's answer. |
-| `maxToolCalls` | `number` | No | Maximum tool calls allowed within a single visit to this agent. |
-| `maxVisits` | `number` | No | Maximum times a workflow execution may visit this agent (`VisitsLimitExceededError`). |
+| `executionLimits` | `AgentExecutionLimits` | No | `{ maxRetries, maxToolCalls, maxModelCalls, maxVisits }`: self-correction retries when a `@Judge` rejects or the answer is invalid, tool calls and model calls within one visit, and the times an execution may visit the agent (`VisitsLimitExceededError`). The flat `maxRetries`, `maxToolCalls` and `maxVisits` of 0.1.0 are gone. |
+| `memory` | `Class` | No | The [`@Memory`](/reference/memory/) of this agent: its window and summaries (overrides the workflow's); `NoMemory` sees no earlier turn. |
 | `reasoning` | `Reasoning` | No | Reasoning effort: `Reasoning.off()`, `Reasoning.on({ effort: ReasoningEffort.Low \| Medium \| High })`, or `Reasoning.modelDecides()`. |
-| `cache` | `PromptCaching` | No | Prompt caching policy (`PromptCaching.off()` or `PromptCaching.whereSupported({ retention, cachedParts })`). |
+| `cache` | `CacheSetting` | No | Prompt caching policy (`PromptCaching.off()` or `PromptCaching.on({ retention, cachedParts, key })`; `whereSupported` is gone). |
 | `temperature` | `number` | No | Sampling temperature (`0` by default). |
-| `maxTokens` | `number \| TokenLimit` | No | Maximum completion tokens (`8192` by default, or `TokenLimit.MODEL_MAX`). |
-| `uncompactedTurns` | `number \| TurnLimit` | No | Number of recent conversation turns shown in full to this agent (overrides workflow/app `uncompactedTurns`). |
-| `compaction` | `Class` | No | [`@Compaction`](/reference/compaction/) class summarizing older turns for this agent. |
+| `maxTokens` | `number \| TokenLimit` | No | Maximum completion tokens (`8192` by default, or `TokenLimit.ModelMax`). |
+| `files` | `ModelFiles` | No | Which files of the thread reach this agent's model and how (views); bounded by the workflow's `@FilePolicy`. |
 | `piiPolicies` | `readonly Class[]` | No | Additional `@PiiPolicy` classes applied to this agent's model and tool calls. |
 | `excludePiiPolicies` | `readonly Class[]` | No | Application or workflow `@PiiPolicy` classes explicitly exempted for this agent. |
 | `guardrails` | `readonly Class[]` | No | Additional [`@InputGuardrail` / `@OutputGuardrail`](/reference/guardrail/) classes applied to this agent. |
 | `excludeGuardrails` | `readonly Class[]` | No | Inherited application or workflow guardrails exempted for this agent. |
-| `toolInterceptors` | `readonly Class[]` | No | Additional [`@ToolInterceptor`](/reference/tool-interceptor/) classes applied to every `@Tool` and `@McpTool` invoked by this agent. |
+| `toolInterceptors` | `readonly Class[]` | No | Additional [`@ToolInterceptor`](/reference/tool-interceptor/) classes applied to every `@Tool` invoked by this agent. |
 | `excludeToolInterceptors` | `readonly Class[]` | No | Inherited application or workflow `@ToolInterceptor` classes exempted for this agent. |
-| `price` | `{ input: number; output: number }` | No | Custom USD price per 1M input/output tokens overriding the provider's cost table. |
+| `price` | `Price` | No | A custom USD price per 1M input/output tokens (and cache reads and writes) overriding the provider's cost table; a model with no price fails closed. |
 
 ## What related entities work with `@Agent`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `oneOf(DtoA, DtoB)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"@agboss/core"` | Declares union output variants, list outputs, optional inputs, and bounded loop histories. |
-| `Reasoning` & `PromptCaching` | `"@agboss/core/models"` | Configures reasoning effort (`Reasoning.on({ effort })`) and prompt caching (`PromptCaching.whereSupported()`). |
-| `RagMode` (`Tool`, `Context`) | `"@agboss/core"` | Controls whether a `@Rag` knowledge base is exposed as a callable search tool or injected into context automatically. |
-| `VisitsLimitExceededError` | `"@agboss/core"` | Thrown before the model call when an agent exceeds `maxVisits` in a review loop; catchable via `.onError()`. |
+| `oneOf(DtoA, DtoB)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { maxPrevious })` | `"@agboss/core"` | Declares union output variants, list outputs, optional inputs, and bounded loop histories. |
+| `inline`, `PromptSource` | `"@agboss/core"` | The forms of a `prompt`. |
+| `Reasoning` & `PromptCaching` | `"@agboss/core/models"` | Configures reasoning effort (`Reasoning.on({ effort })`) and prompt caching (`PromptCaching.on({ … })`). |
+| `VisitsLimitExceededError` | `"@agboss/core"` | Thrown before the model call when an agent exceeds `executionLimits.maxVisits` in a review loop; catchable via `.onError()`. |
 | `mockLlm(AgentClass)` & `replyWith(Dto, value)` | `"@agboss/core/testing"` | Scripts deterministic agent responses, tool calls (`callTool`), and simulated latency (`waitFor`) in `testWith()` tests. |

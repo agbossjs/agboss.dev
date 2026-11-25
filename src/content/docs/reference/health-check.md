@@ -12,7 +12,7 @@ import {
   HealthCheck,
   HealthCheckResult,
   Injectable,
-  type HealthCheckHandler,
+  type HealthCheckContext,
   type OnDestroy,
   type OnInit,
   type OnStart,
@@ -47,18 +47,19 @@ export class ClaimsApiService implements OnInit, OnStart, OnStop, OnDestroy {
   }
 }
 
+// name and timeout are optional: the class name in kebab-case, seconds(5)
 @HealthCheck({
-  name: "claims-api-health-check",
   timeout: seconds(2),
   deps: [ClaimsApiService],
 })
-export class ClaimsApiHealthCheck implements HealthCheckHandler {
+export class ClaimsApiHealthCheck {
   constructor(private readonly claimsApiService: ClaimsApiService) {}
 
-  async check(): Promise<HealthCheckResult> {
+  // sync or async; ctx.signal aborts when the check passes its timeout
+  async check(_ctx?: HealthCheckContext): Promise<HealthCheckResult> {
     return (await this.claimsApiService.ping())
       ? HealthCheckResult.healthy()
-      : HealthCheckResult.degraded({ reason: "claims API warming up" });
+      : HealthCheckResult.degraded("claims API warming up");
   }
 }
 ```
@@ -76,8 +77,20 @@ export const environment: ClusterEnvironment = {
   sqlitePath: ":memory:",
 };
 ```
+```ts file=src/worker.database-storage.ts
+import { DatabaseStorage, SqliteDriver } from "@agboss/core";
+import { hours } from "@agboss/core/units";
+
+@DatabaseStorage({
+  name: "worker-database-storage",
+  driver: SqliteDriver.inMemory(),
+  auditLogTtl: hours(24),
+  ledgerEntriesTtl: hours(24),
+})
+export class WorkerDatabaseStorage {}
+```
 ```ts file=src/worker-ping.workflow.ts
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, onStart, type BudgetHandler, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
 
@@ -89,9 +102,9 @@ export class WorkerPingFinish {}
 @Workflow({
   name: "worker-ping-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(WorkerPingStart)
-      .returns(WorkflowStartTextDto)
+    onStart(WorkerPingStart)
       .toFinish(WorkerPingFinish),
   ],
 })
@@ -107,18 +120,10 @@ export class WorkerExecBudget implements BudgetHandler { maxSpend(): Usd { retur
 -->
 
 ```ts title="src/worker-cluster.application.ts" file=src/worker-cluster.application.ts
-import {
-  Application,
-  SqliteCheckpointSaver,
-  SqliteCostLedgerRepository,
-  SqliteExecutionLeaseRepository,
-  SqliteExecutionRecordRepository,
-  SqliteExecutionTreeRepository,
-  SqlitePausedExecutionRepository,
-  SqliteRateLimitRepository,
-} from "@agboss/core";
+import { Application } from "@agboss/core";
 import { hours, seconds } from "@agboss/core/units";
 import { ClusterEnvironment } from "./environments/app.environment.js";
+import { WorkerDatabaseStorage } from "./worker.database-storage.js";
 import { ClaimsApiHealthCheck, ClaimsApiService } from "./health/claims-api.health-check.js";
 import {
   WorkerAppBudget,
@@ -132,21 +137,15 @@ import {
   version: "1.0.0",
   environment: ClusterEnvironment,
   workflows: [WorkerPingWorkflow],
-  providers: [
-    ClaimsApiService,
-    SqliteExecutionRecordRepository,
-    SqliteCostLedgerRepository,
-    SqlitePausedExecutionRepository,
-    SqliteCheckpointSaver,
-    SqliteExecutionLeaseRepository,
-    SqliteExecutionTreeRepository,
-    SqliteRateLimitRepository,
-  ],
+  storage: WorkerDatabaseStorage, // checkpoints, records, pauses, ledger, leases, trees and rate limits
+  providers: [ClaimsApiService],
   healthChecks: [ClaimsApiHealthCheck],
   budgets: [WorkerAppBudget, WorkerTenantBudget, WorkerExecBudget],
-  maxConcurrentSteps: 32,
-  compensationTimeout: seconds(15),
-  shutdownTimeout: seconds(25),
+  executionLimits: {
+    maxConcurrentSteps: 32,
+    compensationTimeout: seconds(15),
+    shutdownTimeout: seconds(25),
+  },
   retention: { pauseRecords: hours(24) },
 })
 export class WorkerClusterApplication {}
@@ -154,7 +153,7 @@ export class WorkerClusterApplication {}
 
 ```ts title="src/main.ts" file=src/main.ts
 import { createServer } from "node:http";
-import { HealthStatus, createApp, type HealthReport } from "@agboss/core";
+import { createApp, type HealthReport } from "@agboss/core";
 import { WorkerClusterApplication } from "./worker-cluster.application.js";
 
 export async function startProbeServer(): Promise<void> {
@@ -170,7 +169,8 @@ export async function startProbeServer(): Promise<void> {
 
     if (probe !== undefined) {
       void probe.then((report) => {
-        res.writeHead(report.status === HealthStatus.Unhealthy ? 503 : 200, {
+        const ok = req.url === "/livez" ? report.isAlive : report.isReady; // isBusy: a full instance is not ready
+        res.writeHead(ok ? 200 : 503, {
           "content-type": "application/json",
         });
         res.end(JSON.stringify(report));
@@ -199,32 +199,34 @@ test("reports Healthy on checkLiveness and checkReadiness after startup", async 
 
 ## What options does `@HealthCheck` accept?
 
-Every `@HealthCheck` class implements `HealthCheckHandler`, has a `name` ending with `-health-check` (`[name.kind-suffix]`), and is registered in `@Application({ healthChecks })` (`[health.not-a-health-check]`, `[health.duplicate-name]`):
+A `@HealthCheck` class has a `check(ctx?: HealthCheckContext)` method (sync or async, no `implements` needed) and is registered in `@Application({ healthChecks })` (`[health.not-a-health-check]`, `[health.duplicate-name]`). `@HealthCheck()` with no options is valid:
 
 | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-health-check` (e.g., `"claims-api-health-check"`). |
-| `timeout` | `Milliseconds` | **Yes** | Maximum duration `check()` may take (`seconds(2)`); if exceeded or thrown, the component reports `HealthStatus.Unhealthy`. |
+| `name` | `string` | No | Unique kebab-case identifier (default: the class name in kebab-case, `CrmHealthCheck` becomes `crm-health-check`; the `-health-check` suffix is no longer required). |
+| `timeout` | `Milliseconds` | No | Maximum duration `check()` may take (`seconds(5)` by default); if exceeded or thrown, the component reports `HealthStatus.Unhealthy`, and `ctx.signal` aborts. |
 | `deps` | `readonly Token[]` | No | Constructor dependencies injected by the application container and verified against the constructor signature. |
 
 ## How `app.checkLiveness()` and `app.checkReadiness()` work
 
-Both `app.checkLiveness()` and `app.checkReadiness()` resolve to a `HealthReport { status, components }` and never reject. The top-level `status` is the worst status across all checked components (`HealthStatus.Healthy`, `HealthStatus.Degraded`, or `HealthStatus.Unhealthy`):
+Both `app.checkLiveness()` and `app.checkReadiness()` resolve to a `HealthReport { status, isAlive, isReady, isBusy, components }` and never reject. The top-level `status` is the worst status across all checked components (`HealthStatus.Healthy`, `HealthStatus.Degraded`, or `HealthStatus.Unhealthy`). Map a readiness probe to `report.isReady` (200, else 503) and a liveness probe to `report.isAlive`:
 
 | Probe | Checked Components (`HealthComponentKind`) | Behavior |
 | :--- | :--- | :--- |
 | **`app.checkLiveness()`** | `Application` (`"application"`), `RecoveryLoop` (`"recovery-loop"`) | Performs zero external I/O. Reports `Unhealthy` once `app.close()` begins (`stopping`) or if the 30-second recovery sweep has not completed within 90 seconds. |
-| **`app.checkReadiness()`** | Liveness components + `Store` (`"store"`), `ModelProvider` (`"model-provider"`), `StepSlots` (`"step-slots"`), `Project` (`"project"`) | Calls `ping()` on every configured repository (`seconds(2)` timeout), checks every `@ModelProvider` circuit breaker (open breaker -> `Degraded`), checks `@Application({ maxConcurrentSteps })` saturation (all slots busy -> `Degraded`), and runs every `@HealthCheck` under its own `timeout`. |
+| **`app.checkReadiness()`** | Liveness components + `Store` (`"store"`), `ModelProvider` (`"model-provider"`), `Project` (`"project"`) | Calls `ping()` on every configured repository (`seconds(2)` timeout), checks every `@ModelProvider` circuit breaker (open breaker -> `Degraded`), and runs every `@HealthCheck` under its own `timeout`. |
 
-Custom `@HealthCheck` classes return branded results built exclusively with `HealthCheckResult.healthy()`, `HealthCheckResult.degraded({ reason })`, or `HealthCheckResult.unhealthy({ reason })` (a `Degraded` instance continues serving traffic while signaling reduced capacity).
+An instance with no free step slot (`executionLimits.maxConcurrentSteps`) is `isBusy` — and not `isReady` — while `status` stays what its components say: a `Degraded` component is no longer hidden by a full queue, and a `Degraded` instance is still ready. The 0.1.0 `step-slots` component is gone.
+
+Custom `@HealthCheck` classes return branded results built exclusively with `HealthCheckResult.healthy()`, `HealthCheckResult.degraded(reason)`, or `HealthCheckResult.unhealthy(reason)` — the reason is a plain string (a `Degraded` instance continues serving traffic while signaling reduced capacity).
 
 ## Pod lifecycle and concurrency settings reference
 
 | Setting / Hook | Where Configured | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `healthChecks` | `@Application` | `[]` | `@HealthCheck` classes executed by `await app.checkReadiness()` under their configured `timeout`. |
-| `maxConcurrentSteps` | `@Application` | Unbounded | Maximum concurrent agent, router, and action steps on this pod (`[limits.max-concurrent-steps-invalid]`). When all slots are busy, `checkReadiness()` reports `HealthStatus.Degraded` (`step-slots`). |
-| `shutdownTimeout` | `@Application` | `seconds(25)` | Grace period on `app.close()` / `SIGTERM` before interrupting active executions and releasing their 30s leases (`< kubernetes terminationGracePeriodSeconds`). |
-| `compensationTimeout` | `@Application` | `seconds(15)` | Clean-up deadline per automatic `@Action({ compensateWith })` rollback step. |
+| `executionLimits.maxConcurrentSteps` | `@Application` | Unbounded | Maximum concurrent agent, router, and action steps on this pod (`[limits.max-concurrent-steps-invalid]`). When all slots are busy, `checkReadiness()` reports `isBusy` and not `isReady`. |
+| `executionLimits.shutdownTimeout` | `@Application` | `seconds(25)` | Grace period on `app.close()` / `SIGTERM` before interrupting active executions and releasing their 30s leases (`< kubernetes terminationGracePeriodSeconds`); it also bounds `onInterrupted` cleanups. |
+| `executionLimits.compensationTimeout` | `@Application` | `seconds(15)` | Clean-up deadline per automatic `@Action({ compensateWith })` rollback step. |
 | `retention.pauseRecords` | `@Application` | `hours(24)` | How long resolved (`Taken`, `Cancelled`) pause records are retained in `PausedExecutionRepository` so duplicate webhook clicks receive `PauseClosedError`. |
 | `OnInit` / `OnStart` / `OnStop` / `OnDestroy` | `@Injectable()` providers | — | Deterministic 4-stage startup and reverse-topological shutdown hooks. |

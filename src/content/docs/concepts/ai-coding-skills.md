@@ -36,15 +36,31 @@ import {
   Workflow,
   WorkflowFinish,
   WorkflowStart,
-  route,
-  start,
+  onStart,
+  toAction,
+  toAgent,
   type ActionHandler,
   type InputOf,
   type OutputOf,
   type Route,
   type RouterHandler,
+  inline,
+  secret,
+  Ttl,
 } from "@agboss/core";
 import { Integer, Text } from "@agboss/core/dto";
+import { ModelCost, ModelProvider, OpenRouterDriver } from "@agboss/core/models";
+import { minutes } from "@agboss/core/units";
+
+// the application names its model provider: there is no built-in one
+@ModelProvider({
+  name: "triage-model-provider",
+  description: "OpenRouter for the escalation agent",
+  driver: OpenRouterDriver({ apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: minutes(2),
+  cost: ModelCost.fromResponse(),
+})
+export class TriageModelProvider {}
 
 export class TicketDto {
   @Text({ prompt: "Support ticket ID" })
@@ -76,7 +92,7 @@ export class TicketFinish {}
 @Agent({
   name: "escalation-agent",
   description: "Drafts an incident response for high-priority tickets",
-  prompt: "Draft an immediate escalation plan for the critical ticket.",
+  prompt: inline("Draft an immediate escalation plan for the critical ticket."),
   model: "moonshotai/kimi-k2.6",
   input: { ticket: TicketDto },
   output: ResolutionDto,
@@ -90,10 +106,8 @@ export class EscalationAgent {}
   output: ResolutionDto,
 })
 export class AutoAckAction implements ActionHandler<AutoAckAction> {
-  execute(input: InputOf<AutoAckAction>): Promise<OutputOf<AutoAckAction>> {
-    return Promise.resolve({
-      summary: `Auto-acknowledged ${input.ticket.value.ticketId}`,
-    });
+  execute(input: InputOf<AutoAckAction>): OutputOf<AutoAckAction> {
+    return { summary: `Auto-acknowledged ${input.ticket.ticketId}` };
   }
 }
 
@@ -102,27 +116,27 @@ export class AutoAckAction implements ActionHandler<AutoAckAction> {
   description: "Routes critical tickets to EscalationAgent and others to AutoAckAction",
   decidedBy: DecidedBy.Code,
   input: { ticket: TicketDto },
-  routes: [{ target: EscalationAgent }, { target: AutoAckAction }],
+  routes: [EscalationAgent, AutoAckAction],
 })
 export class PriorityRouter implements RouterHandler<PriorityRouter> {
   route(input: InputOf<PriorityRouter>): Route<PriorityRouter> {
-    return input.ticket.value.priority >= 4 ? EscalationAgent : AutoAckAction;
+    return input.ticket.priority >= 4 ? EscalationAgent : AutoAckAction;
   }
 }
 
 @Workflow({
   name: "ticket-triage-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(TicketStart)
-      .returns(TicketDto)
+    onStart(TicketStart)
       .toRouter(PriorityRouter)
-      .chooseOne(
-        route(EscalationAgent)
-          .returns(ResolutionDto)
+      .onRoute(
+        toAgent(EscalationAgent)
           .toFinish(TicketFinish),
-        route(AutoAckAction)
-          .returns(ResolutionDto)
+      )
+      .onRoute(
+        toAction(AutoAckAction)
           .toFinish(TicketFinish),
       ),
   ],
@@ -134,6 +148,8 @@ export class TicketTriageWorkflow {}
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [TicketTriageWorkflow],
+  modelProvider: TriageModelProvider,
+  providers: [TriageModelProvider],
   budgets: [TriageAppBudget, TriageTenantBudget, TriageExecBudget],
 })
 export class TicketTriageApplication {}
@@ -141,7 +157,7 @@ export class TicketTriageApplication {}
 
 ```ts title="test/triage.workflow.test.ts" file=test/triage.workflow.test.ts
 import { expect } from "vitest";
-import { replyWith, testRouter, testWith } from "@agboss/core/testing";
+import { replyWith, testUnit, testWith } from "@agboss/core/testing";
 import {
   AutoAckAction,
   EscalationAgent,
@@ -157,12 +173,9 @@ test("routes critical tickets to EscalationAgent and unit-tests PriorityRouter",
   app,
   mockLlm,
 }) => {
-  const runRouter = testRouter(PriorityRouter);
+  const runRouter = testUnit(PriorityRouter);
   const { output: selectedRoute } = await runRouter({
-    ticket: {
-      value: { ticketId: "T-500", priority: 5 },
-      producer: TicketStart,
-    },
+    ticket: { ticketId: "T-500", priority: 5 }, // a plain DTO literal, tracked by default
   });
   expect(selectedRoute).toBe(EscalationAgent);
 
@@ -194,7 +207,7 @@ test("routes critical tickets to EscalationAgent and unit-tests PriorityRouter",
 When you scaffold a new project with [`agboss create`](/cli/):
 
 ```bash
-cd /tmp && npm exec --yes --package=@agboss/cli@0.1.0 -- agboss create my-app --yes
+cd /tmp && npm exec --yes --package=@agboss/cli@0.1.1 -- agboss create my-app --yes
 ```
 
 AGBoss sets up a two-tier, tool-agnostic instruction architecture in your repository:
@@ -217,7 +230,7 @@ my-app/
 ├── AGENTS.md                                          # Committed once — universal entrypoint (Codex, Cursor, Windsurf, Copilot, Gemini, Aider)
 ├── CLAUDE.md                                          # Committed once — 1-line `@AGENTS.md` bridge for Claude Code
 ├── .agboss/
-│   └── types.d.ts                                     # Gitignored — generated Path Scope & Produced<Dto, P> types
+│   └── types.d.ts                                     # Gitignored — generated Path Scope & Tracked<Dto, P> types
 └── .claude/
     └── skills/
         └── agboss/                                    # Gitignored — offline-synced from installed `@agboss/core` package
@@ -267,7 +280,7 @@ For environments that prefer not to write synced skill files into the workspace,
 | Reference File | Loaded By Coding Agent When… | Key Contracts Covered |
 | :--- | :--- | :--- |
 | `SKILL.md` | Starting any task in an AGBoss repository | 10 core invariants, CLI workflow (`generate -> check -> describe -> test`), ban on `as any` / `new Dto()` / component state, 1-call-per-line rule |
-| `01-composition-and-architecture.md` | Designing workflows, splitting graphs, or authoring DTOs | `@Agent` vs `@Action` vs `@Tool`, `DecidedBy.Code` vs `DecidedBy.Model`, `@Text`/`@Integer`/`@Flag`/`@OneOf`/`@ListOf`/`@Nested`, narrow DTOs vs God DTOs |
+| `01-composition-and-architecture.md` | Designing workflows, splitting graphs, or authoring DTOs | `@Agent` vs `@Action` vs `@Tool`, `DecidedBy.Code` vs `DecidedBy.Model`, `@Text`/`@Integer`/`@Bool`/`@OneOf`/`@List`/`@Nested`, narrow DTOs vs God DTOs |
 | `02-flow-dsl-all-combinations.md` | Writing or editing `*.workflow.ts` flow paths & error handlers | `start()`, `.returns(Dto, { about })`, `.switch(caseOf())`, `.chooseOne(route())`, `historyOf()`, `.toParallelAgents()`, `.joinQuorum()`, `ThisWorkflow`, `.onError()` hierarchy |
 | `03-components-di-and-lifecycle.md` | Implementing components, DI services, lifecycle hooks, or `AppEnvironment` | `@Application`, class-inheritance DI, `OnInit -> OnStart -> OnStop -> OnDestroy`, `ExecutionContext`, `SpendRecorder`, `JudgeModel`, `@ToolInterceptor`, `CompactionStrategy.Custom`, `secret()`, `env()`, `seconds()`, `usd()` |
 | `04-mcp-and-a2a.md` | Integrating external MCP servers, A2A remote agents, or Agent Mesh | `@McpServer`, `@McpTool`, `@McpExpose`, `createMcpService`, `@A2AAgent`, `a2aHttpListener` (`callerResolver`), `MeshEnvelope` (the `https://agboss.dev/a2a/mesh/v1` extension), `$ agboss check --federation` |
@@ -276,7 +289,7 @@ For environments that prefer not to write synced skill files into the workspace,
 | `07-guardrails-pii-and-security.md` | Implementing input/output guardrails (`DecidedBy.Model` / `DecidedBy.Code`) or PII masking | `@InputGuardrail`, `@OutputGuardrail`, `GuardrailHandler`, `GuardrailDecision`, `@PiiPolicy`, deterministic HMAC `PiiAction.replaceWithToken()` |
 | `08-observability-and-tracing.md` | Writing `On*` observers, inspecting `result.record`, or Langfuse | 23 `On*` observer interfaces (`OnExecutionEnd`, `OnSpend`, `OnValuesOutdated`, `OnQuorumDecided`), `result.record.pauses`, `scripts/langfuse.sh` |
 | `09-persistence-k8s-and-deploy.md` | Configuring SQLite/Postgres stores, leases, or Kubernetes probes | 7 repository contracts, `Sqlite*` WAL providers, 30s execution leases, `SIGTERM` drain, `@HealthCheck`, `checkLiveness()`, `checkReadiness()`, `configHash` rollouts |
-| `10-testing-vcr-and-evals.md` | Writing unit tests, trajectory assertions, `@EvalSuite`, or golden evals | `testWith(App, { instances: 2, concurrency: TestConcurrency.inOrder([...]) })`, `toHaveCalledTools`, `toHaveToolCallMatching`, `VirtualClock`, all 10 unit runners (`testTool` .. `testToolInterceptor`), `@EvalSuite` (`pass@k` / `pass^k`, Cohen's $\kappa$) |
+| `10-testing-vcr-and-evals.md` | Writing unit tests, trajectory assertions, `@EvalSuite`, or golden evals | `testWith(App, { instances: 2, concurrency: TestConcurrency.inOrder([...]) })`, `toHaveCalledTools`, `toHaveToolCallMatching`, `VirtualClock`, all 10 unit runners (`testUnit` .. `testUnit`), `@EvalSuite` (`pass@k` / `pass^k`, Cohen's $\kappa$) |
 | `11-cli-studio-and-error-catalog.md` | Running CLI commands or fixing `[rule.code]` compiler diagnostics | Complete catalog of `[flow.*]`, `[graph.*]`, `[input.*]`, `[router.*]`, `[di.*]`, `[environment.*]`, `[prompt.*]`, and `[judge.*]` diagnostics with before/after fixes |
 | `12-end-to-end-recipes.md` | Scaffolding a complete multi-file feature from scratch | 4 complete multi-file blueprints: review loops with `{ about }`, parallel quorums with `@Channel`, MCP + A2A agents, and multi-tenant Kubernetes apps |
 | `13-migrating-from-langgraph.md` | Migrating an existing raw LangGraph (`StateGraph` / `Annotation.Root`) codebase to AGBoss | 3-step migration playbook: decomposing `StateAnnotation` into a read/write matrix and narrow `@Dto` classes, 1-to-1 primitive translation table, and uncovering latent LangGraph bugs via `npx agboss check` |
@@ -311,5 +324,5 @@ Because every rule in the skill suite corresponds to a deterministic check in `a
 1. **Scaffold with CLI generators:** The coding agent runs `npx agboss generate agent reviewer --workflow src/offer/offer.workflow.ts` (or `router`, `arbiter`, `tool`, `mcp`, `rag`, `openapi`) to create properly named files and wire imports without boilerplate typos.
 2. **Compile Path Scope & generate `.agboss/types.d.ts`:** The agent runs `npx agboss check --strict`. If a path is missing an upstream DTO (`[input.missing-on-path]`), reads a stale loop value (`[input.outdated-on-path]`), or interpolates an input into a system prompt (`[prompt.input-in-instructions]`), `agboss check` outputs the exact `[rule.code]` diagnostic.
 3. **Typecheck narrowed `Produced<Dto, P>` contracts:** With `.agboss/types.d.ts` updated, `npm run typecheck` (`tsc --noEmit`) verifies every `@Action`, `@Router`, and `@WorkflowFinish` handler against the exact upstream producer union.
-4. **Verify deterministically offline:** The agent writes isolated unit tests (`testTool`, `testRouter`, `testArbiter`, `testJudge`) and full workflow tests (`testWith(App)`) and runs `npm test` in milliseconds with zero network calls.
+4. **Verify deterministically offline:** The agent writes isolated unit tests (`testUnit`, `testUnit`, `testUnit`, `testUnit`) and full workflow tests (`testWith(App)`) and runs `npm test` in milliseconds with zero network calls.
 5. **CI documentation guarantee (`check:docs`):** Inside the `agboss` repository itself, `npm run check:docs` compiles every TypeScript snippet in the skill references and documentation against the built framework, ensuring the skills given to your coding agent can never drift from the actual TypeScript API.

@@ -21,8 +21,10 @@ import {
   Workflow,
   WorkflowFinish,
   WorkflowStart,
-  start,
+  onStart,
   type BudgetHandler,
+  inline,
+  Ttl,
 } from "@agboss/core";
 import { Integer, Text, WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
@@ -46,7 +48,7 @@ export class SlackService {
 import { RefundReplyInterpreter } from "./refund-reply.interpreter.js";
 // @snippet
 export { WorkflowFinishTextDto, WorkflowStartTextDto };
-@Agent({ name: "refund-agent", description: "Refunds", prompt: "Refund.", model: "moonshotai/kimi-k2.6", tools: [RefundCardTool] })
+@Agent({ name: "refund-agent", description: "Refunds", prompt: inline("Refund."), model: "moonshotai/kimi-k2.6", tools: [RefundCardTool] })
 export class RefundAgent {}
 @WorkflowStart({ name: "refund-workflow-start", description: "A request", input: WorkflowStartTextDto })
 export class RefundWorkflowStart {}
@@ -55,9 +57,9 @@ export class RefundWorkflowFinish {}
 @Workflow({
   name: "refund-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(RefundWorkflowStart)
-      .returns(WorkflowStartTextDto)
+    onStart(RefundWorkflowStart)
       .toAgent(RefundAgent)
       .toFinish(RefundWorkflowFinish),
   ],

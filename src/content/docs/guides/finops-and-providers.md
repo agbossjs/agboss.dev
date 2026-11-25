@@ -79,10 +79,10 @@ it("exports OpenRouterModelProvider with tenant round-robin queueing", () => {
 Every `@Application` requires `@Budget` coverage across three scopes (`BudgetScope.Application`, `BudgetScope.Tenant`, and `BudgetScope.Execution`). Budgets implement `BudgetHandler` (`maxSpend(): Usd`) and can inject `ExecutionContext` or a custom `TenantContext` subclass to read per-tenant limits from server-side data:
 
 <!-- snippet-context
-import { ExecutionContext, TenantContext } from "@agboss/core";
-import { Decimal, Text } from "@agboss/core/dto";
+import { ExecutionContext, TenantContext, inline } from "@agboss/core";
+import { Float, Text } from "@agboss/core/dto";
 export class ShopTenantContext extends TenantContext {
-  @Decimal()
+  @Float()
   dailyBudgetUsd!: number;
 }
 export class SearchQueryDto {
@@ -156,7 +156,7 @@ export class WebSearchTool
 ```
 
 <!-- snippet-context
-import { Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { Workflow, WorkflowFinish, WorkflowStart, onStart, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 @WorkflowStart({ name: "support-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class SupportStart {}
@@ -165,7 +165,8 @@ export class SupportFinish {}
 @Workflow({
   name: "support-workflow",
   version: "1.0.0",
-  flow: [start(SupportStart).returns(WorkflowStartTextDto).toFinish(SupportFinish)],
+  historyTtl: Ttl.Forever,
+  flow: [onStart(SupportStart).toFinish(SupportFinish)],
 })
 export class SupportWorkflow {}
 // @snippet
@@ -188,7 +189,7 @@ export class SupportApplication {}
 
 ```ts title="test/support-finops.test.ts" file=test/support-finops.test.ts
 import { expect, it } from "vitest";
-import { testTool } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import { usd } from "@agboss/core/units";
 import { AppDailyBudget, WebSearchTool } from "../src/budgets/support.budgets.js";
 
@@ -196,7 +197,7 @@ it("records external API spend via SpendRecorder and enforces daily budget ceili
   const budget = new AppDailyBudget();
   expect(budget.maxSpend()).toBe(usd(200));
 
-  const runSearch = testTool(WebSearchTool);
+  const runSearch = testUnit(WebSearchTool);
   const { output, spend } = await runSearch({ query: "AGBoss FinOps" });
   expect(output).toEqual({ text: "results for AGBoss FinOps" });
   expect(spend).toEqual([{ service: "serp-api", cost: usd(0.002) }]);

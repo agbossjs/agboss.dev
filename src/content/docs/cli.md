@@ -143,7 +143,7 @@ src/
 | `[guardrail.missing-handler]` & `[tool-interceptor.missing-handler]` | A `DecidedBy.Code` guardrail omits `check(text)`, or a `@ToolInterceptor` implements neither `BeforeToolCall` nor `AfterToolCall`. |
 | `[model-provider.both-modes]` | A `@ModelProvider` mixes HTTP `baseUrl` / `apiKey` options with a custom `ModelProviderHandler.complete(request)` implementation. |
 | `[vcr.stale-cassette]` & `[judge.same-model-family]` | A VCR cassette's recorded `promptHash` / `schemaHash` no longer matches current code, or a `DecidedBy.Model` `@Judge` uses the same model family as the judged `@Agent`. |
-| `[flow.conflicting-placement]` & `[application.in-memory-child-queue]` | Two paths to the same child workflow specify different `ChildPlacement` modes, or `ChildPlacement.AnyInstance` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`. |
+| `[flow.conflicting-placement]` & `[application.in-memory-child-queue]` | Two paths to the same child workflow specify different `ChildPlacement` modes, or `ChildPlacement.AnyWorker` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`. |
 | `[federation.incompatible-schema]` & `[federation.missing-target]` | Cross-service `@A2AAgent` / `@McpServer` DTO schemas drifted from the producer's `@A2AExpose` / `@McpExpose` `schemaHash` in `agboss describe --json`. |
 
 ## Exporting a declarative revision snapshot with `agboss describe --json`

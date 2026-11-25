@@ -33,10 +33,12 @@ import {
   Workflow,
   WorkflowFinish,
   WorkflowStart,
-  start,
+  onStart,
   type JudgeHandler,
   type JudgeInput,
   type ToolHandler,
+  inline,
+  Ttl,
 } from "@agboss/core";
 import { Integer, Text, isVariant, oneOf } from "@agboss/core/dto";
 
@@ -162,7 +164,7 @@ export class ScoutEvalFinish {}
 @Agent({
   name: "scout-eval-agent",
   description: "Finds matching roles gated by CitationFormatJudge and AnswerGroundedJudge",
-  prompt: "List matching roles and cite [source] for each role.",
+  prompt: inline("List matching roles and cite [source] for each role."),
   model: "moonshotai/kimi-k2.6",
   input: { query: OpeningsDto },
   output: OpeningsDto,
@@ -175,11 +177,10 @@ export class ScoutEvalAgent {}
 @Workflow({
   name: "job-scout-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ScoutEvalStart)
-      .returns(OpeningsDto)
+    onStart(ScoutEvalStart)
       .toAgent(ScoutEvalAgent)
-      .returns(OpeningsDto)
       .toFinish(ScoutEvalFinish),
   ],
 })
@@ -212,7 +213,7 @@ defaults:
 
 ```ts title="test/eval-and-judges.test.ts" file=test/eval-and-judges.test.ts
 import { expect } from "vitest";
-import { decideWith, replyWith, testJudge, testWith } from "@agboss/core/testing";
+import { decideWith, replyWith, testUnit, testWith } from "@agboss/core/testing";
 import {
   AnswerGroundedJudge,
   FairDecisionJudge,
@@ -231,7 +232,7 @@ test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and uni
   mockLlm,
 }) => {
   // 1. Unit-test the oneOf union judge with isVariant narrowing:
-  const runFairJudge = testJudge(FairDecisionJudge);
+  const runFairJudge = testUnit(FairDecisionJudge);
   const offerVerdict = await runFairJudge({
     variant: OfferDto,
     reply: { salary: 195_000 },

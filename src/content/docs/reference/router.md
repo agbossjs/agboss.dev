@@ -1,6 +1,6 @@
 ---
 title: "@Router"
-description: Complete API reference for @Router in AGBoss — DecidedBy.Model vs DecidedBy.Code, SpawnPolicy, FailurePolicy, RouterHandler, and testRouter().
+description: Complete API reference for @Router in AGBoss — DecidedBy.Model vs DecidedBy.Code, .onRoute(…) and chooseMany launches, RouterHandler, and testUnit().
 ---
 
 The `@Router` decorator defines a control-flow decision node (`routers/*.router.ts`) in AGBoss. Routers decouple orchestration from domain agents and come in two forms discriminated by `decidedBy`: **`DecidedBy.Model`** (where a fast classifier model like `typesafe/jev-1.13` picks the target route from prompt criteria) and **`DecidedBy.Code`** (where deterministic TypeScript in `route(input)` with constructor DI picks the target at zero LLM cost and zero latency).
@@ -10,12 +10,11 @@ The `@Router` decorator defines a control-flow decision node (`routers/*.router.
 ```ts title="src/routers/support.routers.ts" file=src/routers/support.routers.ts
 import {
   DecidedBy,
-  FailurePolicy,
   Router,
-  SpawnPolicy,
   type InputOf,
   type RouterAnswerOf,
   type RouterHandler,
+  inline,
 } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 import {
@@ -38,7 +37,7 @@ import { OrderClaimDto } from "../dto/order.dto.js";
   input: {
     message: WorkflowStartTextDto,
   },
-  prompt: "Classify the user's support request and choose the most specific handler.",
+  prompt: inline("Classify the user's support request and choose the most specific handler."),
   maxVisits: 3,
   routes: [
     {
@@ -66,19 +65,16 @@ export class IntentTriageRouter {}
     claim: OrderClaimDto,
   },
   deps: [OrderPolicyService],
-  routes: [
-    { target: AuditLogAgent, spawn: SpawnPolicy.Always, failure: FailurePolicy.Skip },
-    { target: ClaimRefundAgent, spawn: SpawnPolicy.OnDemand },
-    { target: ClaimBillingAgent, spawn: SpawnPolicy.OnDemand },
-  ],
+  routes: [ClaimRefundAgent, ClaimBillingAgent], // a code router's route is its class
+
 })
 export class ClaimTierRouter implements RouterHandler<ClaimTierRouter> {
   constructor(private readonly orderPolicy: OrderPolicyService) {}
 
   async route(input: InputOf<ClaimTierRouter>): Promise<RouterAnswerOf<ClaimTierRouter>> {
-    // Single-value inputs in InputOf<Self> are wrapped in Produced<Dto, Producer> ({ value, producer }):
+    // each input field is the DTO itself (Tracked<Dto, Producer>): input.claim.amountCents
     const requiresBillingReview = await this.orderPolicy.requiresFinanceSignOff(
-      input.claim.value.amountCents,
+      input.claim.amountCents,
     );
     return requiresBillingReview ? [ClaimRefundAgent, ClaimBillingAgent] : [ClaimRefundAgent];
   }
@@ -95,7 +91,7 @@ export class OrderClaimDto {
 ```
 
 ```ts title="src/workflows/support-routing.workflow.ts" file=src/workflows/support-routing.workflow.ts
-import { Workflow, listOf, route, start } from "@agboss/core";
+import { Workflow, onStart, toAction, toAgent, toFinish, toRouter, Ttl } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { ClaimTierRouter, IntentTriageRouter } from "../routers/support.routers.js";
 import {
@@ -116,28 +112,32 @@ import { OrderClaimDto } from "../dto/order.dto.js";
 @Workflow({
   name: "support-routing-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   providers: [OrderPolicyService],
   flow: [
-    start(SupportStart)
-      .returns(WorkflowStartTextDto)
+    onStart(SupportStart)
       .toRouter(IntentTriageRouter)
-      .chooseOne(
-        route(BillingAgent)
+      .onRoute(
+        toAgent(BillingAgent)
           .toFinish(SupportFinish),
-        route(RefundAgent)
+      )
+      .onRoute(
+        toAgent(RefundAgent)
           .toFinish(SupportFinish),
-        route(TechnicalSupportAgent)
+      )
+      .onRoute(
+        toAgent(TechnicalSupportAgent)
           .toFinish(SupportFinish),
       ),
 
-    start(ClaimStart)
-      .returns(OrderClaimDto)
-      .toRouter(ClaimTierRouter)
-      .toParallelAgents(AuditLogAgent, ClaimRefundAgent, ClaimBillingAgent)
+    onStart(ClaimStart)
+      .inParallel([
+        toAgent(AuditLogAgent), // always launched
+        toRouter(ClaimTierRouter) // the router picks which of its routes run, none included
+          .chooseMany([toAgent(ClaimRefundAgent), toAgent(ClaimBillingAgent)]),
+      ])
       .join()
-      .returns(listOf(WorkflowFinishTextDto))
       .toAction(CombineClaimRepliesAction)
-      .returns(WorkflowFinishTextDto)
       .toFinish(SupportFinish),
   ],
 })
@@ -146,34 +146,26 @@ export class SupportRoutingWorkflow {}
 
 ```ts title="test/support.routers.test.ts" file=test/support.routers.test.ts
 import { expect, it } from "vitest";
-import { routeTo, testRouter } from "@agboss/core/testing";
+import { routeTo, testUnit } from "@agboss/core/testing";
 import { ClaimTierRouter, IntentTriageRouter } from "../src/routers/support.routers.js";
 import {
   ClaimBillingAgent,
   ClaimRefundAgent,
-  ClaimStart,
   RefundAgent,
-  SupportStart,
 } from "../src/support.components.js";
 
 it("tests both a model router and a code router in isolation", async () => {
-  const runModelRouter = testRouter(IntentTriageRouter, {
+  const runModelRouter = testUnit(IntentTriageRouter, {
     model: routeTo(RefundAgent),
   });
   const modelPicked = await runModelRouter({
-    message: {
-      producer: SupportStart,
-      value: { text: "Please cancel my order and refund my card" },
-    },
+    message: { text: "Please cancel my order and refund my card" }, // a plain DTO literal, tracked by default
   });
   expect(modelPicked.output).toBe(RefundAgent);
 
-  const runCodeRouter = testRouter(ClaimTierRouter);
+  const runCodeRouter = testUnit(ClaimTierRouter);
   const codePicked = await runCodeRouter({
-    claim: {
-      producer: ClaimStart,
-      value: { orderId: "A-1042", amountCents: 250_00 },
-    },
+    claim: { orderId: "A-1042", amountCents: 250_00 },
   });
   expect(codePicked.output).toEqual([ClaimRefundAgent, ClaimBillingAgent]);
 });
@@ -190,6 +182,7 @@ import {
   listOf,
   type ActionHandler,
   type InputOf,
+  inline,
 } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { OrderClaimDto } from "./dto/order.dto.js";
@@ -210,22 +203,22 @@ export class ClaimStart {}
 @WorkflowFinish({ name: "support-workflow-finish", description: "Support finish", output: WorkflowFinishTextDto })
 export class SupportFinish {}
 
-@Agent({ name: "refund-agent", description: "Refunds", model: "moonshotai/kimi-k2.6", prompt: "Refund." })
+@Agent({ name: "refund-agent", description: "Refunds", model: "moonshotai/kimi-k2.6", prompt: inline("Refund.") })
 export class RefundAgent {}
 
-@Agent({ name: "billing-agent", description: "Billing", model: "moonshotai/kimi-k2.6", prompt: "Billing." })
+@Agent({ name: "billing-agent", description: "Billing", model: "moonshotai/kimi-k2.6", prompt: inline("Billing.") })
 export class BillingAgent {}
 
-@Agent({ name: "technical-support-agent", description: "Tech support", model: "moonshotai/kimi-k2.6", prompt: "Support." })
+@Agent({ name: "technical-support-agent", description: "Tech support", model: "moonshotai/kimi-k2.6", prompt: inline("Support.") })
 export class TechnicalSupportAgent {}
 
-@Agent({ name: "audit-log-agent", description: "Audit log", model: "moonshotai/kimi-k2.6", prompt: "Audit.", input: { claim: OrderClaimDto } })
+@Agent({ name: "audit-log-agent", description: "Audit log", model: "moonshotai/kimi-k2.6", prompt: inline("Audit."), input: { claim: OrderClaimDto } })
 export class AuditLogAgent {}
 
-@Agent({ name: "claim-refund-agent", description: "Claim refund", model: "moonshotai/kimi-k2.6", prompt: "Refund claim.", input: { claim: OrderClaimDto } })
+@Agent({ name: "claim-refund-agent", description: "Claim refund", model: "moonshotai/kimi-k2.6", prompt: inline("Refund claim."), input: { claim: OrderClaimDto } })
 export class ClaimRefundAgent {}
 
-@Agent({ name: "claim-billing-agent", description: "Claim billing", model: "moonshotai/kimi-k2.6", prompt: "Billing claim.", input: { claim: OrderClaimDto } })
+@Agent({ name: "claim-billing-agent", description: "Claim billing", model: "moonshotai/kimi-k2.6", prompt: inline("Billing claim."), input: { claim: OrderClaimDto } })
 export class ClaimBillingAgent {}
 
 @Action({
@@ -235,10 +228,9 @@ export class ClaimBillingAgent {}
   output: WorkflowFinishTextDto,
 })
 export class CombineClaimRepliesAction implements ActionHandler<CombineClaimRepliesAction> {
-  execute(input: InputOf<CombineClaimRepliesAction>): Promise<WorkflowFinishTextDto> {
-    return Promise.resolve({
-      text: input.replies.map((r) => r.value.text).join("\n"),
-    });
+  execute(input: InputOf<CombineClaimRepliesAction>): WorkflowFinishTextDto {
+    const texts = input.replies.map((reply) => reply.text);
+    return { text: texts.join("\n") };
   }
 }
 ```
@@ -278,34 +270,33 @@ Every `@Router` class name ends with `Router` and its `name` option ends with `-
 | `description` | Both | `string` | Yes | Describes what decision this router makes. |
 | `decidedBy` | Both | `DecidedBy.Model \| DecidedBy.Code` | Yes | Selects whether an LLM/decision model or a TypeScript `route(input)` method chooses the branch. |
 | `input` | Both | `InputFields` | Yes | Non-empty map of DTOs read from Path Scope (`[router.empty-input]` if empty). |
-| `routes` | Both | `readonly [RouterRoute, ...]` | Yes | List of allowed `target` components; must match the targets in `.chooseOne(route(...))` or `.toParallelAgents(...)` (`[router.routes-mismatch]`). |
+| `routes` | Both | `readonly [Route, ...]` | Yes | The allowed targets. The flow must continue every route exactly once with `.onRoute(…)`, or list them in `.chooseMany([…])` (`[router.routes-mismatch]`). |
 | `maxVisits` | Both | `number` | No | Maximum visits per execution before throwing `VisitsLimitExceededError`. |
 | `model` | `DecidedBy.Model` | `string` | No | Decision model (`"typesafe/jev-1.13"`) or chat model; inherits `defaults.router.model` when omitted. |
-| `prompt` / `promptUrls` | `DecidedBy.Model` | `string` / `readonly string[]` | No | Instructions telling the model how to evaluate the input and select a route. |
-| `promptVariables` | `DecidedBy.Model` | `Readonly<Record<string, string>>` | No | Static `{{key}}` variables interpolated into the router's prompt. |
-| `piiPolicies` / `excludePiiPolicies` | `DecidedBy.Model` | `readonly Class[]` | No | `@PiiPolicy` classes masking inputs before they reach the router model. |
-| `guardrails` / `excludeGuardrails` | `DecidedBy.Model` | `readonly Class[]` | No | `@InputGuardrail` classes evaluated before the router model runs. |
-| `compaction` / `uncompactedTurns` | `DecidedBy.Model` | `Class` / `number \| TurnLimit` | No | Overrides thread compaction or recent turn window for this router. |
+| `modelProvider` | `DecidedBy.Model` | `Class` | No | The provider of the router's model (a decision model needs a `DecisionsDriver` provider); the workflow's, then the application's, when omitted. |
+| `prompt` | `DecidedBy.Model` | `PromptSource` | No | Instructions telling the model how to evaluate the input and select a route: a file path, `inline("…")` or a list. |
+| `promptVariables` | `DecidedBy.Model` | `Record<string, string \| EnvRef<string>>` | No | Static `{{key}}` variables interpolated into the router's prompt. |
+| `memory` | `DecidedBy.Model` | `Class` | No | The [`@Memory`](/reference/memory/) the model router reads; does not compile on a code router. |
+| `piiPolicies` / `excludePiiPolicies` | Both | `readonly Class[]` | No | `@PiiPolicy` classes masking inputs before they reach the router model. |
+| `guardrails` / `excludeGuardrails` | Both | `readonly Class[]` | No | `@InputGuardrail` classes evaluated before the router model runs. |
 | `deps` | `DecidedBy.Code` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `@Injectable` services) injected into the code router class. |
 
-### Route entry options (`routes: [...]`)
+### Route entries (`routes: [...]`)
 
-Each item in `routes` configures a branch target for `.chooseOne(route(...))` or `.toParallelAgents(...)`:
-
-| Route Field | Type | Description |
+| Router | A route is | Description |
 | :--- | :--- | :--- |
-| `target` | `ComponentClass` | Target `@Agent`, `@Action`, `@Router`, or `@WorkflowFinish` class. |
-| `prompt` | `string` | Required on `DecidedBy.Model` routes with `SpawnPolicy.OnDemand`; describes when the model should select `target`. Forbidden on `DecidedBy.Code` routes. |
-| `spawn` | `SpawnPolicy.Always \| SpawnPolicy.OnDemand` | Used before `.toParallelAgents(...)`: `Always` launches unconditionally alongside chosen branches; `OnDemand` launches only when chosen by the router. |
-| `failure` | `FailurePolicy.FailFast \| FailurePolicy.Skip` | Used before `.toParallelAgents(...)`: whether a failure in this target fails the parallel join (`FailFast`, default) or drops out (`Skip`). |
+| `DecidedBy.Model` | `{ target, prompt }` | `target` is the `@Agent`, `@Action`, `@Router`, `@Workflow` or `@WorkflowFinish` class — or a thunk of one, `() => X`, when it is declared below the router or in a module that imports it back. `prompt` (a plain string, required: `[router.no-prompt]`) says when the model chooses it; a route to a finish is worded as a stop instruction. |
+| `DecidedBy.Code` | the class | `routes: [RefundAgent, ChargeAction]`, or `() => X` thunks; `route(input)` returns one of them, typed by `Route<Self>`. In a launch it returns the chosen classes as a list, `[]` included. |
+
+0.1.0's `SpawnPolicy`, `FailurePolicy`, `spawn` and `failure` on a route, `CodeRouterRoute`, `AlwaysRouterRoute` and `RouterRoute` are gone: a router in a launch is `toRouter(R).chooseMany([…])` and a failed branch is dropped with `.onError(E, skip())` on the branch.
 
 ## What related entities work with `@Router`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `DecidedBy`, `SpawnPolicy`, `FailurePolicy` | `"@agboss/core"` | Enums controlling decision mode (`Model` vs `Code`), parallel launch selection (`Always` vs `OnDemand`), and branch failure handling (`FailFast` vs `Skip`). |
-| `RouterHandler<Self>` & `Route<Self>` | `"@agboss/core"` | Contract and return type for `DecidedBy.Code` routers (`route(input)` returns one target for `.chooseOne()` or one/many targets for `.toParallelAgents()`). |
-| `.toRouter(R).chooseOne(route(Target)...)` | `"@agboss/core"` | Connects a router to exclusive branch paths in `@Workflow({ flow })`. |
-| `.toRouter(R).toParallelAgents(...)` | `"@agboss/core"` | Uses a router to dynamically select which subset of `SpawnPolicy.OnDemand` agents to launch in parallel alongside `SpawnPolicy.Always` agents. |
-| `RouterFailedError` & `RouterDecisionError` | `"@agboss/core"` | Errors thrown when a router cannot select a valid route; catchable in the flow via `.onError(RouterFailedError, sidePath)`. |
-| `testRouter(RouterClass, options?)` | `"@agboss/core/testing"` | Unit runner that tests a model or code router in isolation without booting the workflow. |
+| `DecidedBy` | `"@agboss/core"` | Enum controlling decision mode (`Model` vs `Code`). |
+| `RouterHandler<Self>` & `Route<Self>` | `"@agboss/core"` | Contract and return type for `DecidedBy.Code` routers (`route(input)` returns one target for `.onRoute()` or a list of targets for `.chooseMany()`). |
+| `.toRouter(R).onRoute(subPath)…` | `"@agboss/core"` | Connects a router to its exclusive branch paths in `@Workflow({ flow })`: one `.onRoute(toAgent(X)…)` per route. |
+| `toRouter(R).chooseMany([toAgent(A), …])` | `"@agboss/core"` | A router as a branch of `.inParallel([…])`: it decides which of its routes are launched (none, some or all), while its siblings always run. |
+| `RouterFailedError` & `RouterDecisionError` | `"@agboss/core"` | Errors thrown when a router cannot select a valid route; catchable in the flow via `.onError(RouterFailedError, sidePath)` right after the router. |
+| `testUnit(RouterClass, options?)` | `"@agboss/core/testing"` | Unit runner that tests a model or code router in isolation without booting the workflow. |
