@@ -32,7 +32,7 @@ const isActive = (item: (typeof NAV)[number]) => {
 		<SiteTitle />
 	</div>
 
-	{showVersion && <VersionSelect />}
+	{showVersion && <div class="agb-version"><VersionSelect /></div>}
 
 	<button class="agb-burger" type="button" aria-label="Menu" aria-expanded="false">
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
@@ -164,6 +164,82 @@ const isActive = (item: (typeof NAV)[number]) => {
 		margin: -0.25rem;
 		min-width: 0;
 		flex: none;
+	}
+
+	/* ---------- version selector (starlight-versions, native <select>: the list always opens downward) ---------- */
+	.agb-version {
+		flex: none;
+		display: flex;
+		align-items: center;
+		margin-inline: 0.25rem 0.5rem;
+	}
+
+	.agb-version :global(label) {
+		position: relative;
+		display: flex;
+		align-items: center;
+		height: 2.5rem; /* same height as the search field */
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 8px;
+		background: var(--sl-color-black);
+		color: var(--sl-color-gray-1);
+		transition: border-color 0.15s ease;
+	}
+
+	.agb-version :global(label:hover),
+	.agb-version :global(label:focus-within) {
+		border-color: var(--sl-color-accent-high);
+		color: var(--sl-color-white);
+	}
+
+	.agb-version :global(select) {
+		height: 100%;
+		width: auto;
+		min-width: 5.75rem;
+		padding-block: 0;
+		padding-inline: 1.9rem 1.7rem;
+		font-family: 'Ubuntu Mono', var(--sl-font-mono);
+		font-size: 0.8rem;
+		font-weight: 700;
+		color-scheme: light dark;
+	}
+
+	.agb-version :global(select:focus-visible) {
+		outline: 2px solid var(--sl-color-accent-high);
+		outline-offset: 2px;
+		border-radius: 8px;
+	}
+
+	.agb-version :global(label .label-icon) {
+		inset-inline-start: 0.6rem;
+	}
+
+	.agb-version :global(label .caret-icon) {
+		inset-inline-end: 0.3rem;
+	}
+
+	.agb-version :global(option) {
+		padding: 0.5rem 0.75rem;
+		background: var(--sl-color-bg-nav);
+		color: var(--sl-color-gray-1);
+	}
+
+	.agb-version :global(option:checked) {
+		font-weight: 700;
+		color: var(--sl-color-accent-high);
+	}
+
+	@media (max-width: 49.99rem) {
+		.agb-version {
+			margin-inline: 0.15rem 0;
+		}
+		.agb-version :global(select) {
+			min-width: 0;
+			padding-inline: 0.6rem 1.5rem;
+		}
+		.agb-version :global(label .label-icon) {
+			display: none;
+		}
 	}
 
 	/* ---------- menu ---------- */
