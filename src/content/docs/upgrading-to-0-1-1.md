@@ -31,7 +31,7 @@ Two things make a migration mechanical. `npx agboss check` names every rule an o
 | `.acceptedBy(Arbiter)` | `.arbitratedBy(Arbiter)` |
 | `.onJoinError(...)` | `.onError(...)` right after the join |
 | `ThisWorkflow` | `toWorkflow(() => Self)` |
-| `SpawnPolicy`, `FailurePolicy`, `anyOf(...)` | removed |
+| `SpawnPolicy`, `FailurePolicy`, `anyOf(...)` | removed; the one built-in semantics of `.inParallel([…]).join(…)` is that an uncaught failure of a sibling branch cancels the branches still running, undoes the finished ones and fails the join (`.joinQuorum` keeps waiting while the quorum is reachable) |
 | `listOf(oneOf(A, B))` | `listOf(A, B)` (variadic), with a typed slice per class |
 | `placement` on a flow step | `@Workflow({ placement })` on the child (or `defaults`); `ChildPlacement.AnyInstance` is `AnyWorker` |
 

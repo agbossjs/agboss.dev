@@ -21,7 +21,7 @@ AGBoss is organized as two Apache 2.0 packages — `@agboss/core` (the core runt
 | **Storage** | `@DatabaseStorage`, `@ClusterStorage` and `@ObjectStorage` with drivers (`SqliteDriver` built in; Postgres, MongoDB, Redis and S3 as store packages), required `auditLogTtl` and `ledgerEntriesTtl`, `agboss migrate db` |
 | **Pauses and execution control** | `@ToolApproval` and `@ExternalTask` targets with `PauseRespondent`, `@Channel({ target, ttl })`, `@ChannelInterpreter`, `@ChannelSelector`, `@ChannelListener`; `app.stop`, `app.pause`, `app.unpause`, `app.extendPause`, `app.reassignPause`, `app.listPauses`, `app.getExecution`, `app.listExecutions`; cancel and stop are outcomes; hard cancel fence; the tenant gate |
 | **Surfaces and federation** | `@McpEndpoint` with `connectMcpStdio` / `connectMcp` / `mcpHttpListener`, `@A2AEndpoint` on the A2A v1.0 wire, `@HttpAuthenticator`, `@Mesh`, `@A2AAgent` with `costPerCall` |
-| **Testing and evaluation** | `testUnit` for every unit runner with `services: [Fake]`, `testWith`, `mockLlm`; judges read `output`; `@EvalSuite` with `judges`; profiles as `src/config/<name>.config.ts`; `agboss executions export` |
+| **Testing and evaluation** | `testUnit` for every unit runner with `services: [Fake]`, `testWith`, `mockModel`; judges read `output`; `@EvalSuite` with `judges`; profiles as `src/config/<name>.config.ts`; `agboss executions export` |
 | **Other** | `@Memory` replaces `@Compaction`; `DecisionModel`; `Idempotency` (`runOnce`, `sendOnce`); `@Observer` with per-hook methods; PII verbs `mask` / `tokenize` / `block`; `RagSource` with `RagScope` |
 
 ## Package naming and version history

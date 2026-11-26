@@ -179,7 +179,7 @@ List the endpoint in `@Application({ endpoints })`.
 `McpService`, `createMcpService`, `McpSession`, `McpServiceOptions`, `handleSse` and `handleMessage` of 0.1.0 are removed:
 
 - **stdio:** `connectMcpStdio(app, { endpoint, session? })` returns an `McpConnection`; `await using` closes it.
-- **Any SDK server transport:** `connectMcp(app, { endpoint, transport, session? })`; the transport is typed by AGBoss's own structural `McpWireTransport`. An application with a `tenantContext` must pass a `session` with its tenant.
+- **Any SDK server transport:** `connectMcp(app, { endpoint, transport, session? })`; the transport is typed by AGBoss's own structural `McpWireTransport`. An application with a `tenantContext` must pass a `session` with its tenant. `connectMcp` takes no `peer` option: the peer is identified only on the server side, by `mcpHttpListener`, from the public keys in `@Mesh({ peers })`.
 - **Streamable HTTP:** `mcpHttpListener(app, { endpoint, publicUrl, authenticator?, base?, maxBodySize?, onError?, allowAnonymous? })`. Each HTTP request is admitted on its own — a signed mesh peer (`X-AGBoss-Mesh`, for `publicUrl`'s origin) or the caller an [`@HttpAuthenticator`](/reference/a2a-endpoint/#who-calls-an-endpoint-httpauthenticator) names (required with a `tenantContext`). Anonymous access is opt-in (`allowAnonymous: true`, only in an application with no `tenantContext` and beside no authenticator) and token-bound, never socket-bound: an anonymous caller is `anonymous:<Mcp-Session-Id>`.
 
 ## What related entities work with `@McpEndpoint`?

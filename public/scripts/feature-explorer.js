@@ -1739,7 +1739,7 @@
 		},
 		"lifo": {
 			"file": "src/missions/escrow-settlement.workflow.ts",
-			"problem": "External cancellations (<code>app.cancel</code>, <code>FailFast</code>, quorum <code>Surplus</code>, budget breach) bypass normal <code>.onError</code> edges.",
+			"problem": "External cancellations (<code>app.cancel</code>, a sibling branch&#39;s failure, quorum <code>Surplus</code>, budget breach) bypass normal <code>.onError</code> edges.",
 			"solution": "The runtime checkpoints open compensators and unwinds them in LIFO order under a dedicated <code>compensationTimeout</code>.",
 			"code": [
 				"import { StepError, Workflow, onStart, toAction, toWorkflow } from \"@agboss/core\";",

@@ -140,7 +140,7 @@ it("blocks answers when the model guardrail score meets the threshold", async ()
   expect(output.refusal).toContain("not a medical diagnosis");
 });
 
-it("runs DecidedBy.Code guardrails with zero LLM calls via GuardrailHandler", async () => {
+it("runs code guardrails with zero LLM calls via GuardrailHandler", async () => {
   const check = testUnit(TenantBlocklistGuardrail, {
     tenantContext: ClinicTenantContext,
     tenant: { tenantId: "clinic-1", department: "pediatrics" },

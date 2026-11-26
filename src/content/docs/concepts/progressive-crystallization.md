@@ -10,8 +10,8 @@ Early in a feature's lifecycle, you *want* the flexibility of [`DecidedBy.Model`
 - An `@Agent` with four `@Tool` bindings calls `FetchInvoiceTool` followed immediately by `ValidateTaxIdTool` in the exact same order on 99% of runs.
 
 **Progressive Crystallization** is the architectural practice of systematically identifying these settled stochastic **Desire Paths** via content-addressed revision hashes (`agboss describe --json`), multi-run `pass@k` vs `pass^k` reliability benchmarks, and execution traces (`ExecutionRecord` and Langfuse / OpenTelemetry spans), and replacing them in place without changing neighbor contracts:
-- `DecidedBy.Model` `@Router` and `@Arbiter` $\to$ `DecidedBy.Code` (`0ms` LLM latency, `$0.00` token spend)
-- `DecidedBy.Model` `@InputGuardrail`, `@OutputGuardrail`, and `@Judge` $\to$ `DecidedBy.Code` (one `check(content)` / deterministic `JudgeHandler` inspecting DTOs and `toolCalls` at `$0.00` cost)
+- `DecidedBy.Model` `@Router` $\to$ `DecidedBy.Code`, and a model `@Arbiter` $\to$ `@Arbitrate(…targets)` methods (`0ms` LLM latency, `$0.00` token spend)
+- A model `@InputGuardrail`, `@OutputGuardrail`, and `@Judge` $\to$ a code one (one `check(content)` / deterministic `JudgeHandler` inspecting DTOs and `toolCalls` at `$0.00` cost)
 - Repetitive `@Tool` sequences inside an `@Agent` $\to$ deterministic `@Action` steps or `@ToolInterceptor` gates
 - Model-summarized `@Memory` $\to$ a `@Memory` with a window and no summaries, or your own service writing structured facts into a knowledge graph or vector store
 - Human-in-the-loop `ChannelOutcome.awaitReply()` pauses on low-risk cases $\to$ immediate auto-approved `ChannelOutcome.decided(...)`
@@ -215,7 +215,7 @@ When running an `@EvalSuite` with `--runs <k>` (for example, `k = 5`), AGBoss re
 - **`pass@k` ($\ge 1$ of $k$ runs passed):** Measures whether the model *can* solve the task.
 - **`pass^k` ($k$ of $k$ runs passed):** Measures whether the workflow solves the task *reliably* on every production execution.
 
-A case with **high `pass@k` (`1.00`) but low `pass^k` (`0.20`–`0.60`)** is the canonical signal of a stochastic step that should be crystallized into a `DecidedBy.Code` router, guardrail, `@ToolInterceptor`, or `@Action`.
+A case with **high `pass@k` (`1.00`) but low `pass^k` (`0.20`–`0.60`)** is the canonical signal of a stochastic step that should be crystallized into a `DecidedBy.Code` router, a code guardrail, `@ToolInterceptor`, or `@Action`.
 
 Before promoting a crystallized component to production, verify that end-to-end quality, routing accuracy, and [`@Judge`](/reference/judge/) pass rates remain identical (while cost and latency drop):
 

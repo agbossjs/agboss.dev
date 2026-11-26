@@ -9,7 +9,7 @@ description: "How AGBoss structures agent verification as a 5-loop cost and dete
 
 ## Complete example: Fail-Fast Cascade from `$0` code guards to calibrated `@Judge`
 
-Before looking at each axis of the funnel, here is how Loops 0, 1, and 2 work together in code — combining a deterministic [`@Tool`](/reference/tool/), a deterministic `$0` [`@Judge`](/reference/judge/) (`CitationFormatJudge`, `0ms`), a calibrated `DecidedBy.Model` `@Judge` (`RefundPolicyGroundedJudge`), and a `testWith(Application)` + `testUnit` verification suite:
+Before looking at each axis of the funnel, here is how Loops 0, 1, and 2 work together in code — combining a deterministic [`@Tool`](/reference/tool/), a deterministic `$0` [`@Judge`](/reference/judge/) (`CitationFormatJudge`, `0ms`), a calibrated model `@Judge` (`RefundPolicyGroundedJudge`), and a `testWith(Application)` + `testUnit` verification suite:
 
 ```ts title="src/funnel/refund.dto.ts" file=src/funnel/refund.dto.ts
 import { Integer, Text } from "@agboss/core/dto";
@@ -243,7 +243,7 @@ Every failure in a multi-agent system originates in one of **4 distinct architec
 | # | Object of Verification | What Can Go Wrong | Primary AGBoss Primitives |
 | :--- | :--- | :--- | :--- |
 | **1** | **Topology & Mesh Contracts (`Graph & Mesh Contracts`)** | Missing upstream inputs on a branch, reading a stale draft in a review loop, forgetting a saga compensator, or breaking a schema consumed by a remote server | [`agboss check`](/cli/), `$ agboss check --federation`, `.agboss/types.d.ts`, [`Path Scope`](/concepts/path-scope/), [`compensateWith` / `committedBy`](/guides/error-handling-and-rollback/) |
-| **2** | **Harness Code (`Harness Code`)** | Bugs in deterministic TypeScript surrounding the model: [`@Action`](/reference/action/), `DecidedBy.Code` [`@Router`](/reference/router/) & [`@Arbiter`](/reference/arbiter/), [`@Tool`](/reference/tool/), [`@ToolInterceptor`](/reference/tool-interceptor/), code guardrails, [`@PiiPolicy`](/reference/pii-policy/) masking, rate-limit queues, retries, and LIFO rollbacks | [`testUnit` runners](/guides/testing-agents/#the-unit-runners-in-agbosstesting), `testWith(App)`, `mockModel`, `TestConcurrency.inOrder`, `VirtualClock`, `instances: 2` |
+| **2** | **Harness Code (`Harness Code`)** | Bugs in deterministic TypeScript surrounding the model: [`@Action`](/reference/action/), `DecidedBy.Code` [`@Router`](/reference/router/) & code [`@Arbiter`](/reference/arbiter/), [`@Tool`](/reference/tool/), [`@ToolInterceptor`](/reference/tool-interceptor/), code guardrails, [`@PiiPolicy`](/reference/pii-policy/) masking, rate-limit queues, retries, and LIFO rollbacks | [`testUnit` runners](/guides/testing-agents/#the-unit-runners-in-agbosstesting), `testWith(App)`, `mockModel`, `TestConcurrency.inOrder`, `VirtualClock`, `instances: 2` |
 | **3** | **Model & Tool Trajectory (`Model & Trajectory`)** | The model misunderstands the prompt, skips `requiredTools`, calls `forbiddenTools`, passes another tenant's ID in tool arguments, or hallucinates an ungrounded answer | `toHaveCalledTools`, `toHaveToolCallMatching`, `toolInvariant`, [`@Judge`](/reference/judge/), [`@EvalSuite`](/guides/evaluation-and-profiles/) (`pass@k` & `pass^k`) |
 | **4** | **Memory & Compaction (`Memory & Compaction`)** | A critical safety constraint disappears after [`@Memory`](/reference/memory/) summarisation, or the agent relies on an outdated fact from an old turn when a `@Tool` or [`@Rag`](/reference/rag/) returns updated rules | `testUnit()`, multi-turn `pastTurn()` + `turn()` in `@EvalSuite`, outdating of stale values |
 
@@ -300,7 +300,7 @@ flowchart TD
 - **How Loop 2 maximizes accuracy while minimizing token spend:**
   1. **Fail-Fast Cascade inside every trial (`$0 -> $$$`, `EvalCascade.StopAtFirstFailure`):**
      - **Step 1 (`$0`, `0ms`):** Verify deterministic trajectory invariants (`checkTrajectory()`) first — were `required` tools called (`toolCall`), were `forbidden` tools avoided, did tool arguments satisfy `toolInvariant` predicates, and did the run stay within its `@Budget`?
-     - **Step 2 (`$0`, `0ms`):** Run deterministic `DecidedBy.Code` `@Judge` classes (`CitationFormatJudge`, `FairDecisionJudge`).
+     - **Step 2 (`$0`, `0ms`):** Run deterministic code `@Judge` classes (`CitationFormatJudge`, `FairDecisionJudge`).
      - **Step 3 (`$`):** Only if Steps 1 and 2 pass does AGBoss invoke the calibrated LLM `@Judge`, passing it the full `toolCalls` trajectory and final `reply`.
   2. **Multi-trial reliability (`pass^k`) vs cached `--baseline` (no double spend):**
      - Critical smoke cases (up to 10 cases) run $K = 5$ trials each (`--runs 5`), while cases directly touched by the PR run $10\text{–}20$ trials.
@@ -337,8 +337,8 @@ The relationship between **`pass@k`** (passed at least once in $k$ trials — *c
 
 | Observed Eval Signal | What It Means | Architectural Action (Loop 2 $\to$ Loop 1) |
 | :--- | :--- | :--- |
-| **High `pass@k` (`100%`), Low `pass^k` (`40%`)** | The model *knows how* to solve the task, but slips on 3 of 5 attempts (e.g., calling a `@Tool` with an invalid filter or missing prefix). | Do **not** bloat the system prompt. Add a deterministic [`@ToolInterceptor`](/reference/tool-interceptor/) (`ToolCallDecision.replyToModel`) or `DecidedBy.Code` [`@InputGuardrail`](/reference/guardrail/) that catches the mistake in `0ms` for `$0`. |
-| **Stable `pass^k = 100%` across thousands of runs** | `agboss describe --json` + `ExecutionRecord` traces show a `DecidedBy.Model` `@Router` or `@Arbiter` making a predictable decision from DTO fields on $>99\%$ of runs. | Crystallize the component from `DecidedBy.Model` to **`DecidedBy.Code`** (or collapse a fixed tool chain into an [`@Action`](/reference/action/)). Its verification permanently moves from paid **Loop 2 (`agboss eval`)** into free, `1ms` **Loop 1 (`npm test`)**. |
+| **High `pass@k` (`100%`), Low `pass^k` (`40%`)** | The model *knows how* to solve the task, but slips on 3 of 5 attempts (e.g., calling a `@Tool` with an invalid filter or missing prefix). | Do **not** bloat the system prompt. Add a deterministic [`@ToolInterceptor`](/reference/tool-interceptor/) (`ToolCallDecision.replyToModel`) or a code [`@InputGuardrail`](/reference/guardrail/) that catches the mistake in `0ms` for `$0`. |
+| **Stable `pass^k = 100%` across thousands of runs** | `agboss describe --json` + `ExecutionRecord` traces show a `DecidedBy.Model` `@Router` or a model `@Arbiter` making a predictable decision from DTO fields on $>99\%$ of runs. | Crystallize the component from `DecidedBy.Model` to **`DecidedBy.Code`** (or collapse a fixed tool chain into an [`@Action`](/reference/action/)). Its verification permanently moves from paid **Loop 2 (`agboss eval`)** into free, `1ms` **Loop 1 (`npm test`)**. |
 
 ---
 

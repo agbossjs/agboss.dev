@@ -194,7 +194,7 @@ test("reserves stock and ships order on the happy path", async ({ app }) => {
 
 ## How do declarative transactional sagas (`compensateWith` & `committedBy`) and automatic LIFO unwinding work?
 
-Manual `.onError(...)` chains only catch step failures along normal graph edges — they do not run when an execution or parallel branch is externally aborted by `app.cancel(threadId)`, sibling a sibling branch's failure, quorum `BranchVerdict.Surplus`, or a limit error (`LimitError.Budget`, `LimitError.Steps`, `LimitError.Depth`).
+Manual `.onError(...)` chains only catch step failures along normal graph edges — they do not run when an execution or parallel branch is externally aborted by `app.cancel(threadId)`, a sibling branch's failure, quorum `BranchVerdict.Surplus`, or a limit error (`LimitError.Budget`, `LimitError.Steps`, `LimitError.Depth`).
 
 AGBoss solves both static rollback completeness and runtime external aborts with declarative compensation contracts on `@Action`:
 
