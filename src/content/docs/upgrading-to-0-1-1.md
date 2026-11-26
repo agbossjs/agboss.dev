@@ -3,7 +3,7 @@ title: What's New in 0.1.1 & Upgrading from 0.1.0
 description: The AGBoss 0.1.1 API is a hard break from 0.1.0 with no compatibility layer. What was removed, what replaced it, and the order to migrate an application, its stores and its A2A peers.
 ---
 
-AGBoss `0.1.1` reworks the public API end to end. It is a **hard break**: there is no compatibility layer, no deprecated alias and no shim for `0.1.0`. A name that was removed does not compile, and a stored row written under an old name is refused, never guessed. Everything on this site is written against `0.1.1`, and every code sample is compiled against the `0.1.1` packages by `check:docs`.
+AGBoss `0.1.1` reworks the public API end to end. It is a **hard break**: there is no compatibility layer, no deprecated alias and no shim for `0.1.0`. A name that was removed does not compile, and a stored row written under an old name is refused, never guessed. The documentation for the previous release stays available at [0.1.0 docs](/0.1.0/), and the version selector in the header switches between the two. Everything on this site, outside `/0.1.0/`, is written against `0.1.1`, and every code sample is compiled against the `0.1.1` packages by `check:docs`.
 
 Two things make a migration mechanical. `npx agboss check` names every rule an old shape breaks, with a stable code, and the table below maps each removed name to its replacement. Migrate in this order: the flow and the DTOs first (the compiler guides you), then providers and storage (they are now explicit), then pauses, then your stores and A2A peers.
 

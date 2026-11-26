@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
+import starlightVersions from 'starlight-versions';
+import { RELEASE_META } from './src/config/release.ts';
 
 /**
  * Resolves the git commit date (YYYY-MM-DD) for the source doc backing a sitemap URL.
@@ -80,9 +82,25 @@ function geoSitemapEnricher() {
 	};
 }
 
+/**
+ * starlight-llms-txt applies its `exclude` option to llms-small.txt only, so llms-full.txt would also contain the
+ * archived 0.1.0 docs. This Vite transform makes llms-full.txt honour the same `exclude` (set on the plugin below).
+ */
+function llmsFullHonoursExclude() {
+	return {
+		name: 'agboss-llms-full-exclude',
+		transform(code, id) {
+			if (!id.replaceAll('\\', '/').endsWith('/starlight-llms-txt/llms-full.txt.ts')) return undefined;
+			if (!code.includes('minify: false,')) throw new Error('starlight-llms-txt changed: re-check llmsFullHonoursExclude');
+			return `import { starlightLllmsTxtContext as __ctx } from 'virtual:starlight-llms-txt/context';\n${code.replace('minify: false,', 'minify: false, exclude: __ctx.exclude,')}`;
+		},
+	};
+}
+
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://agboss.dev',
+	vite: { plugins: [llmsFullHonoursExclude()] },
 	redirects: {
 		'/examples/job-scout': '/examples/verified-examples/',
 		// 0.1.1 renamed or removed these pages' subjects (hard break, no compatibility with 0.1.0)
@@ -253,7 +271,15 @@ export default defineConfig({
 				Footer: './src/components/Footer.astro',
 			},
 			plugins: [
+				// 0.1.0 (published on npm) lives as a snapshot under src/content/docs/0.1.0 (URLs /0.1.0/...) with its own
+				// sidebar in src/content/versions/0.1.0.json; the current docs (0.1.1) stay at the unprefixed URLs.
+				starlightVersions({
+					current: { label: RELEASE_META.displayVersion },
+					versions: [{ slug: '0.1.0', label: 'v0.1.0' }],
+				}),
 				starlightLlmsTxt({
+					// llms.txt describes the current docs only: the archived 0.1.0 snapshot is not duplicated into it.
+					exclude: ['0.1.0', '0.1.0/**'],
 					projectName: 'AGBoss (Agent Graph Builder Open Source System)',
 					description:
 						'AGBoss (Agent Graph Builder Open Source System) is an open-source TypeScript framework with static verification (agboss check) for complex multi-agent workflows on top of LangGraph, combining dependency injection, typed DTO dataflow, and HarnessDSL (HDSL) — its declarative workflow grammar enforcing 7 distributed-systems architectural principles: (1) Computational Role Segregation (@Agent, @Router, @Arbiter, @Action), (2) Path-Scoped SSA Dataflow & Staleness Tracking (Tracked<Dto, Producer>, Metadata, historyOf), (3) Canonical Topology Isomorphism (in-degree = 1 inline vs >= 2 top-level path, depth <= 4), (4) Prompt Prefix Cache Invariance ([prompt.input-in-instructions], sorted schemas, deterministic HMAC tokenize()), (5) Transactional LIFO Sagas & Idempotent Execution (step.idempotencyKey, compensateWith / committedBy, [graph.limit-handler-uses-model]), (6) Zero-Leakage DI & Progressive Infrastructure Scaling (the in-memory database to a @DatabaseStorage on SQLite WAL, Postgres or MongoDB, 30s leases, ChildPlacement.AnyWorker work-stealing, health probes, and testUnit runners), and (7) Progressive Crystallization (agboss describe --json + trace join + agboss hub Crystallization Radar from DecidedBy.Model to DecidedBy.Code).',

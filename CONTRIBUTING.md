@@ -40,3 +40,13 @@ issue number when one exists: `feat(#12): …`, `fix(#13): …`, `docs(#14): …
 ## Questions
 
 Open a GitHub Issue — including for questions that aren't yet a concrete change.
+
+## Documentation versions
+
+The site keeps two documentation versions (plugin `starlight-versions`):
+
+- The current docs (0.1.1) live in `src/content/docs/` and are served at the unprefixed URLs.
+- The 0.1.0 docs (published on npm) are a frozen snapshot in `src/content/docs/0.1.0/` (URLs `/0.1.0/...`) with its own
+  sidebar in `src/content/versions/0.1.0.json`. Do not edit it except to fix a broken link.
+- `npm run check:docs` skips the snapshot (its snippets target the 0.1.0 API, not the framework commit pinned in
+  `.agboss-version.json`). The snapshot is excluded from `llms.txt`; pagefind search is filtered per version.
