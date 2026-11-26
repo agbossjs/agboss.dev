@@ -44,7 +44,7 @@ export class JobFitService {
 ## How a decision runs
 
 - **Questions are closed and typed.** `Decision.boolean(instructions, criteria?)` answers `{ probability }` (P(yes)); `Decision.choice(…)` an option with probabilities and a confidence; `Decision.score(instructions, levels)` the index of a level, lowest first. The answers are typed by the questions' ids. `Decision.noul` of 0.1.0 is `Decision.boolean`, its answer a `probability`.
-- **The model is the call's own, else the cascade.** `{ model?, modelProvider? }` of the call, otherwise the `modelProvider` cascade of the component's workflow and application ([`@ModelProvider`](/reference/model-provider/)). A chat provider does not serve a decision (`[model.incompatible-provider]`); a chat model asked to `decide` or a decision model asked to `invoke` throws `ModelKindError` (`model.wrong-kind`).
+- **The model is the call's own, else the cascade.** `{ model?, modelProvider? }` of the call, otherwise the `modelProvider` cascade of the component's workflow and application ([`@ModelProvider`](/reference/model-provider/)). A chat provider does not serve a decision (`[model.incompatible-provider]`); a chat model asked to `decide` or a decision model asked to `invoke` throws `ConfigError.ModelKind` (`model.wrong-kind`).
 - **Budgets, spend and traces are the framework's.** The call is stopped by an exhausted budget before any request; its cost (and the cost of a billed answer that could not be used) is the tool call's spend — the execution's cost report, its budgets and the ledger — and it is traced like a router's.
 - **A failed decision is an error with its spend kept.** `DecisionError` (`DecisionErrorKind.InvalidResponse`, …) never carries what the model said.
 

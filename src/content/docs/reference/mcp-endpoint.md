@@ -150,14 +150,14 @@ import {
 
 const test = testWith(JobScoutApplication);
 
-test("executes the MCP-exposed tool and workflow start entry point", async ({ app, mockLlm }) => {
+test("executes the MCP-exposed tool and workflow start entry point", async ({ app, mockModel }) => {
   expect(JobScoutMcpEndpoint).toBeDefined();
 
   const runSearchTool = testUnit(SearchJobsTool);
   const { output: toolOut } = await runSearchTool({ query: "Staff TypeScript" });
   expect(toolOut.text).toContain("Staff TypeScript");
 
-  mockLlm(ScoutAgent).thenReturn(replyWith("Found 3 Staff TypeScript roles."));
+  mockModel(ScoutAgent).thenReturn(replyWith("Found 3 Staff TypeScript roles."));
   const wfOut = await app.execute(ChatWorkflowStart, { text: "Find Staff TypeScript roles" });
   expect(wfOut.status).toBe(ExecutionStatus.Finished);
 });

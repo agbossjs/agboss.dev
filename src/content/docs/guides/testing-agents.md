@@ -12,13 +12,13 @@ In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verifica
 | Loop | Command | Latency & Cost | Objects Verified | Lock to Next Loop |
 | :--- | :--- | :--- | :--- | :--- |
 | **Loop 0: Static Proof** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save & first CI step) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance (`[input.missing-on-path]`), outdating of stale values (`[input.outdated-on-path]`), LIFO saga compensations (`[flow.uncompensated-action]`), and Agent Mesh schemas | Emits `.agboss/types.d.ts` required for Loop 1 |
-| **Loop 1: Deterministic Harness & Chaos** | `npm test` (`@agboss/core/testing` + VCR) | `~3s` · **`$0`** (every commit; no live LLM) | **Object 2 (Harness Code):** `testUnit` runners, full-graph `testWith(App)` with `mockLlm`, `ModelFailure` chaos (`429`, timeouts, truncated JSON), `TestConcurrency.inOrder`, and multi-pod `{ instances: 2 }` leases | **`[vcr.stale-cassette]`** (`promptHash` + `schemaHash`) triggers [Loop 2 PR Smoke Gate](/guides/evaluation-and-profiles/) whenever a prompt or DTO schema changes |
+| **Loop 1: Deterministic Harness & Chaos** | `npm test` (`@agboss/core/testing` + VCR) | `~3s` · **`$0`** (every commit; no live LLM) | **Object 2 (Harness Code):** `testUnit` runners, full-graph `testWith(App)` with `mockModel`, `ModelFailure` chaos (`429`, timeouts, truncated JSON), `TestConcurrency.inOrder`, and multi-pod `{ instances: 2 }` leases | **`[vcr.stale-cassette]`** (`promptHash` + `schemaHash`) triggers [Loop 2 PR Smoke Gate](/guides/evaluation-and-profiles/) whenever a prompt or DTO schema changes |
 
 ---
 
 ## Complete example: `testWith(Application)` and `testUnit`
 
-`testWith(Application)` boots your real `@Application` container and infrastructure in each test while scripting model turns via `mockLlm`, action calls via `mockAction`, tool failures via `mockTool`, and service methods via `mockOf`:
+`testWith(Application)` boots your real `@Application` container and infrastructure in each test while scripting model turns via `mockModel`, action calls via `mockAction`, tool failures via `mockTool`, and service methods via `mockService`:
 
 <!-- snippet-context
 import { Tool, WorkflowFinish, WorkflowStart } from "@agboss/core";
@@ -59,7 +59,7 @@ export class SupportWorkflow {}
 ```
 
 <!-- snippet-context
-import { ExecutionCancelledError, Injectable, type JudgeHandler, type JudgeInput, type JudgeVerdict, inline } from "@agboss/core";
+import { Injectable, type JudgeHandler, type JudgeInput, type JudgeVerdict, inline } from "@agboss/core";
 import { PlainTextDto, Text } from "@agboss/core/dto";
 export class ChangesRequestedDto {
   @Text({ prompt: "what to change" })
@@ -102,24 +102,24 @@ const test = testWith(OfferApplication);
 
 test("reviewer asks for changes, then approves", async ({
   app,
-  mockLlm,
+  mockModel,
   mockAction,
 }) => {
-  mockLlm(ReviewerAgent)
+  mockModel(ReviewerAgent)
     .when({ draft: { text: "v1" } })
     .thenReturn(replyWith(ChangesRequestedDto, { notes: "shorter" }));
-  mockLlm(ReviewerAgent)
+  mockModel(ReviewerAgent)
     .when({ draft: { text: "v2" } })
     .thenReturn(
       waitFor(seconds(1)),
       replyWith(DraftApprovedDto, {}, { cost: usd(0.01) }),
     );
-  mockLlm(EditorAgent).thenReturn(replyWith("v2"));
+  mockModel(EditorAgent).thenReturn(replyWith("v2"));
 
   await app.execute(OfferWorkflowStart, shortlist);
 
-  expect(mockLlm(ReviewerAgent)).toHaveBeenCalledTimes(2);
-  expect(mockLlm(ReviewerAgent)).toHaveReturned(ChangesRequestedDto, {
+  expect(mockModel(ReviewerAgent)).toHaveBeenCalledTimes(2);
+  expect(mockModel(ReviewerAgent)).toHaveReturned(ChangesRequestedDto, {
     notes: "shorter",
   });
   expect(mockAction(SendOfferAction)).toHaveBeenCalledWith({
@@ -161,7 +161,7 @@ it("a grounded reply passes the decision judge", async () => {
 ## Core principles of testing AGBoss applications
 
 1. **Test your graph code in `npm test`, and test prompt behavior in Evals:**
-   A scripted `mockLlm(Agent)` reply proves that **your workflow graph, DTO contracts, error edges, and compensators** behave deterministically given any sequence of model decisions. Never assert what a real LLM "would answer" inside a unit test; instead, assert what your step **sent** to the model (`mockLlm(Agent).requests`, `toHaveBeenAskedWith`) and use [Evals & Golden Sets](/guides/evaluation-and-profiles/) (`agboss eval`, `agboss compare`) to evaluate prompt changes on real models.
+   A scripted `mockModel(Agent)` reply proves that **your workflow graph, DTO contracts, error edges, and compensators** behave deterministically given any sequence of model decisions. Never assert what a real LLM "would answer" inside a unit test; instead, assert what your step **sent** to the model (`mockModel(Agent).requests`, `toHaveBeenAskedWith`) and use [Evals & Golden Sets](/guides/evaluation-and-profiles/) (`agboss eval`, `agboss compare`) to evaluate prompt changes on real models.
 2. **Deterministic parallel ordering (`TestConcurrency`):**
    Parallel branches (`.inParallel([…])`, `.forEachItem(…)`) run one at a time in declaration order by default (`TestConcurrency.Sequential`). To reproduce a specific parallel race or quorum arrival order without flaky `setTimeout` sleeps, pass `concurrency: TestConcurrency.inOrder([step(FastAgent), step(SlowAgent)])` to `testWith`.
 3. **Zero wall-clock waits (`VirtualClock`):**
@@ -211,9 +211,9 @@ Real language models occasionally emit malformed JSON, truncated tool arguments,
 
 - **`callToolWithInvalidArguments(ToolClass, invalidFields)`:** Scripts a tool call whose arguments violate the tool's input `@Dto` (`ToolCallStatus.InvalidArguments`), verifying that the agent loop feeds the validation error back to the model and succeeds on the next turn.
 - **`callToolWithTruncatedArguments(ToolClass, partialArgs)`:** Simulates a tool call cut off mid-stream (`maxOutputTokens` truncation) so you can verify retry recovery.
-- **`replyWithInvalidAnswer(DtoClass, invalidFields)`:** Scripts an invalid structured final answer, incrementing `step.validationAttempts` on the `StepRecord` and throwing `AgentAnswerInvalidError` once retries are exhausted.
+- **`replyWithInvalidAnswer(DtoClass, invalidFields)`:** Scripts an invalid structured final answer, incrementing `step.validationAttempts` on the `StepRecord` and throwing `StepError.AgentAnswerInvalid` once retries are exhausted.
 - **`failWith(ModelFailure.RateLimited)` / `Timeout` / `ServerError` / `NetworkError`:** Simulates transport-level provider failures to test retry backoff on `VirtualClock` and `.onError()` workflow recovery edges.
-- **`a2aServer({ expose, callerResolver })`:** Boots an in-process loopback HTTP server for your `@Application` inside `testWith` so you can test `A2AClient` calls, `A2ACallerResolver` `401`/`403` rejections (`A2ACallerRejectedError`, where `code` is `"a2a.caller-rejected"` and `wireCode` holds the server's code `"a2a.caller-unauthenticated"` or `"a2a.caller-forbidden"`), and signed `MeshEnvelope` propagation without opening external sockets.
+- **`a2aServer({ endpoint, authenticator })`:** Boots an in-process loopback HTTP server for your `@Application` inside `testWith` so you can test `A2AClient` calls, `authenticator` `401`/`403` rejections (`A2AError.CallerRejected`, where `code` is `"a2a.caller-rejected"` and `wireCode` holds the server's code `"a2a.caller-unauthenticated"` or `"a2a.caller-forbidden"`), and signed `MeshEnvelope` propagation without opening external sockets.
 - **Multi-instance tests (`testWith(App, { instances: 2 })`, `#458`):** When `instances: 2` is passed, `testWith` shares the default `InMemory*` stores and `VirtualClock` across all instances automatically. If your application lists `Sqlite*` stores, note that `sqlitePath: ":memory:"` opens a **separate** SQLite in-memory database per instance connection; to test multiple instances sharing one SQLite database, point `sqlitePath` in a test environment (`testWith(App, { instances: 2, env: "instances" })`) at a temporary file path (`mkdtempSync`).
 
 <!-- snippet-context
@@ -274,9 +274,9 @@ const test = testWith(SupportTestApp);
 
 test("verifies trajectory invariants and self-correction after invalid tool args & answer", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(OrderSupportAgent).thenReturn(
+  mockModel(OrderSupportAgent).thenReturn(
     callToolWithInvalidArguments(GetOrderTool, { orderId: 12345 }),
     callTool(CheckPolicyTool, { orderId: "555" }),
     callTool(GetOrderTool, { orderId: "555" }),

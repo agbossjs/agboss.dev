@@ -170,8 +170,8 @@ import { ChatWorkflowStart, SupportAgent } from "../src/support.components.js";
 
 const test = testWith(SupportApplication, { instances: 2 });
 
-test("boots the application container and executes ChatWorkflowStart", async ({ app, mockLlm }) => {
-  mockLlm(SupportAgent).thenReturn(replyWith("Refund processed."));
+test("boots the application container and executes ChatWorkflowStart", async ({ app, mockModel }) => {
+  mockModel(SupportAgent).thenReturn(replyWith("Refund processed."));
   const res = await app.execute(
     ChatWorkflowStart,
     { text: "Refund order #194" },
@@ -349,7 +349,7 @@ Every `@Application` class name ends with `Application` and its `name` option en
 | `guardrails` | `readonly Class[]` | No | Application-wide `@InputGuardrail` and `@OutputGuardrail` classes applied to every agent and model router. |
 | `toolInterceptors` | `readonly Class[]` | No | Application-wide [`@ToolInterceptor`](/reference/tool-interceptor/) classes applied to every `@Tool` call. |
 | `endpoints` | `readonly Class[]` | No | `@A2AEndpoint` and `@McpEndpoint` contract classes served over A2A/MCP and exported in `agboss describe --json`. |
-| `mesh` | `Class` | No | A [`@Mesh`](/reference/a2a-endpoint/#the-mesh) component: `{ signingKey, inboundMode, deduplicationTtl, maxHops, peers }` for multi-service A2A/MCP deployments (`HopsLimitExceededError` past `maxHops`). |
+| `mesh` | `Class` | No | A [`@Mesh`](/reference/a2a-endpoint/#the-mesh) component: `{ signingKey, inboundMode, deduplicationTtl, maxHops, peers }` for multi-service A2A/MCP deployments (`LimitError.Hops` past `maxHops`). |
 | `tenantContext` | `TenantContextClass` | No | Custom subclass of `TenantContext` whose decorated DTO fields (without `prompt`, `[context.prompt-unused]`) are required on `app.execute(..., { tenant })`. Declaring it switches on the tenant gate. |
 | `executionContext` | `ExecutionContextClass` | No | Custom subclass of `ExecutionContext` carrying per-execution identity fields passed via `app.execute(..., { execution })`. |
 | `defaults` | `ApplicationDefaults` | No | Default `models`, `router`, `guardrail`, `tools` and `workflows` (`{ placement }`) settings inherited by all workflows. |

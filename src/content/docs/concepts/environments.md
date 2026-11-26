@@ -7,7 +7,7 @@ AGBoss enforces strict 12-factor dev/prod parity: workflows and components never
 
 ## How to declare `AppEnvironment`, `secret()`, and `env()`
 
-At `createApp(Application, { environment })` startup, AGBoss validates every required environment variable and secret before initializing services or running workflows, throwing `EnvironmentError` immediately if any variable is missing or invalid:
+At `createApp(Application, { environment })` startup, AGBoss validates every required environment variable and secret before initializing services or running workflows, throwing `ConfigError.Environment` immediately if any variable is missing or invalid:
 
 ```ts title="src/environments/app.environment.ts" file=src/environments/app.environment.ts
 import type { Secret } from "@agboss/core";

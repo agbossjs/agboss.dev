@@ -7,7 +7,7 @@ The `@ModelProvider` decorator (`"@agboss/core/models"`) defines an application-
 
 `@ModelProvider` has two modes (`[model-provider.both-modes]` if mixed, or if neither):
 1. **Driver mode:** `driver: OpenRouterDriver({ apiKey })`, `OpenAiCompatibleDriver({ baseUrl, apiKey? })` (OpenAI, LiteLLM, vLLM, Ollama, Groq, DeepSeek) or `DecisionsDriver({ baseUrl, apiKey? })` (OpenRouter's Decisions API: decision models such as `typesafe/jev-1.13`, for routers, guardrails, judges and arbiters; no chat). The class is empty. `baseUrl`, `apiKey` and header values are text, `env(…)` or `secret(…)` references read once when the application starts; a provider never reads `process.env` itself.
-2. **Custom transport mode:** a class with `complete(request: ModelProviderRequest): Promise<ModelProviderResponse>` and constructor DI (`deps: [...]`) for AWS Bedrock, Google Vertex AI, or corporate mTLS gateways, while retaining every AGBoss gateway policy (`@Budget` pre-check and ledger, `RateLimitRepository`, 429 backoff, retries, circuit breaker, PII masking, answer tools, and `mockLlm` interception).
+2. **Custom transport mode:** a class with `complete(request: ModelProviderRequest): Promise<ModelProviderResponse>` and constructor DI (`deps: [...]`) for AWS Bedrock, Google Vertex AI, or corporate mTLS gateways, while retaining every AGBoss gateway policy (`@Budget` pre-check and ledger, `RateLimitRepository`, 429 backoff, retries, circuit breaker, PII masking, answer tools, and `mockModel` interception).
 
 ## Complete `@ModelProvider` example
 
@@ -211,9 +211,9 @@ const test = testWith(ProviderDemoApplication);
 
 test("reaches moonshotai/kimi-k2.6 through the application's modelProvider", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(ProviderDemoAgent).thenReturn(replyWith("Served by CustomOpenRouterModelProvider"));
+  mockModel(ProviderDemoAgent).thenReturn(replyWith("Served by CustomOpenRouterModelProvider"));
   const res = await app.execute(ProviderDemoWorkflowStart, { text: "Ping provider" });
   expect(res.status).toBe(ExecutionStatus.Finished);
 });

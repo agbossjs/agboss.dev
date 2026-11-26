@@ -179,7 +179,7 @@ export class ReviewExecBudget implements BudgetHandler { maxSpend(): Usd { retur
 export class ReviewApplication {}
 -->
 ```ts title="src/workflows/parallel-review.workflow.ts" file=src/parallel-review.workflow.ts
-import { QuorumNotReachedError, Workflow, onStart, toAction, toAgent, toFinish, Ttl } from "@agboss/core";
+import { StepError, Workflow, onStart, toAction, toAgent, toFinish, Ttl } from "@agboss/core";
 import { seconds } from "@agboss/core/units";
 
 @Workflow({
@@ -192,7 +192,7 @@ import { seconds } from "@agboss/core/units";
       .arbitratedBy(ReviewQuorumArbiter)
       .joinQuorumGroups({ deadline: seconds(10) })
       .onError(
-        QuorumNotReachedError,
+        StepError.QuorumNotReached,
         toAction(RecordQuorumFailureAction)
           .toFinish(ProposalRejectedFinish),
       )
@@ -235,9 +235,9 @@ const test = testWith(ReviewApplication, {
   ]),
 });
 
-test("reaches priority-2 quorum when SecurityAgent and BackupAuditAgent finish first", async ({ app, mockLlm }) => {
-  mockLlm(BackupAuditAgent).thenReturn(replyWith(BackupVerdictDto, { passed: true }));
-  mockLlm(SecurityAgent).thenReturn(replyWith(SecurityVerdictDto, { passed: true, confidence: 95 }));
+test("reaches priority-2 quorum when SecurityAgent and BackupAuditAgent finish first", async ({ app, mockModel }) => {
+  mockModel(BackupAuditAgent).thenReturn(replyWith(BackupVerdictDto, { passed: true }));
+  mockModel(SecurityAgent).thenReturn(replyWith(SecurityVerdictDto, { passed: true, confidence: 95 }));
   const res = await app.execute(ProposalStart, { title: "SOC2 Policy Update" });
   expect(res.status).toBe(ExecutionStatus.Finished);
 });
@@ -353,7 +353,7 @@ it("extracts sub-topic items for recursive fan-out", async () => {
 
 Every recursive workflow requires `executionLimits: { maxDepth }` on `@Workflow` (`[graph.recursion-without-depth]`, `[graph.recursion-without-exit]` and `[graph.mutual-recursion]` are the other rules). How `maxDepth` behaves at runtime depends on whether the recursion is launched by the model or by deterministic code:
 - **Model-chosen recursion (soft stop at `depth === maxDepth`):** When an `@Agent` or a model `@Router` can launch the workflow itself, reaching `depth === maxDepth` **does not crash** the execution. Instead, AGBoss simply omits the recursive option from the model's tool definitions (or the router's targets) on that step, forcing the model to synthesize a base-case answer instead of recursing further. Because the tool list is identical across all `depth < maxDepth` calls and differs only at `depth === maxDepth`, the recursive agent warms at most **two KV prefix cache entries** across the entire recursion tree.
-- **Deterministic recursion (`.toWorkflow(() => Self)`):** If a deterministic flow path unconditionally launches the workflow past `maxDepth`, the runtime throws `DepthLimitExceededError` (catchable via `.onError(DepthLimitExceededError, ...)`).
+- **Deterministic recursion (`.toWorkflow(() => Self)`):** If a deterministic flow path unconditionally launches the workflow past `maxDepth`, the runtime throws `LimitError.Depth` (catchable via `.onError(LimitError.Depth, ...)`).
 
 ## Key safeguards for parallel and recursive execution
 
@@ -364,7 +364,7 @@ Every recursive workflow requires `executionLimits: { maxDepth }` on `@Workflow`
 | **Tree-wide execution throttle** | `executionLimits.maxConcurrency` | Caps how many executions across the root and all child workflow trees run a step simultaneously (default `10`; enforced across instances via `RateLimitRepository` when `ChildPlacement.AnyWorker` is used). |
 | **Distributed child placement** | `@Workflow({ placement: ChildPlacement.AnyWorker })` on the child, or `@Application({ defaults: { workflows: { placement } } })` | Enqueues the child (from `.toWorkflow()`, `.forEachItem(toWorkflow(W))` or an `.onRoute(toWorkflow(W))`) into the application's child queue, yielding the parent's lease while waiting and recovering each child independently under its own 30s lease. The placements are `CurrentProcess` (default), `AnyWorker`, `OtherWorker` (never claimed by the instance that queued it; `StepError.ChildWorkerUnavailable` after `executionLimits.childClaimTimeout`) and `IsolatedWorker` (a forked process of its own). It is never written on the flow. |
 | **Quorum cancellation** | `deadline: seconds(10)` | Automatically aborts slower losing branches (`BranchVerdict.Surplus`) via `AbortSignal` the instant quorum is decided. |
-| **Recursion ceiling** | `executionLimits.maxDepth` | Required on every self-recursive graph (`[graph.recursion-without-depth]`); omits the recursion tool at `depth === maxDepth` for model launches (soft stop) and throws `DepthLimitExceededError` if exceeded by deterministic launches. |
+| **Recursion ceiling** | `executionLimits.maxDepth` | Required on every self-recursive graph (`[graph.recursion-without-depth]`); omits the recursion tool at `depth === maxDepth` for model launches (soft stop) and throws `LimitError.Depth` if exceeded by deterministic launches. |
 
 ---
 

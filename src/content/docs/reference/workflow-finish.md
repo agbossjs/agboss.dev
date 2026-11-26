@@ -182,11 +182,11 @@ import {
 
 const test = testWith(OfferApplication);
 
-test("assembles final OfferSummaryDto in OfferSummaryWorkflowFinish", async ({ app, mockLlm }) => {
-  mockLlm(OfferDrafterAgent).thenReturn(
+test("assembles final OfferSummaryDto in OfferSummaryWorkflowFinish", async ({ app, mockModel }) => {
+  mockModel(OfferDrafterAgent).thenReturn(
     replyWith(OfferDraftDto, { letterText: "Welcome to Acme as Staff Engineer!" }),
   );
-  mockLlm(OfferAuditorAgent).thenReturn(
+  mockModel(OfferAuditorAgent).thenReturn(
     replyWith(AuditVerdictDto, [{ auditor: "comp-committee" }]),
   );
   const res = await app.execute(OfferStart, { text: "Prepare Staff Engineer offer" });

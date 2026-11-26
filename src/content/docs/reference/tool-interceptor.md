@@ -150,7 +150,7 @@ it("replies to the model when an order belongs to another tenant and scrubs inte
 | `ToolCallDecision.allow()` | Proceeds to the next before hook (or the tool once all interceptors allow). |
 | `ToolCallDecision.allow({ input })` | The same, with those arguments (validated against the tool's input DTO again) for the next hooks, the approval and the tool; a rewrite that is no input of the tool or holds a blocked value never runs. |
 | `ToolCallDecision.reply(message)` | **Self-correcting tool feedback:** the tool and its `@ToolApproval` do **not** run; `message` is returned to the model as the tool call's observation so the agent can self-correct its arguments (`replyToModel({ message })` of 0.1.0). |
-| `ToolCallDecision.block(reason)` | **Hard abort:** the tool does **not** run and the agent's step fails immediately with `ToolBlockedError` (`step.tool-blocked`, a subclass of `StepFailedError`, catchable by `.onError(ToolBlockedError, …)` after the agent). |
+| `ToolCallDecision.block(reason)` | **Hard abort:** the tool does **not** run and the agent's step fails immediately with `StepError.ToolBlocked` (`step.tool-blocked`, a subclass of `StepError`, catchable by `.onError(StepError.ToolBlocked, …)` after the agent). |
 
 ## How the cascading interceptor hierarchy works
 
@@ -158,5 +158,5 @@ Interceptors attach via `toolInterceptors: [...]` on [`@Application`](/reference
 
 1. **Before hooks run outer-to-inner:** `@Application` $\to$ `@Workflow` $\to$ `@Agent` $\to$ `@Tool`, and **before any human approval** on the tool: a call is checked against the tool's input, then searched by the PII policies, then given to the hooks — all before the `@ToolApproval` pause, so unauthorized or malformed calls never wake a human reviewer. The approver sees the arguments as the hooks left them, masked.
 2. **After hooks run inner-to-outer (onion order):** `@Tool` $\to$ `@Agent` $\to$ `@Workflow` $\to$ `@Application`, the tool's `@AfterTool` before `afterAnyTool`, before output DTO re-validation, `maxResultSize` truncation, and `@PiiPolicy` masking.
-3. **An interceptor that throws,** returns no `ToolCallDecision`, or returns an output its tool does not give fails the step with `AgentFailedError` (the error as its `cause`).
+3. **An interceptor that throws,** returns no `ToolCallDecision`, or returns an output its tool does not give fails the step with `StepError.Agent` (the error as its `cause`).
 4. **Only the project's own `@Tool` calls are intercepted** — never an answer tool or a knowledge base's search tool.

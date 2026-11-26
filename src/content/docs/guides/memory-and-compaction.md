@@ -164,13 +164,13 @@ const test = testWith(SupportApplication);
 
 test("retains thread turns and invokes custom compaction when turns age out", async ({
   app,
-  mockLlm,
-  mockOf,
+  mockModel,
+  mockService,
 }) => {
-  mockLlm(SupportMemoryAgent).thenReturnAlways(
+  mockModel(SupportMemoryAgent).thenReturnAlways(
     replyWith("Your cluster runs in eu-central-1."),
   );
-  const graph = mockOf(KnowledgeGraphService);
+  const graph = mockService(KnowledgeGraphService);
   graph.saveFactsAndSummarize.mockResolvedValue(["cluster region: eu-central-1"]);
 
   for (let i = 1; i <= 4; i++) {
@@ -198,4 +198,4 @@ test("retains thread turns and invokes custom compaction when turns age out", as
 | `compact(input: CompactionInput)` | method of a `@Memory` class | Writes the summaries in code, with full DI (`deps: [...]`) and automatic PII masking/unmasking; together with `compaction` it is `[memory.conflicting-compaction]`. A memory with neither keeps the window only. |
 | `summaryMaxTokens` | `@Memory({ compaction })` | Maximum tokens for each summary generation call (`number` or `TokenLimit.ModelMax`). If a summary is cut at the limit, AGBoss retries once asking for a shorter summary before throwing `StepError.Memory` — never a cut summary. |
 
-A compaction runs lazily, before a new execution's first read of its thread, never after a turn; it is observable (`onCompactionStart` / `onCompactionEnd`, `result.compacted`) and its spend is `memory:<name>`. The memory's model reads the turns through the application's and the workflow's PII policies (masked). In a test the summary is scripted — `mockLlm(SupportThreadMemory).thenReturn(replyWith("…"))` — and `testUnit(Memory)` runs one compaction on its own.
+A compaction runs lazily, before a new execution's first read of its thread, never after a turn; it is observable (`onCompactionStart` / `onCompactionEnd`, `result.compacted`) and its spend is `memory:<name>`. The memory's model reads the turns through the application's and the workflow's PII policies (masked). In a test the summary is scripted — `mockModel(SupportThreadMemory).thenReturn(replyWith("…"))` — and `testUnit(Memory)` runs one compaction on its own.

@@ -180,9 +180,7 @@ export class RefundApplication {}
 ```ts title="src/webhooks/refund-webhooks.server.ts" file=src/webhooks/refund-webhooks.server.ts
 import {
   ExecutionStatus,
-  PauseClosedError,
-  UninterpretableReplyError,
-  UnknownPauseError,
+  PauseError,
   type App,
 } from "@agboss/core";
 import { RefundWorkflowStart } from "../refunds.js";
@@ -229,15 +227,15 @@ export async function handleSlackReplyWebhook(
     );
     return { httpStatus: 200, status: resumed.status, output: resumed.output };
   } catch (err) {
-    if (err instanceof UninterpretableReplyError) {
+    if (err instanceof PauseError.UninterpretableReply) {
       // Pause remains Pending! Ask the reviewer in Slack to clarify:
       return { httpStatus: 422, clarify: err.reason };
     }
-    if (err instanceof PauseClosedError) {
+    if (err instanceof PauseError.Closed) {
       // Duplicate button click, webhook retry or a late answer (err.reason) — idempotent 200 OK:
       return { httpStatus: 200, status: "already_resolved" };
     }
-    if (err instanceof UnknownPauseError) {
+    if (err instanceof PauseError.UnknownPause) {
       return { httpStatus: 404, status: "unknown_or_expired_pause" };
     }
     throw err;
@@ -264,9 +262,9 @@ const test = testWith(RefundApplication);
 
 test("triggers workflow via webhook, pauses for Slack approval, and resumes via webhook reply", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(RefundAgent).thenReturn(
+  mockModel(RefundAgent).thenReturn(
     callTool(RefundCardTool, { orderId: "ord_99", amountCents: 15_000 }),
     replyWith("Refunded ord_99"),
   );
@@ -306,9 +304,9 @@ When embedding AGBoss inside an HTTP server (Fastify, Express, Hono, Next.js rou
 4. **Resume with two-phase `app.resume()` on the callback webhook:**
    Your callback endpoint (`POST /webhooks/slack-actions`) can hit *any* replica in your cluster. Calling `app.resume({ pauseId, decision: { approved: true } }, { tenantId, actor: { id } })` (or `{ pauseId, reply: freeText }`) atomically flips the pause `Pending → Resolved` in Phase 1 and acquires the 30s execution-tree lease in Phase 2. With a `tenantContext` the `{ tenantId }` is required by the tenant gate.
 5. **Handle webhook retries & ambiguous replies explicitly:**
-   - **`PauseClosedError`:** External webhook providers (Slack, Stripe, GitHub) retry on network timeouts, and humans double-click buttons. The pause is closed and `err.reason` says why (`answered`, `expired`, `cancelled`, `withdrawn`, `tree-ended`, `reassigned`): catch it and return `200 OK` idempotently.
-   - **`UninterpretableReplyError`:** When a human sends a free-text reply that the target's `@ChannelInterpreter` cannot parse (`ChannelInterpretation.notUnderstood(reason)`), `app.resume` throws `UninterpretableReplyError` and **keeps the pause `Pending`** so your webhook can reply in the Slack thread with `err.reason` and wait for a clearer answer.
-   - **`UnknownPauseError`:** The `pauseId` does not exist, belongs to another tenant, or was pruned after `retention.pauseRecords` (`hours(24)` default); return `404 Not Found`.
+   - **`PauseError.Closed`:** External webhook providers (Slack, Stripe, GitHub) retry on network timeouts, and humans double-click buttons. The pause is closed and `err.reason` says why (`answered`, `expired`, `cancelled`, `withdrawn`, `tree-ended`, `reassigned`): catch it and return `200 OK` idempotently.
+   - **`PauseError.UninterpretableReply`:** When a human sends a free-text reply that the target's `@ChannelInterpreter` cannot parse (`ChannelInterpretation.notUnderstood(reason)`), `app.resume` throws `PauseError.UninterpretableReply` and **keeps the pause `Pending`** so your webhook can reply in the Slack thread with `err.reason` and wait for a clearer answer.
+   - **`PauseError.UnknownPause`:** The `pauseId` does not exist, belongs to another tenant, or was pruned after `retention.pauseRecords` (`hours(24)` default); return `404 Not Found`.
 
 ---
 
@@ -317,7 +315,7 @@ When embedding AGBoss inside an HTTP server (Fastify, Express, Hono, Next.js rou
 - **`PauseRespondent.Delegate` (an external reviewer):** `result.pending` intentionally omits `pauseId` so the caller of `app.execute` (e.g., an end user in chat) cannot approve their own tool call. Only your `@Channel.send(ask)` receives `ask.pauseId`, and `app.resume` requires `{ actor: { id } }`, recorded as who answered.
 - **`PauseRespondent.Owner` (end-user confirmation):** `result.pending` includes `pauseId` so the user's client UI can render an inline Confirm/Cancel prompt, and `app.resume` verifies `{ ownerId }` matches the thread owner. An owner's pause needs no channel at all.
 - **`respondent` is who may answer, `actor` is who did.** The wrong credential is `PauseError.PermissionDenied`; the target's `permitAnswer(ctx)` is enforced before an answer is recorded.
-- **A hard deadline:** the target's `timeout` (`hours(24)`, or `workHours(8)` with a `@WorkingCalendar`) gives every pause an absolute deadline, fixed when the pause is made; an answer at or after it is `PauseClosedError` (`reason: expired`), and the target's `onExpired` says what the expiry means — `PauseExpiration.fail()`, `.decide(answer)` or `.reassign(…)` (an escalation). `remindBefore` makes the channel's `onPauseExpiring` hear "expiring at …" once.
+- **A hard deadline:** the target's `timeout` (`hours(24)`, or `workHours(8)` with a `@WorkingCalendar`) gives every pause an absolute deadline, fixed when the pause is made; an answer at or after it is `PauseError.Closed` (`reason: expired`), and the target's `onExpired` says what the expiry means — `PauseExpiration.fail()`, `.decide(answer)` or `.reassign(…)` (an escalation). `remindBefore` makes the channel's `onPauseExpiring` hear "expiring at …" once.
 - **Move a pause:** `app.extendPause({ pauseId, expiresIn: hours(24) }, { actor })` moves an open pause's deadline; `app.reassignPause({ pauseId, assignees: ["deputy-3"] }, { actor })` moves it to another addressee, or to a target of `escalatesTo`; `app.listPauses({ tenantId, target, status, expiringBefore })` pages the pauses of one target.
 - **Automatic button cleanup (`onPauseClosed`):** Whenever a pause your `@Channel` sent closes — a parallel branch became obsolete (a failed branch, quorum `BranchVerdict.Surplus`), `app.cancel`, an expiry, a reassignment, or an answer given elsewhere — AGBoss tells it, at least once, through `onPauseClosed(event)` with `event.reason` (`PauseClosedReason`), so your Slack/UI integration can disable stale buttons. Deduplicate by `event.deliveryId`. `@ChannelListener` hears the same events for every pause of the application.
 

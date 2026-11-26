@@ -13,7 +13,7 @@ Building an AGBoss application takes four small building blocks: `@WorkflowStart
 | :--- | :---: | :--- |
 | **1. First 5 Minutes** | `5 min` | Install `@agboss/core` + `@agboss/cli` (or run `01-hello-agboss`), verify the graph with `npx agboss check`, and run your first deterministic workflow test (`npm test`). |
 | **2. Next 15 Minutes** | `15 min` | Add constructor dependency injection (`@Injectable`), narrow `@Dto` contracts (`@Text`, `@Integer`), and compose a `@Router` + `@Agent` + `@Tool` workflow inside `@Application`. |
-| **3. At 30 Minutes** | `30 min` | Understand **Path Scope** (`Produced<Dto, Producer>`) and trigger intentional build-time graph failures (`[input.missing-on-path]`, `[input.outdated-on-path]`, `[flow.uncompensated-action]`) in [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof). |
+| **3. At 30 Minutes** | `30 min` | Understand **Path Scope** (`Tracked<Dto, Producer>`) and trigger intentional build-time graph failures (`[input.missing-on-path]`, `[input.outdated-on-path]`, `[flow.uncompensated-action]`) in [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof). |
 | **4. Advanced Guides** | `30+ min` | Scale to LIFO sagas ([`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)), distributed `ChildPlacement.AnyWorker` work-stealing ([`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)), multi-run `@EvalSuite` ([`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)), and A2A + MCP federation ([`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)). |
 
 ## 5 Minutes: Install, check, and run
@@ -161,8 +161,8 @@ import { SupportAgent, SupportApplication, SupportWorkflowStart } from "../src/s
 
 const test = testWith(SupportApplication);
 
-test("executes SupportWorkflow deterministically without an API key", async ({ app, mockLlm }) => {
-  mockLlm(SupportAgent).thenReturn(
+test("executes SupportWorkflow deterministically without an API key", async ({ app, mockModel }) => {
+  mockModel(SupportAgent).thenReturn(
     replyWith("Open Settings > API Keys > Rotate."),
   );
   const res = await app.execute(SupportWorkflowStart, { text: "How do I rotate my API token?" });

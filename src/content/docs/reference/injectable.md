@@ -172,9 +172,9 @@ class FakeJobIndexService extends JobIndexService {
 
 const test = testWith(JobScoutApplication, { services: [FakeJobIndexService] });
 
-test("uses FakeJobIndexService and spies on calls via mockOf", async ({ app, mockOf }) => {
+test("uses FakeJobIndexService and spies on calls via mockService", async ({ app, mockService }) => {
   await app.execute(ChatWorkflowStart, { text: "Find TypeScript roles" });
-  expect(mockOf(JobIndexService).searchByTenant).toHaveBeenCalledOnce();
+  expect(mockService(JobIndexService).searchByTenant).toHaveBeenCalledOnce();
 });
 ```
 
@@ -230,4 +230,4 @@ export class JobScoutWorkflow {}
 | `Clock` & `Logger` | `"@agboss/core"` | Built-in time and PII-redacted structured logging singletons (`Clock` is replaced by `VirtualClock` in `testWith()`). |
 | `InjectionToken<T>` & `provide(TOKEN, value)` | `"@agboss/core"` | Binds non-class configuration values in `@Workflow({ providers })` or `@Application({ providers })`. |
 | `@Observer` | `"@agboss/core"` | A class with a method per execution hook (`onExecutionEnd`, `onToolEnd`, …), optionally limited to `workflows` and `agents`; listed in `@Application({ observers })`. |
-| `services: [FakeClass]` & `mockOf(ServiceClass)` | `"@agboss/core/testing"` | Replaces a service with a fake class that `extends` it, or with a spy, in `testWith()` and `testUnit()`. |
+| `services: [FakeClass]` & `mockService(ServiceClass)` | `"@agboss/core/testing"` | Replaces a service with a fake class that `extends` it, or with a spy, in `testWith()` and `testUnit()`. |

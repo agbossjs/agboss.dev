@@ -113,7 +113,7 @@ export class DraftApprovedDto {
 
 ```ts title="src/workflows/offer-delivery.workflow.ts" file=src/workflows/offer-delivery.workflow.ts
 import {
-  StepFailedError,
+  StepError,
   Workflow,
   WorkflowFinish,
   WorkflowStart,
@@ -162,7 +162,7 @@ export class OfferAlertedFinish {}
     onStart(OfferDeliveryStart)
       .toAction(SendOfferAction)
       .onError(
-        StepFailedError,
+        StepError,
         toAction(NotifyRecruiterAction)
           .toFinish(OfferAlertedFinish),
       )

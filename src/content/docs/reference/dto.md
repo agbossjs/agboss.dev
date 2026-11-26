@@ -169,8 +169,8 @@ import { OfferDraftApplication, OfferDraftStart } from "../src/offer-drafter.app
 
 const test = testWith(OfferDraftApplication);
 
-test("validates nested OfferPackageDto structured output at runtime", async ({ app, mockLlm }) => {
-  mockLlm(OfferDrafterAgent).thenReturn(
+test("validates nested OfferPackageDto structured output at runtime", async ({ app, mockModel }) => {
+  mockModel(OfferDrafterAgent).thenReturn(
     replyWith(OfferPackageDto, {
       offerId: "550e8400-e29b-41d4-a716-446655440000",
       candidateName: "Ada Lovelace",

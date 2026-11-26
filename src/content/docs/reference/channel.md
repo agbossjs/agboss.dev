@@ -211,8 +211,8 @@ import { RefundCardPaymentTool } from "../src/tools/refund-card-payment.tool.js"
 
 const test = testWith(SupportApplication);
 
-test("pauses on RefundCardPaymentTool and resumes with human approval", async ({ app, mockLlm }) => {
-  mockLlm(RefundAgent).thenReturn(
+test("pauses on RefundCardPaymentTool and resumes with human approval", async ({ app, mockModel }) => {
+  mockModel(RefundAgent).thenReturn(
     callTool(RefundCardPaymentTool, { orderId: "ORD-42", amountCents: 25_000 }),
   );
   const paused = await app.execute(SupportStart, { text: "Refund ORD-42" });

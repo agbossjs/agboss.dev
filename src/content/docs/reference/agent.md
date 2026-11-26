@@ -149,8 +149,8 @@ import { ChangesRequestedDto, DraftApprovedDto } from "../src/dto/offer.dto.js";
 
 const test = testWith(OfferApplication);
 
-test("scripts tool calls and union output variants on OfferReviewerAgent", ({ mockLlm }) => {
-  mockLlm(OfferReviewerAgent)
+test("scripts tool calls and union output variants on OfferReviewerAgent", ({ mockModel }) => {
+  mockModel(OfferReviewerAgent)
     .thenReturn(
       callTool(SearchJobsTool, { level: "L6", location: "Berlin" }),
       replyWith(ChangesRequestedDto, { notes: "Add equity vesting schedule" }),
@@ -334,7 +334,7 @@ Every `@Agent` class name ends with `Agent` and its `name` option ends with `-ag
 | `tools` | `readonly Class[]` | No | `@Tool` classes the agent can invoke during its tool-calling loop. A tool that reaches an MCP server lists its `@McpServer` in `deps`. |
 | `rag` | `readonly Class[]` | No | `@Rag` knowledge bases retrieved before the agent's first model call and put in its input; a `@Tool` that injects one calls `search(query)` instead. A class listed twice is `[agent.duplicate-rag]`. |
 | `judges` | `readonly Class[]` | No | `@Judge` classes that verify the agent's reply and trigger self-correction retries on failure. |
-| `executionLimits` | `AgentExecutionLimits` | No | `{ maxRetries, maxToolCalls, maxModelCalls, maxVisits }`: self-correction retries when a `@Judge` rejects or the answer is invalid, tool calls and model calls within one visit, and the times an execution may visit the agent (`VisitsLimitExceededError`). The flat `maxRetries`, `maxToolCalls` and `maxVisits` of 0.1.0 are gone. |
+| `executionLimits` | `AgentExecutionLimits` | No | `{ maxRetries, maxToolCalls, maxModelCalls, maxVisits }`: self-correction retries when a `@Judge` rejects or the answer is invalid, tool calls and model calls within one visit, and the times an execution may visit the agent (`LimitError.Visits`). The flat `maxRetries`, `maxToolCalls` and `maxVisits` of 0.1.0 are gone. |
 | `memory` | `Class` | No | The [`@Memory`](/reference/memory/) of this agent: its window and summaries (overrides the workflow's); `NoMemory` sees no earlier turn. |
 | `reasoning` | `Reasoning` | No | Reasoning effort: `Reasoning.off()`, `Reasoning.on({ effort: ReasoningEffort.Low \| Medium \| High })`, or `Reasoning.modelDecides()`. |
 | `cache` | `CacheSetting` | No | Prompt caching policy (`PromptCaching.off()` or `PromptCaching.on({ retention, cachedParts, key })`; `whereSupported` is gone). |
@@ -356,5 +356,5 @@ Every `@Agent` class name ends with `Agent` and its `name` option ends with `-ag
 | `oneOf(DtoA, DtoB)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { maxPrevious })` | `"@agboss/core"` | Declares union output variants, list outputs, optional inputs, and bounded loop histories. |
 | `inline`, `PromptSource` | `"@agboss/core"` | The forms of a `prompt`. |
 | `Reasoning` & `PromptCaching` | `"@agboss/core/models"` | Configures reasoning effort (`Reasoning.on({ effort })`) and prompt caching (`PromptCaching.on({ … })`). |
-| `VisitsLimitExceededError` | `"@agboss/core"` | Thrown before the model call when an agent exceeds `executionLimits.maxVisits` in a review loop; catchable via `.onError()`. |
-| `mockLlm(AgentClass)` & `replyWith(Dto, value)` | `"@agboss/core/testing"` | Scripts deterministic agent responses, tool calls (`callTool`), and simulated latency (`waitFor`) in `testWith()` tests. |
+| `LimitError.Visits` | `"@agboss/core"` | Thrown before the model call when an agent exceeds `executionLimits.maxVisits` in a review loop; catchable via `.onError()`. |
+| `mockModel(AgentClass)` & `replyWith(Dto, value)` | `"@agboss/core/testing"` | Scripts deterministic agent responses, tool calls (`callTool`), and simulated latency (`waitFor`) in `testWith()` tests. |

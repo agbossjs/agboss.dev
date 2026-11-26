@@ -1,6 +1,6 @@
 ---
 title: "Loop 2–4: Live Evals, pass^k, Nightly Polygon & Judge Calibration"
-description: "Run Loops 2–4 of the AGBoss Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k, Cohen's kappa calibration, and RFC 8785 Tern profiling."
+description: "Run Loops 2–4 of the AGBoss Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k, Cohen's kappa calibration, and RFC 8785 Turn profiling."
 ---
 
 In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), once [Loop 0 (`agboss check`) and Loop 1 (`npm test`)](/guides/testing-agents/) have verified your topology and TypeScript harness for `$0`, **Loops 2–4** evaluate live model trajectories, memory compaction survival, and production telemetry. AGBoss combines in-loop [`@Judge`](/reference/judge/) gates (code, declarative and model judges), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmarks (`@agboss/core/eval`), Fail-Fast `$0 → $$$` cascades, `pass@k` vs `pass^k` baseline gates (`flaky-on-baseline` quarantine), nightly `--metamorphic` and `--chaos` polygons, Cohen's $\kappa$ calibration (`agboss eval calibrate`), and two production feedback loops (`agboss golden` & [Progressive Crystallization](/concepts/progressive-crystallization/)).
@@ -257,7 +257,7 @@ const test = testWith(JobScoutEvalApplication);
 
 test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and unit-tests FairDecisionJudge", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
   // 1. Unit-test the oneOf union judge (it narrows by instanceof):
   const runFairJudge = testUnit(FairDecisionJudge);
@@ -278,12 +278,12 @@ test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and uni
   expect(emptyRefusal.output.passed).toBe(false);
 
   // 2. Full workflow test: judge rejects first answer, agent retries and passes on attempt 2:
-  mockLlm(ScoutEvalAgent).thenReturn(
+  mockModel(ScoutEvalAgent).thenReturn(
     replyWith(OpeningsDto, { openings: "Uncited role" }),
     replyWith(OpeningsDto, { openings: "Staff TS Engineer [gh-104]" }),
   );
 
-  mockLlm(AnswerGroundedJudge).thenReturn(
+  mockModel(AnswerGroundedJudge).thenReturn(
     decideWith({ grounded: 0.2, usefulness: 0 }),
     decideWith({ grounded: 0.95, usefulness: 2 }),
   );
@@ -292,7 +292,7 @@ test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and uni
     openings: "Find Staff TS roles",
   });
   expect(result.output).toEqual({ openings: "Staff TS Engineer [gh-104]" });
-  expect(mockLlm(ScoutEvalAgent)).toHaveBeenCalledTimes(2);
+  expect(mockModel(ScoutEvalAgent)).toHaveBeenCalledTimes(2);
 });
 ```
 
@@ -312,9 +312,9 @@ A foundational rule of AGBoss is: **never verify with a paid language model what
 
 ---
 
-## Principle 2: What every `Tern` stores & RFC 8785 `configHash`
+## Principle 2: What every `Turn` stores & RFC 8785 `configHash`
 
-In AGBoss, one question-to-answer execution round is called a **`Tern`**, and a `threadId` is a client's sequence of `Tern`s. Every execution — whether `answered`, `guarded`, `failed`, or `paused` — writes a `Tern` into `ExecutionRecordRepository` containing:
+In AGBoss, one question-to-answer execution round is called a **`Turn`**, and a `threadId` is a client's sequence of `Turn`s. Every execution — whether `answered`, `guarded`, `failed`, or `paused` — writes a `Turn` into `ExecutionRecordRepository` containing:
 
 - `task`, `answer`, `status`, `stopReason`, `route`, `steps` (what each agent/router answered), and `cost`.
 - **`promptVersion` & `modelVersion`:** Short SHA-256 fingerprints of all agent/router prompts and resolved model settings. Editing a `*.prompt.md` file automatically produces a new `promptVersion`.
@@ -328,12 +328,12 @@ In AGBoss, one question-to-answer execution round is called a **`Tern`**, and a 
 
 ## Principle 3: Scoring, calibrating & replaying with `agboss eval` and `agboss replay`
 
-1. **Calibrate your judge first:** Before trusting aggregate eval numbers, inspect and hand-label 20–30 recorded `Tern`s to verify that your decision judge agrees with human domain judgment.
-2. **Score unscored `Tern`s (`agboss eval score`):**
+1. **Calibrate your judge first:** Before trusting aggregate eval numbers, inspect and hand-label 20–30 recorded `Turn`s to verify that your decision judge agrees with human domain judgment.
+2. **Score unscored `Turn`s (`agboss eval score`):**
    ```bash
    npx agboss eval score --version 1.0.0 --limit 100
    ```
-   Scores every unscored answered `Tern` (`P(adequate)`) and prints a summary table per `promptVersion` (total `Tern`s, scored count, mean score, and USD cost).
+   Scores every unscored answered `Turn` (`P(adequate)`) and prints a summary table per `promptVersion` (total `Turn`s, scored count, mean score, and USD cost).
 3. **Replay historical tasks against a prompt edit (`agboss replay`):**
    ```bash
    npx agboss replay --version <old-prompt-version> --limit 100
@@ -397,7 +397,7 @@ export async function runComparison() {
 
 ## Principle 5: Declarative `@EvalSuite`, `pass@k` / `pass^k`, Calibration & Eval UI
 
-In addition to scoring recorded `Tern`s, `@agboss/core/eval` lets you declare typed, multi-turn evaluation suites (`@EvalSuite`) with trajectory expectations (a case's `tools`: `toolCall`, `toolInvariant`) and Fail-Fast cascading judges (`EvalCascade.StopAtFirstFailure`, running `$0` code judges before model judges):
+In addition to scoring recorded `Turn`s, `@agboss/core/eval` lets you declare typed, multi-turn evaluation suites (`@EvalSuite`) with trajectory expectations (a case's `tools`: `toolCall`, `toolInvariant`) and Fail-Fast cascading judges (`EvalCascade.StopAtFirstFailure`, running `$0` code judges before model judges):
 
 ```ts title="src/evals/job-scout.eval-suite.ts" file=src/evals/job-scout.eval-suite.ts
 import {

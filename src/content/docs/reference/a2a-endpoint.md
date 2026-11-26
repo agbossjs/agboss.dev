@@ -387,7 +387,7 @@ Every HTTP request of an `A2AClient` and an `@McpServer` carries `X-AGBoss-Mesh`
 | audience | an envelope addressed to another application is `401 mesh.audience-mismatch`; a signed one addressed to none `401 mesh.audience-missing` |
 | signature of a known peer | `401 mesh.signature-invalid`, `mesh.envelope-expired`, `mesh.body-mismatch` |
 | caller | trusted only when the authenticator's `peer` is the envelope's verified issuer |
-| chain | one that already passed through this skill, or is as long as `@Mesh({ maxHops })` (8), is accepted as a `REJECTED` task with `limit.mesh-loop` or `limit.hops`, nothing started; the client rebuilds `MeshLoopDetectedError` / `HopsLimitExceededError` |
+| chain | one that already passed through this skill, or is as long as `@Mesh({ maxHops })` (8), is accepted as a `REJECTED` task with `limit.mesh-loop` or `limit.hops`, nothing started; the client rebuilds `LimitError.MeshLoop` / `LimitError.Hops` |
 | run | the execution gets a trusted caller's origin, a `caller-budget` and the deadline; a completed task carries the signed run report |
 
 A mesh call is charged exactly once: the caller's `costPerCall` at the accept and a verified run report's spend above it. The [skills extension](/a2a/skills/v1/) carries each skill's schemas, which both `a2aHttpListener` (for the card) and `A2AClient` (for the contract check) use.
@@ -415,7 +415,7 @@ class NoKeysDirectory extends ApiKeyDirectory {
 
 const test = testWith(SupportApplication, { services: [NoKeysDirectory] });
 
-test("an unknown key is 401 and never runs", async ({ a2aServer, mockLlm }) => {
+test("an unknown key is 401 and never runs", async ({ a2aServer, mockModel }) => {
   const { url } = await a2aServer({ endpoint: SupportA2AEndpoint, authenticator: SupportHttpAuthenticator });
 
   // any A2A v1.0 client calls the listener; a plain JSON-RPC `SendMessage` is the smallest one
@@ -432,7 +432,7 @@ test("an unknown key is 401 and never runs", async ({ a2aServer, mockLlm }) => {
 
   expect(sent.status).toBe(401);
   expect(await sent.json()).toMatchObject({ code: "a2a.caller-unauthenticated" });
-  expect(mockLlm(SupportAgent)).toHaveBeenCalledTimes(0);
+  expect(mockModel(SupportAgent)).toHaveBeenCalledTimes(0);
 });
 ```
 

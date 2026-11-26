@@ -119,7 +119,7 @@ src/
 | `agboss describe [--application <path>]` | Prints paths, node inputs by producer, `historyOf` limits, model → provider resolution, budgets, and step limits |
 | `agboss describe --json` | Exports the full declarative revision snapshot (`configHash`, `executionLimits`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and `application.contracts.imports` / `exports`) |
 | `agboss chat` / `agboss run` | Starts an interactive terminal chat (`--thread`, `--profile`, `--env`) or executes a single task on the `@Application` and prints the output and spend summary |
-| `agboss eval score` / `agboss replay` | Scores recent `Tern`s (`--start`, `--version`, `--limit`, `--profile`) or replays a prompt version against recorded tasks |
+| `agboss eval score` / `agboss replay` | Scores recent `Turn`s (`--start`, `--version`, `--limit`, `--profile`) or replays a prompt version against recorded tasks |
 | `agboss eval run --suite <name>` | Runs an `@EvalSuite` across `--runs <k>` trials (`pass@k` and `pass^k`), `--chaos <rate> --chaos-seed <n>`, `--metamorphic`, `--report <run.json>`, `--baseline <run.json> --fail-on-regression`, and `--html <report.html>` |
 | `agboss eval calibrate --report <run.json>` | Computes pairwise **Cohen's kappa ($\kappa$)**, confusion matrices, disagreements, and metric rubrics between `@Judge` verdicts and human `EvalLabel` JSONL annotations (`--labels <file.jsonl>`) |
 | `agboss eval show <run.json> [--html <file>]` / `agboss eval ui` | Re-renders a saved `EvalRunReport` artifact into a self-contained static HTML page without calling models, or launches the local interactive Eval UI workbench (`127.0.0.1`) |
@@ -147,7 +147,7 @@ src/
 | `[model-provider.both-modes]` | A `@ModelProvider` mixes HTTP `baseUrl` / `apiKey` options with a custom `ModelProviderHandler.complete(request)` implementation. |
 | `[vcr.stale-cassette]` & `[judge.same-model-family]` | A VCR cassette's recorded `promptHash` / `schemaHash` no longer matches current code, or a `DecidedBy.Model` `@Judge` uses the same model family as the judged `@Agent`. |
 | `[flow.conflicting-placement]` & `[application.in-memory-child-queue]` | Two paths to the same child workflow specify different `ChildPlacement` modes, or `ChildPlacement.AnyWorker` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`. |
-| `[federation.incompatible-schema]` & `[federation.missing-target]` | Cross-service `@A2AAgent` / `@McpServer` DTO schemas drifted from the producer's `@A2AExpose` / `@McpExpose` `schemaHash` in `agboss describe --json`. |
+| `[federation.incompatible-schema]` & `[federation.missing-target]` | Cross-service `@A2AAgent` / `@McpServer` DTO schemas drifted from the producer's `@A2AEndpoint` / `@McpEndpoint` `schemaHash` in `agboss describe --json`. |
 
 ## Exporting a declarative revision snapshot with `agboss describe --json`
 

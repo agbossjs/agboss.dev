@@ -171,7 +171,7 @@ const test = testWith(TicketTriageApplication);
 
 test("routes critical tickets to EscalationAgent and unit-tests PriorityRouter", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
   const runRouter = testUnit(PriorityRouter);
   const { output: selectedRoute } = await runRouter({
@@ -179,7 +179,7 @@ test("routes critical tickets to EscalationAgent and unit-tests PriorityRouter",
   });
   expect(selectedRoute).toBe(EscalationAgent);
 
-  mockLlm(EscalationAgent).thenReturn(
+  mockModel(EscalationAgent).thenReturn(
     replyWith(ResolutionDto, { summary: "Paged on-call SRE for T-500" }),
   );
 
@@ -281,13 +281,13 @@ For environments that prefer not to write synced skill files into the workspace,
 | :--- | :--- | :--- |
 | `SKILL.md` | Starting any task in an AGBoss repository | 10 core invariants, CLI workflow (`generate -> check -> describe -> test`), ban on `as any` / `new Dto()` / component state, 1-call-per-line rule |
 | `01-composition-and-architecture.md` | Designing workflows, splitting graphs, or authoring DTOs | `@Agent` vs `@Action` vs `@Tool`, `DecidedBy.Code` vs `DecidedBy.Model`, `@Text`/`@Integer`/`@Bool`/`@OneOf`/`@List`/`@Nested`, narrow DTOs vs God DTOs |
-| `02-flow-dsl-all-combinations.md` | Writing or editing `*.workflow.ts` flow paths & error handlers | `start()`, `.returns(Dto, { about })`, `.switch(caseOf())`, `.chooseOne(route())`, `historyOf()`, `.toParallelAgents()`, `.joinQuorum()`, `ThisWorkflow`, `.onError()` hierarchy |
-| `03-components-di-and-lifecycle.md` | Implementing components, DI services, lifecycle hooks, or `AppEnvironment` | `@Application`, class-inheritance DI, `OnInit -> OnStart -> OnStop -> OnDestroy`, `ExecutionContext`, `SpendRecorder`, `JudgeModel`, `@ToolInterceptor`, `CompactionStrategy.Custom`, `secret()`, `env()`, `seconds()`, `usd()` |
-| `04-mcp-and-a2a.md` | Integrating external MCP servers, A2A remote agents, or Agent Mesh | `@McpServer`, `@McpTool`, `@McpExpose`, `createMcpService`, `@A2AAgent`, `a2aHttpListener` (`callerResolver`), `MeshEnvelope` (the `https://agboss.dev/a2a/mesh/v1` extension), `$ agboss check --federation` |
-| `05-channels-and-human-in-the-loop.md` | Adding human approvals, pauses, or webhook resume endpoints | `@ChannelRole`, `@ReplyInterpreter`, `@Channel`, `ChannelOutcome.awaitReply()`, `onPauseClosed()`, `result.pending`, `app.resume({ pauseId, reply })` |
+| `02-flow-dsl-all-combinations.md` | Writing or editing `*.workflow.ts` flow paths & error handlers | `onStart()`, `.onRoute()`, `.toOneOf()`, `historyOf()`, `.inParallel()`, `.forEachItem()`, `.joinQuorum()`, `toWorkflow(() => Self)`, `.onError()` hierarchy |
+| `03-components-di-and-lifecycle.md` | Implementing components, DI services, lifecycle hooks, or `AppEnvironment` | `@Application`, class-inheritance DI, `OnInit -> OnStart -> OnStop -> OnDestroy`, `ExecutionContext`, `SpendRecorder`, `JudgeModel`, `@ToolInterceptor`, `@Memory`, `secret()`, `env()`, `seconds()`, `usd()` |
+| `04-mcp-and-a2a.md` | Integrating external MCP servers, A2A remote agents, or Agent Mesh | `@McpServer`, `@McpEndpoint`, `connectMcp`, `@A2AAgent`, `@A2AEndpoint`, `a2aHttpListener` (`authenticator`), `MeshEnvelope` (the `https://agboss.dev/a2a/mesh/v1` extension), `$ agboss check --federation` |
+| `05-channels-and-human-in-the-loop.md` | Adding human approvals, pauses, or webhook resume endpoints | `@ToolApproval`, `@ExternalTask`, `@ChannelInterpreter`, `@Channel`, `ChannelOutcome.awaitReply()`, `onPauseClosed()`, `result.pending`, `app.resume({ pauseId, reply })` |
 | `06-finops-providers-and-queues.md` | Configuring budgets, model providers, rate limits, or circuit breakers | `@Budget` (`Application`, `Tenant`, `Execution`), `@ModelProvider` (`OpenRouterProvider`, `ModelProviderHandler`), `PromptCaching`, `QueueBalancingStrategy.TenantRoundRobin`, shared 429 cooldowns |
-| `07-guardrails-pii-and-security.md` | Implementing input/output guardrails (`DecidedBy.Model` / `DecidedBy.Code`) or PII masking | `@InputGuardrail`, `@OutputGuardrail`, `GuardrailHandler`, `GuardrailDecision`, `@PiiPolicy`, deterministic HMAC `PiiAction.replaceWithToken()` |
-| `08-observability-and-tracing.md` | Writing `On*` observers, inspecting `result.record`, or Langfuse | 23 `On*` observer interfaces (`OnExecutionEnd`, `OnSpend`, `OnValuesOutdated`, `OnQuorumDecided`), `result.record.pauses`, `scripts/langfuse.sh` |
+| `07-guardrails-pii-and-security.md` | Implementing input/output guardrails (`DecidedBy.Model` / `DecidedBy.Code`) or PII masking | `@InputGuardrail`, `@OutputGuardrail`, `GuardrailHandler`, `GuardrailDecision`, `@PiiPolicy`, deterministic HMAC `PiiAction.tokenize()` |
+| `08-observability-and-tracing.md` | Writing `@Observer` hooks, inspecting `result.record`, or Langfuse | `@Observer` with a method per hook (`onExecutionEnd`, `onSpend`, `onValuesOutdated`, `onQuorumDecided`), `result.record.pauses`, `scripts/langfuse.sh` |
 | `09-persistence-k8s-and-deploy.md` | Configuring SQLite/Postgres stores, leases, or Kubernetes probes | 7 repository contracts, `Sqlite*` WAL providers, 30s execution leases, `SIGTERM` drain, `@HealthCheck`, `checkLiveness()`, `checkReadiness()`, `configHash` rollouts |
 | `10-testing-vcr-and-evals.md` | Writing unit tests, trajectory assertions, `@EvalSuite`, or golden evals | `testWith(App, { instances: 2, concurrency: TestConcurrency.inOrder([...]) })`, `toHaveCalledTools`, `toHaveToolCallMatching`, `VirtualClock`, all 10 unit runners (`testUnit` .. `testUnit`), `@EvalSuite` (`pass@k` / `pass^k`, Cohen's $\kappa$) |
 | `11-cli-studio-and-error-catalog.md` | Running CLI commands or fixing `[rule.code]` compiler diagnostics | Complete catalog of `[flow.*]`, `[graph.*]`, `[input.*]`, `[router.*]`, `[di.*]`, `[environment.*]`, `[prompt.*]`, and `[judge.*]` diagnostics with before/after fixes |
@@ -307,7 +307,7 @@ When an engineer or coding agent migrates an existing raw LangGraph (`StateGraph
 | Raw LangGraph Construct | AGBoss Equivalent |
 | :--- | :--- |
 | `new StateGraph(StateAnnotation).addNode("x", fn)` | [`@Agent`](/reference/agent/) (LLM turn) or [`@Action`](/reference/action/) (deterministic TypeScript with `compensateWith`) |
-| `addConditionalEdges("x", routerFn, map)` | [`@Router`](/reference/router/) (`DecidedBy.Code` or `DecidedBy.Model`) + `.chooseOne(route(...))` or `.switch(caseOf(...))` |
+| `addConditionalEdges("x", routerFn, map)` | [`@Router`](/reference/router/) (`DecidedBy.Code` or `DecidedBy.Model`) + `.onRoute(...)` or `.toOneOf([...])` |
 | `new Send("worker", item)` map-reduce | `.toParallelAgents()` or `.toParallelWorkflows()` with `maxItems`, `maxConcurrency`, and `.join()` / `.joinQuorum()` |
 | `interrupt(payload)` + `Command({ resume })` | [`@ChannelRole`](/reference/channel/) + `ChannelOutcome.awaitReply()` + two-phase `app.resume({ pauseId, decision })` |
 | `PostgresSaver` / `SqliteSaver` checkpointer | [`@DatabaseStorage`](/guides/persistence-and-recovery/) (checkpoints, leases and the other stores come from its driver) |
@@ -323,6 +323,6 @@ Because every rule in the skill suite corresponds to a deterministic check in `a
 
 1. **Scaffold with CLI generators:** The coding agent runs `npx agboss generate agent reviewer --workflow src/offer/offer.workflow.ts` (or `router`, `arbiter`, `tool`, `mcp`, `rag`, `openapi`) to create properly named files and wire imports without boilerplate typos.
 2. **Compile Path Scope & generate `.agboss/types.d.ts`:** The agent runs `npx agboss check --strict`. If a path is missing an upstream DTO (`[input.missing-on-path]`), reads a stale loop value (`[input.outdated-on-path]`), or interpolates an input into a system prompt (`[prompt.input-in-instructions]`), `agboss check` outputs the exact `[rule.code]` diagnostic.
-3. **Typecheck narrowed `Produced<Dto, P>` contracts:** With `.agboss/types.d.ts` updated, `npm run typecheck` (`tsc --noEmit`) verifies every `@Action`, `@Router`, and `@WorkflowFinish` handler against the exact upstream producer union.
+3. **Typecheck narrowed `Tracked<Dto, P>` contracts:** With `.agboss/types.d.ts` updated, `npm run typecheck` (`tsc --noEmit`) verifies every `@Action`, `@Router`, and `@WorkflowFinish` handler against the exact upstream producer union.
 4. **Verify deterministically offline:** The agent writes isolated unit tests (`testUnit`) and full workflow tests (`testWith(App)`) and runs `npm test` in milliseconds with zero network calls.
 5. **CI documentation guarantee (`check:docs`):** Inside the `agboss` repository itself, `npm run check:docs` compiles every TypeScript snippet in the skill references and documentation against the built framework, ensuring the skills given to your coding agent can never drift from the actual TypeScript API.

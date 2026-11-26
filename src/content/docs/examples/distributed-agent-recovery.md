@@ -11,7 +11,7 @@ description: Architectural walkthrough of agbossjs/distributed-agent-recovery �
 
 - **GitHub Repository:** [`github.com/agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distributed-agent-recovery)
 - **Recorded Live LLM + Real-Clock `SIGSTOP` Evidence:** [`docs/evidence/live-real-clock-cluster-run.json`](https://github.com/agbossjs/distributed-agent-recovery/blob/main/docs/evidence/live-real-clock-cluster-run.json) (`openai/gpt-4o-mini`, `$0.00036255` total spend, 2 OS worker PIDs, 30s lease takeover `epoch 1 -> 2`, linear unbranched checkpoint chain)
-- **Automated CI Gates:** `$0` deterministic offline suite (`testWith` & `mockLlm`), real-clock multi-process POSIX `SIGSTOP`/`SIGCONT` recovery (`--cluster --real-clock`), 4-container Docker Compose + hard worker container death (`exit 137`) failover, and single-node Kubernetes (`kind`).
+- **Automated CI Gates:** `$0` deterministic offline suite (`testWith` & `mockModel`), real-clock multi-process POSIX `SIGSTOP`/`SIGCONT` recovery (`--cluster --real-clock`), 4-container Docker Compose + hard worker container death (`exit 137`) failover, and single-node Kubernetes (`kind`).
 
 ---
 
@@ -270,7 +270,7 @@ export class ReleaseGateFailedError extends AGBossError {
 ```ts title="src/workflows/release-coordinator/release-coordinator.workflow.ts" file=release-coordinator.workflow.ts
 import {
   ChildPlacement,
-  StepFailedError,
+  StepError,
   Workflow,
   onAction,
   onStart,
@@ -306,9 +306,9 @@ import { StageModuleArtifactAction } from "./stage-module-artifact.action.js";
   flow: [
     onStart(ModuleWorkerWorkflowStart)
       .toAction(PrepareModuleCandidateAction)
-      .onError(StepFailedError, toAction(MarkModuleFailedAction))
+      .onError(StepError, toAction(MarkModuleFailedAction))
       .toAction(StageModuleArtifactAction)
-      .onError(StepFailedError, toAction(MarkModuleFailedAction))
+      .onError(StepError, toAction(MarkModuleFailedAction))
       .toFinish(ModuleWorkerWorkflowFinish),
 
     onAction(MarkModuleFailedAction)
@@ -463,9 +463,9 @@ export class StageModuleArtifactAction implements ActionHandler<StageModuleArtif
 
 ---
 
-### 3. Deterministic `$0` Offline Testing (`testWith` & `mockLlm`)
+### 3. Deterministic `$0` Offline Testing (`testWith` & `mockModel`)
 
-Every failure mode in the showcase—smoke gate failure, LIFO saga rollback, tool-assisted AI recovery planning, and multi-instance child takeover—is verified offline in milliseconds with `testWith` and `mockLlm`:
+Every failure mode in the showcase—smoke gate failure, LIFO saga rollback, tool-assisted AI recovery planning, and multi-instance child takeover—is verified offline in milliseconds with `testWith` and `mockModel`:
 
 <!-- snippet-context
 import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
@@ -508,10 +508,10 @@ const test = testWith(DistributedAgentRecoveryApp);
 
 test("compensates Attempt 1 on smoke gate failure, plans AI recovery, and promotes Attempt 2", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
   const correctedFlags = "--opt-level=3 --deterministic --abi-compat=v2";
-  mockLlm(ReleaseRecoveryPlannerAgent).thenReturn(
+  mockModel(ReleaseRecoveryPlannerAgent).thenReturn(
     callTool(InspectFailedAttemptTool, { releaseId: "rel-2026.10.0" }),
     replyWith(RecoveryPlanDto, {
       correctedBuildFlags: correctedFlags,

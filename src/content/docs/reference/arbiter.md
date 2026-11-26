@@ -170,7 +170,7 @@ export class BackupRiskAgent {}
 ```ts title="src/workflows/risk-quorum.workflow.ts" file=src/workflows/risk-quorum.workflow.ts
 import {
   Action,
-  QuorumNotReachedError,
+  StepError,
   Workflow,
   WorkflowFinish,
   WorkflowStart,
@@ -236,7 +236,7 @@ export class FallbackRiskAction implements ActionHandler<FallbackRiskAction> {
       .arbitratedBy(ConfidenceThresholdArbiter) // one arbiter class, once per launch
       .joinQuorumGroups({ deadline: seconds(6) })
       .onError(
-        QuorumNotReachedError,
+        StepError.QuorumNotReached,
         toAction(FallbackRiskAction)
           .toFinish(RiskFinish),
       )
@@ -325,5 +325,5 @@ An `@Arbiter` takes no `decidedBy`: `criteria` makes a model arbiter, `@Arbitrat
 | `.joinQuorum({ min, max?, deadline? })` | Flow chain | Collects accepted answers as soon as `max` (default `min`) answers pass the arbiter, cancelling remaining branches (`BranchVerdict.Surplus`). Also follows `.forEachItem(…)`. |
 | `.joinQuorumGroups({ deadline })` + `.onGroup([targets], { priority }, subPath)` | Flow chain | Enforces prioritized group quorum rules: the first complete group, by priority, continues its own path. Refused after `.forEachItem(…)`. |
 | `ArbiterModel` | `"@agboss/core"` | Injectable model of a hybrid arbiter. |
-| `QuorumNotReachedError` | `"@agboss/core"` | Thrown when fewer than `min` answers are accepted or the `deadline` expires; catchable via `.onError(QuorumNotReachedError, sidePath)` right after the join. |
+| `StepError.QuorumNotReached` | `"@agboss/core"` | Thrown when fewer than `min` answers are accepted or the `deadline` expires; catchable via `.onError(StepError.QuorumNotReached, sidePath)` right after the join. |
 | `testUnit(ArbiterClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that tests an arbiter's verdict for any target and answer payload; `testUnit(HybridArbiter, { model })` scripts its model. |

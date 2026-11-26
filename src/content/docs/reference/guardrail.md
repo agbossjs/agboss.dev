@@ -3,7 +3,7 @@ title: "@InputGuardrail & @OutputGuardrail"
 description: "Complete API reference for @InputGuardrail, @OutputGuardrail, model guardrails vs code guardrails (check(content)), GuardrailVerdict, and testUnit in AGBoss."
 ---
 
-`@InputGuardrail` and `@OutputGuardrail` (`"@agboss/core"`) define boundary safety checks on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), and [`@Router`](/reference/router/). Unlike [`@Judge`](/reference/judge/) (which retries an agent with feedback), a guardrail **blocks** execution immediately (`GuardFailedError`) when a message or reply violates the guardrail.
+`@InputGuardrail` and `@OutputGuardrail` (`"@agboss/core"`) define boundary safety checks on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), and [`@Router`](/reference/router/). Unlike [`@Judge`](/reference/judge/) (which retries an agent with feedback), a guardrail **blocks** execution immediately (`StepError.Guardrail`) when a message or reply violates the guardrail.
 
 Both `@InputGuardrail` and `@OutputGuardrail` come in two forms, told apart by what the decorator sets (there is no `decidedBy`):
 - **A model guardrail** sets a yes/no `prompt` (a `PromptSource`), a `threshold` and optionally `model` and `modelProvider` (such as `"typesafe/jev-1.13"` on a decisions provider), and blocks when $P(\text{yes}) \ge \text{threshold}$. Its class has no `check`.
@@ -173,8 +173,8 @@ it("runs DecidedBy.Code guardrails with zero LLM calls via GuardrailHandler", as
 
 A guardrail that sets no `prompt`, `threshold`, `model` or `modelProvider` is decided by its class's single `check(content)` (`[guardrail.missing-handler]` otherwise):
 - **`check(content: GuardrailContent): Promise<GuardrailVerdict> | GuardrailVerdict`:** `content.text` carries the PII-masked text with the text of text files appended (a transcription, a CSV), `content.files` lists the files (`[]` when none), and `content.component` and `content.side` say which agent or router and which side (input or output).
-- **Nominal `GuardrailVerdict`:** Plain `{ isBlocked: boolean }` objects are rejected by TypeScript and at runtime; always construct verdicts via `GuardrailVerdict.passed()` or `GuardrailVerdict.blocked(refusal?)`. The refusal of its own call wins, then the decorator's `refusal`, then the class's `refusal(content)`; none of the three fails closed with `GuardFailedError`.
-- **Fail-closed & `$0` cost:** If `check()` throws, the runtime fails closed with `GuardFailedError` without calling the downstream LLM or leaking internal error strings into `result.refusal`. Observer events (`GuardrailStartEvent` / `GuardrailEndEvent`) fire identically for both forms, with `cost: usd(0)` on code guardrails.
+- **Nominal `GuardrailVerdict`:** Plain `{ isBlocked: boolean }` objects are rejected by TypeScript and at runtime; always construct verdicts via `GuardrailVerdict.passed()` or `GuardrailVerdict.blocked(refusal?)`. The refusal of its own call wins, then the decorator's `refusal`, then the class's `refusal(content)`; none of the three fails closed with `StepError.Guardrail`.
+- **Fail-closed & `$0` cost:** If `check()` throws, the runtime fails closed with `StepError.Guardrail` without calling the downstream LLM or leaking internal error strings into `result.refusal`. Observer events (`GuardrailStartEvent` / `GuardrailEndEvent`) fire identically for both forms, with `cost: usd(0)` on code guardrails.
 
 ## Hierarchical inheritance (`guardrails` & `excludeGuardrails`)
 

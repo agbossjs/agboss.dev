@@ -56,7 +56,7 @@ export class ComplianceCheckWorkflow {}
 // @snippet
 -->
 ```ts title="src/missions/escrow-settlement.workflow.ts" file=src/missions/escrow-settlement.workflow.ts
-import { StepFailedError, Workflow, onStart, toAction, toWorkflow } from "@agboss/core";
+import { StepError, Workflow, onStart, toAction, toWorkflow } from "@agboss/core";
 import {
   CommitSettlementAction,
   HoldEscrowFundsAction,
@@ -78,7 +78,7 @@ import {
       .forEachItem(toWorkflow(ComplianceCheckWorkflow), { takeFirst: 6, maxConcurrency: 4 })
       .join()
       .onError(
-        StepFailedError,
+        StepError,
         toAction(ReverseLedgerEntryAction)
           .toAction(ReleaseEscrowFundsAction)
           .toFinish(SettlementRolledBackFinish),
@@ -196,7 +196,7 @@ export class ValveTurnCommandDto { @Text() valveId!: string; }
 ```
 -->
 <!-- snippet-context
-import { ActionFailedError, Agent, WorkflowFinish, WorkflowStart, toAction, inline } from "@agboss/core";
+import { StepError, Agent, WorkflowFinish, WorkflowStart, toAction, inline } from "@agboss/core";
 import { MissionTargetDto, PoseAssessmentDto, SensorFrameDto, ValveTurnReceiptDto } from "./robotics.dto.js";
 @WorkflowStart({ name: "mission-workflow-start", description: "Start", input: MissionTargetDto })
 export class MissionStart {}
@@ -250,7 +250,7 @@ export class PoseConsensusArbiter {
       .toAction(ArmManipulatorAction)
       .toAction(ExecuteValveTurnAction)
       .onError(
-        ActionFailedError,
+        StepError.Action,
         toAction(SafeParkManipulatorAction)
           .toFinish(MissionAbortedFinish),
       )

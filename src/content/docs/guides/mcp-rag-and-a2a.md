@@ -139,7 +139,7 @@ When a workflow grows beyond a single responsibility or crosses service boundari
 
 ### Serving a workflow
 
-An `@A2AExpose` lists the `@WorkflowStart` classes (the **skills**) an `@Application({ exposes })` serves, and `a2aHttpListener` serves them: the Agent Card at `<base>/.well-known/agent-card.json` (one skill per exported start, with each skill's JSON Schemas in the [skills extension](/a2a/skills/v1/)) and the JSON-RPC binding at `POST <base>`: `SendMessage`, `SendStreamingMessage`, `GetTask`, `ListTasks`, `CancelTask`, `SubscribeToTask`. `A2A-Version: 1.0` is required.
+An `@A2AEndpoint` lists the `@WorkflowStart` classes (the **skills**, `skills: [{ start, tags }]`) an `@Application({ endpoints })` serves, and `a2aHttpListener` serves them: the Agent Card at `<base>/.well-known/agent-card.json` (one skill per exported start, with each skill's JSON Schemas in the [skills extension](/a2a/skills/v1/)) and the JSON-RPC binding at `POST <base>`: `SendMessage`, `SendStreamingMessage`, `GetTask`, `ListTasks`, `CancelTask`, `SubscribeToTask`. `A2A-Version: 1.0` is required.
 
 ### Serving a workflow
 
@@ -263,7 +263,7 @@ In tests, the `a2aServer({ endpoint, authenticator })` fixture of `testWith` ser
 
 When multiple AGBoss applications call each other over A2A (`A2AClient` to `a2aHttpListener`) or MCP (`@McpServer` to `@McpEndpoint`), AGBoss propagates an **Agent Mesh Envelope** with no code of yours. Over A2A it travels as the [mesh extension](/a2a/mesh/v1/) `https://agboss.dev/a2a/mesh/v1` in `message.metadata`, with `A2A-Extensions` and a W3C `traceparent`; over MCP it is `_meta["agboss.dev/mesh"]`:
 
-- **Propagated context (`MeshEnvelope`):** `origin` (`executionId` / `rootExecutionId`, `parentExecutionId`, `workflow`, `step.idempotencyKey`), `budget.remaining` (a `caller-budget` cap on the downstream execution, so a child hop can never exceed its parent's remaining USD budget), `deadline.remaining` (`DeadlineExceededError` if exhausted) and `callChain` (`readonly MeshHop[]`).
+- **Propagated context (`MeshEnvelope`):** `origin` (`executionId` / `rootExecutionId`, `parentExecutionId`, `workflow`, `step.idempotencyKey`), `budget.remaining` (a `caller-budget` cap on the downstream execution, so a child hop can never exceed its parent's remaining USD budget), `deadline.remaining` (`LimitError.Deadline` if exhausted) and `callChain` (`readonly MeshHop[]`).
 - **Cryptographic peer verification (`@Application({ mesh })` takes a `@Mesh` class):** an application that names its keys signs every outgoing HTTP request (`X-AGBoss-Mesh`, an EdDSA JWS) and every run report it answers with; its `peers` are the applications whose signatures it checks, and `inboundMode: MeshInboundMode.Strict` refuses an unsigned request to a mesh endpoint. A request is trusted only when the authenticator's `peer` is the envelope's verified issuer. The caller records verified remote spend under `a2a:<issuer>` / `mcp:<issuer>` and `ToolCallRecord.remote`, exactly once however many passes replay the call.
 
 <!-- snippet-context
@@ -288,7 +288,7 @@ const meshEnv = defineEnv({
 export class BillingMesh {}
 ```
 
-- **Distributed cycle & hop protection:** if `callChain` already contains the receiving `(application, skill)` pair (`Service A -> Service B -> Service A`), or is as long as `@Mesh({ maxHops })` (`8`), the A2A server accepts the message as a `REJECTED` task with `limit.mesh-loop` or `limit.hops`, nothing started, and `A2AClient` rethrows it as the typed **`MeshLoopDetectedError`** (catchable via `.onError(MeshLoopDetectedError, ...)`) or **`HopsLimitExceededError`**. An agent that does not support the extension (a foreign one) is called without it, and the call says so (`mesh: false`).
+- **Distributed cycle & hop protection:** if `callChain` already contains the receiving `(application, skill)` pair (`Service A -> Service B -> Service A`), or is as long as `@Mesh({ maxHops })` (`8`), the A2A server accepts the message as a `REJECTED` task with `limit.mesh-loop` or `limit.hops`, nothing started, and `A2AClient` rethrows it as the typed **`LimitError.MeshLoop`** (catchable via `.onError(LimitError.MeshLoop, ...)`) or **`LimitError.Hops`**. An agent that does not support the extension (a foreign one) is called without it, and the call says so (`mesh: false`).
 - **Cross-repo contract verification (`--federation`) & AGBoss Mesh Hub (`agboss hub`):** in CI and local operations, verify that all services in an Agent Mesh agree on input/output DTO schemas (an `@A2AAgent` is paired by `(target.application, target.skill)` with the other application's exported skill) and visualize cross-service topology, stitched execution trees (`ExecutionHistoryRepository` + `agboss executions export`), Progressive Crystallization Radar and Blast Radius:
 
 ```bash
@@ -304,5 +304,5 @@ If an upstream service changes an exposed DTO without updating consumers, `npx a
 
 ## Standalone Executable Proofs: [`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh) & [`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)
 
-- **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh):** Demonstrates a 3-service microservice mesh (`apps/1-order-gateway`, `apps/2-billing-a2a` with an A2A endpoint, and `apps/3-catalog-mcp` with an MCP endpoint), Ed25519 signed mesh envelopes, `MeshLoopDetectedError` / `HopsLimitExceededError` fallback routing, request deduplication, and `agboss check --federation` Blast Radius over `federation/` snapshots.
+- **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh):** Demonstrates a 3-service microservice mesh (`apps/1-order-gateway`, `apps/2-billing-a2a` with an A2A endpoint, and `apps/3-catalog-mcp` with an MCP endpoint), Ed25519 signed mesh envelopes, `LimitError.MeshLoop` / `LimitError.Hops` fallback routing, request deduplication, and `agboss check --federation` Blast Radius over `federation/` snapshots.
 - **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk):** Demonstrates an in-memory BM25/TF-IDF section indexer wired into a `@Rag` knowledge base alongside a `@Memory` (see [7 Verified Examples](/examples/verified-examples/)).

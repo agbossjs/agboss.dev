@@ -203,7 +203,7 @@ const test = testWith(RefundVerificationApplication);
 
 test("runs $0 unit runners and cascading judges in Loop 1", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
   // 1. Isolated unit runners ($0, 1ms):
   const runTool = testUnit(IssueRefundTool);
@@ -220,10 +220,10 @@ test("runs $0 unit runners and cascading judges in Loop 1", async ({
   expect(badFormat.output.passed).toBe(false);
 
   // 2. Full workflow test with scripted LLM & judge cascade ($0, 2ms):
-  mockLlm(RefundSpecialistAgent).thenReturn(
+  mockModel(RefundSpecialistAgent).thenReturn(
     replyWith(RefundReplyDto, { confirmation: "Refunded 2500 cents for [ORD-101]" }),
   );
-  mockLlm(RefundPolicyGroundedJudge).thenReturn(decideWith({ grounded: 0.96 }));
+  mockModel(RefundPolicyGroundedJudge).thenReturn(decideWith({ grounded: 0.96 }));
 
   const result = await app.execute(RefundWorkflowStart, {
     request: "Refund 2500 cents on ORD-101",
@@ -243,7 +243,7 @@ Every failure in a multi-agent system originates in one of **4 distinct architec
 | # | Object of Verification | What Can Go Wrong | Primary AGBoss Primitives |
 | :--- | :--- | :--- | :--- |
 | **1** | **Topology & Mesh Contracts (`Graph & Mesh Contracts`)** | Missing upstream inputs on a branch, reading a stale draft in a review loop, forgetting a saga compensator, or breaking a schema consumed by a remote server | [`agboss check`](/cli/), `$ agboss check --federation`, `.agboss/types.d.ts`, [`Path Scope`](/concepts/path-scope/), [`compensateWith` / `committedBy`](/guides/error-handling-and-rollback/) |
-| **2** | **Harness Code (`Harness Code`)** | Bugs in deterministic TypeScript surrounding the model: [`@Action`](/reference/action/), `DecidedBy.Code` [`@Router`](/reference/router/) & [`@Arbiter`](/reference/arbiter/), [`@Tool`](/reference/tool/), [`@ToolInterceptor`](/reference/tool-interceptor/), code guardrails, [`@PiiPolicy`](/reference/pii-policy/) masking, rate-limit queues, retries, and LIFO rollbacks | [`testUnit` runners](/guides/testing-agents/#the-unit-runners-in-agbosstesting), `testWith(App)`, `mockLlm`, `TestConcurrency.inOrder`, `VirtualClock`, `instances: 2` |
+| **2** | **Harness Code (`Harness Code`)** | Bugs in deterministic TypeScript surrounding the model: [`@Action`](/reference/action/), `DecidedBy.Code` [`@Router`](/reference/router/) & [`@Arbiter`](/reference/arbiter/), [`@Tool`](/reference/tool/), [`@ToolInterceptor`](/reference/tool-interceptor/), code guardrails, [`@PiiPolicy`](/reference/pii-policy/) masking, rate-limit queues, retries, and LIFO rollbacks | [`testUnit` runners](/guides/testing-agents/#the-unit-runners-in-agbosstesting), `testWith(App)`, `mockModel`, `TestConcurrency.inOrder`, `VirtualClock`, `instances: 2` |
 | **3** | **Model & Tool Trajectory (`Model & Trajectory`)** | The model misunderstands the prompt, skips `requiredTools`, calls `forbiddenTools`, passes another tenant's ID in tool arguments, or hallucinates an ungrounded answer | `toHaveCalledTools`, `toHaveToolCallMatching`, `toolInvariant`, [`@Judge`](/reference/judge/), [`@EvalSuite`](/guides/evaluation-and-profiles/) (`pass@k` & `pass^k`) |
 | **4** | **Memory & Compaction (`Memory & Compaction`)** | A critical safety constraint disappears after [`@Memory`](/reference/memory/) summarisation, or the agent relies on an outdated fact from an old turn when a `@Tool` or [`@Rag`](/reference/rag/) returns updated rules | `testUnit()`, multi-turn `pastTurn()` + `turn()` in `@EvalSuite`, outdating of stale values |
 
@@ -288,7 +288,7 @@ flowchart TD
 - **When:** On every commit. **A live LLM is never called in Loop 1.**
 - **What runs inside Loop 1:**
   - **[isolated unit runners](/guides/testing-agents/#the-unit-runners-in-agbosstesting):** `testUnit(Component)` validates one `@Tool`, `@Action`, `@Router`, `@Arbiter`, `@Rag`, `@Judge`, guardrail, `@ChannelInterpreter`, `@PiiPolicy`, `@Memory` or `@ToolInterceptor` in `1ms`.
-  - **Full-graph `testWith(Application)` tests:** Execute complete workflows against scripted `mockLlm` replies and recorded VCR cassettes (`VcrMode.Replay`).
+  - **Full-graph `testWith(Application)` tests:** Execute complete workflows against scripted `mockModel` replies and recorded VCR cassettes (`VcrMode.Replay`).
   - **Resilience & chaos injection:** Deterministically inject `failWith(ModelFailure.RateLimit)`, `ModelFailure.Timeout`, `ModelFailure.InvalidOutput`, and `ModelFailure.InvalidToolArguments`, control parallel race arrival order via `TestConcurrency.inOrder()`, and verify multi-pod 30-second lease failover (`testWith(App, { instances: 2 })`) on a `VirtualClock`.
 - **The Freshness Lock to Loop 2 (`[vcr.stale-cassette]`):**
   Every VCR cassette embeds the `promptHash` and `schemaHash` of the steps it recorded. As long as you only refactor TypeScript services, `@Action` nodes, or DI wiring, your entire test suite runs for `$0` on cassettes. The moment you change a single word in a prompt or a field on a `@Dto`, `[vcr.stale-cassette]` trips — signaling that the fixture is stale and Loop 2 must run against a live model.
@@ -326,7 +326,7 @@ The verification pipeline does not end at deployment — Loop 4 (`ExecutionRecor
 
 ### Feedback Loop A: From Production to Golden Sets & `@Judge` Calibration (Failure Taxonomy Loop)
 
-1. **PII-scrubbed production traces:** In production, workflows persist [`ExecutionRecord`](/guides/observability-and-tracing/) (`Tern`) entries into `ExecutionRecordRepository`, already pseudonymized at the boundary by [`@PiiPolicy`](/reference/pii-policy/).
+1. **PII-scrubbed production traces:** In production, workflows persist [`ExecutionRecord`](/guides/observability-and-tracing/) (`Turn`) entries into `ExecutionRecordRepository`, already pseudonymized at the boundary by [`@PiiPolicy`](/reference/pii-policy/).
 2. **Failure taxonomy tagging in Eval UI / Mesh Hub:** Engineers open `$ agboss eval ui` locally (or the AGBoss Mesh Hub across a fleet), filter failed or high-latency trajectories, and tag root causes with concise taxonomy labels (`wrong-tool`, `forgot-compacted-constraint`, `policy-hallucination`).
 3. **Calibrating `@Judge` via Cohen's kappa ($\kappa \ge 0.80$):** On 20–30 real recorded sessions, human domain experts record pass/fail labels (`evals/labels/*.jsonl`) and run `$ agboss eval calibrate --min-kappa 0.80`. AGBoss computes pairwise **Cohen's kappa ($\kappa$)** and a confusion matrix (`TP`, `FP`, `TN`, `FN`) for each `@Judge` (and warns with `[judge.same-model-family]` if the judge shares the agent's model family). If $\kappa < 0.80$, you refine the `@Judge` rubric until automated grading aligns with human judgment.
 4. **One-click promotion to Golden Sets (`agboss golden`):** Real production failures are promoted into `golden/<workflow>/*.yaml` (`npx agboss golden add`) and `@EvalSuite` cases, becoming permanent regression guards in Loops 2 and 3.

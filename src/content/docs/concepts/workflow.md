@@ -178,13 +178,13 @@ const test = testWith(ChatWorkflowApp);
 
 test("the profiler's profile goes on to the scout and the run finishes", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(MainRouter).thenReturn(routeTo(ProfilerAgent));
-  mockLlm(ProfilerAgent).thenReturn(
+  mockModel(MainRouter).thenReturn(routeTo(ProfilerAgent));
+  mockModel(ProfilerAgent).thenReturn(
     replyWith(ProfileDto, { summary: "Principal TypeScript Engineer" }),
   );
-  mockLlm(ScoutAgent).thenReturn(
+  mockModel(ScoutAgent).thenReturn(
     replyWith(OpeningsDto, { openings: "Staff Backend @ Acme" }),
   );
 

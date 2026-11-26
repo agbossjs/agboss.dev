@@ -155,7 +155,7 @@ export class DeepResearchWorkflow {}
 
 ```ts title="test/budget-cap.test.ts" file=test/budget-cap.test.ts
 import { expect } from "vitest";
-import { BudgetExceededError } from "@agboss/core";
+import { LimitError } from "@agboss/core";
 import { replyWith, testWith } from "@agboss/core/testing";
 import { usd } from "@agboss/core/units";
 import { SupportApplication } from "../src/support.application.js";
@@ -163,8 +163,8 @@ import { SupportAgent, SupportStart } from "../src/workflows/support.workflow.js
 
 const test = testWith(SupportApplication);
 
-test("halts execution when simulated spend exceeds DefaultExecutionBudget", async ({ app, mockLlm }) => {
-  mockLlm(SupportAgent).thenReturn(
+test("halts execution when simulated spend exceeds DefaultExecutionBudget", async ({ app, mockModel }) => {
+  mockModel(SupportAgent).thenReturn(
     replyWith("Expensive turn", { cost: usd(1.25) }),
   );
   await expect(
@@ -173,7 +173,7 @@ test("halts execution when simulated spend exceeds DefaultExecutionBudget", asyn
       { text: "Analyze all logs" },
       { tenant: { tenantId: "acme", weight: 1, planTier: "pro" } },
     ),
-  ).rejects.toThrow(BudgetExceededError);
+  ).rejects.toThrow(LimitError.Budget);
 });
 ```
 
@@ -199,7 +199,7 @@ Every `@Budget` limits something in exactly one place: constants in the decorato
 | `BudgetHandler` | `"@agboss/core"` | Interface for a `@Budget` class whose limit is computed (`maxSpend(): Usd \| Promise<Usd>`); `limit(): BudgetLimit` is the form for dollars and tokens. |
 | `BudgetScope` & `BudgetPeriod` | `"@agboss/core"` | Enums specifying what is capped (`Application`, `Tenant`, `Execution`) and over which UTC period (`Day`, `Week`, `Month`). |
 | `usd(amount)` & `Usd` | `"@agboss/core/units"` | Exact monetary unit factory required for all budget caps and spend reporting. |
-| `BudgetExceededError` & `LimitError.Budget` | `"@agboss/core"` | Carry `unit` (`BudgetUnit.Usd` or `Tokens`), `maxSpend?`, `spent`, `maxTokens?` and `usedTokens`. A counter is keyed by the budget's name, scope key and period — never by a workflow — so workflows sharing one budget share one cap. |
+| `LimitError.Budget` & `LimitError.Budget` | `"@agboss/core"` | Carry `unit` (`BudgetUnit.Usd` or `Tokens`), `maxSpend?`, `spent`, `maxTokens?` and `usedTokens`. A counter is keyed by the budget's name, scope key and period — never by a workflow — so workflows sharing one budget share one cap. |
 | `SpendRecorder` | `"@agboss/core"` | Injected into `@Tool` and `@Action` classes via `deps: [SpendRecorder]` to count paid external API calls toward `@Budget` caps. |
 | `CostLedgerRepository` & `SqliteCostLedgerRepository` | `"@agboss/core"` | Atomic multi-instance ledger storing period and execution spend counters; required in production (`agboss check --strict`). |
-| `BudgetExceededError` | `"@agboss/core"` | Thrown when a pre-call reservation or post-call spend exceeds any active `@Budget` ceiling. |
+| `LimitError.Budget` | `"@agboss/core"` | Thrown when a pre-call reservation or post-call spend exceeds any active `@Budget` ceiling. |

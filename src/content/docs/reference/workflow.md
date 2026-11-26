@@ -9,8 +9,8 @@ The `@Workflow` decorator defines a typed state graph (`*.workflow.ts`) in AGBos
 
 ```ts title="src/workflows/offer-negotiation.workflow.ts" file=src/workflows/offer-negotiation.workflow.ts
 import {
-  StepFailedError,
-  VisitsLimitExceededError,
+  StepError,
+  LimitError,
   Workflow,
   onAction,
   onAgent,
@@ -79,7 +79,7 @@ import {
 
     onAgent(ReviewerAgent)
       .onError(
-        VisitsLimitExceededError,
+        LimitError.Visits,
         toAction(NotifyRecruiterAction),
       )
       .toOneOf([
@@ -88,7 +88,7 @@ import {
           .arbitratedBy(AuditArbiter)
           .joinQuorum({ min: 2, deadline: seconds(15) })
           .onError(
-            StepFailedError,
+            StepError,
             toAction(NotifyRecruiterAction),
           )
           .toAction(SendOfferAction)
@@ -372,21 +372,21 @@ import {
 
 const test = testWith(OfferApplication);
 
-test("runs OfferWorkflow through review loop and quorum to approval", async ({ app, mockLlm }) => {
-  mockLlm(TriageRouter).thenReturn(routeTo(DrafterAgent));
-  mockLlm(DrafterAgent).thenReturn(
+test("runs OfferWorkflow through review loop and quorum to approval", async ({ app, mockModel }) => {
+  mockModel(TriageRouter).thenReturn(routeTo(DrafterAgent));
+  mockModel(DrafterAgent).thenReturn(
     replyWith(OfferDraftDto, { summary: "Staff TS Engineer", baseUsd: 215_000 }),
   );
-  mockLlm(ReviewerAgent).thenReturn(
+  mockModel(ReviewerAgent).thenReturn(
     replyWith(DraftApprovedDto, { signedBy: "comp-committee" }),
   );
-  mockLlm(ComplianceAgent).thenReturn(
+  mockModel(ComplianceAgent).thenReturn(
     replyWith(ComplianceReportDto, { status: "passed" }),
   );
-  mockLlm(SecurityAuditAgent).thenReturn(
+  mockModel(SecurityAuditAgent).thenReturn(
     replyWith(AuditVerdictDto, { auditor: "sec-1" }),
   );
-  mockLlm(LegalAuditAgent).thenReturn(
+  mockModel(LegalAuditAgent).thenReturn(
     replyWith(AuditVerdictDto, { auditor: "legal-1" }),
   );
   const res = await app.execute(OfferWorkflowStart, { role: "Staff TS", region: "EU" });
@@ -404,7 +404,7 @@ Every `@Workflow` class name ends with `Workflow` and its `name` option ends wit
 | `version` | `string` | Yes | Behavior version of the workflow (`"1.0.0"`), checked when resuming paused executions across deploys. |
 | `historyTtl` | `Milliseconds \| Ttl` | Yes | How long the history of the workflow's finished executions is kept: a duration (`days(90)`), `Ttl.Forever` (never swept) or `Ttl.None` (no history is kept). Left out: `[limits.history-ttl-required]`. |
 | `flow` | `readonly FlowPath[]` | Yes | List of paths starting with `onStart()`, `onAgent()`, `onRouter()`, `onAction()`, `onWorkflow()` or `onExternalTask()`. |
-| `executionLimits` | `WorkflowExecutionLimits` | No | `{ maxSteps, maxDepth, maxPathDepth, maxConcurrency }`. `maxSteps`: agent, router, action and external-task visits per execution; `maxDepth`: nesting depth of child workflows and `() => Self` recursion (soft stop omitting the recursion option at `depth === maxDepth` for model launches; throws `DepthLimitExceededError` for deterministic launches); `maxConcurrency`: concurrent executions across the root workflow and all child/recursive subtrees. The flat `maxSteps`, `maxDepth` and `maxConcurrentExecutions` of 0.1.0 are gone. |
+| `executionLimits` | `WorkflowExecutionLimits` | No | `{ maxSteps, maxDepth, maxPathDepth, maxConcurrency }`. `maxSteps`: agent, router, action and external-task visits per execution; `maxDepth`: nesting depth of child workflows and `() => Self` recursion (soft stop omitting the recursion option at `depth === maxDepth` for model launches; throws `LimitError.Depth` for deterministic launches); `maxConcurrency`: concurrent executions across the root workflow and all child/recursive subtrees. The flat `maxSteps`, `maxDepth` and `maxConcurrentExecutions` of 0.1.0 are gone. |
 | `defaults` | `WorkflowDefaults` | No | Workflow-level defaults for `models`, `router`, `guardrail`, `tools` and `files`. |
 | `modelProvider` | `Class` | No | The `@ModelProvider` of every model of this workflow that names none (the application's is the next level of the cascade). |
 | `memory` | `Class` | No | The [`@Memory`](/reference/memory/) of the workflow's agents and routers: its window, summaries and `ttl`. A workflow without one is stateless. |
@@ -432,7 +432,7 @@ Every `@Workflow` class name ends with `Workflow` and its `name` option ends wit
 | `.inParallel([toAgent(A), toAction(X)…], { maxConcurrency })` | Flow chain | A launch of branches of any kind; `.onError(E, skip())` on a branch drops its failure from the join. |
 | `.forEachItem(toAgent(A), { takeFirst \| maxItems, maxConcurrency })` | Flow chain | One run per item of the list the step before gives; also `toAction`, `toExternalTask`, `toWorkflow(W)`. |
 | `.join()`, `.arbitratedBy(Arbiter)` + `.joinQuorum({ min, max?, deadline? })`, `.joinQuorumGroups({ deadline })` + `.onGroup([…], { priority }, subPath)` | Flow chain | Joins all parallel branches or resolves early as soon as a quorum verified by one `@Arbiter` is reached. |
-| `.onError(ErrorClass, sidePath)` | Flow chain | Catches step or join failures (`StepFailedError`, `VisitsLimitExceededError`, `QuorumNotReachedError`) onto a typed recovery path. Also after a join. |
+| `.onError(ErrorClass, sidePath)` | Flow chain | Catches step or join failures (`StepError`, `LimitError.Visits`, `StepError.QuorumNotReached`) onto a typed recovery path. Also after a join. |
 | `toWorkflow(() => Self)` | `"@agboss/core"` | A workflow launches itself with a thunk of its own class, bounded by `executionLimits.maxDepth`. `ThisWorkflow` is gone. |
 | `oneOf(A, B)`, `listOf(A, B…)`, `optional(Dto)`, `historyOf(Dto, { maxPrevious })` | `"@agboss/core"` | Path Scope input/output shape wrappers used on component `input` and `output` declarations. |
 | `Metadata`, `Tracked<T, P>` | `"@agboss/core"` | The provenance of a value: `Metadata.createdBy(value)`; an input field is the DTO itself. |

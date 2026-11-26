@@ -180,12 +180,12 @@ test("reserves stock and ships order on the happy path", async ({ app }) => {
 
 | Error Class | Where It Attaches | When It Fires |
 | :--- | :--- | :--- |
-| Custom `Error` subclass (e.g. `CarrierError`) | `.onError(CarrierError, ...)` after `@Action` / `@Router` | When the step throws `CarrierError` (or an `ActionFailedError` wrapping it in `cause`) |
-| `ChildExecutionFailedError` | `.onError(ChildExecutionFailedError, ...)` after `.toWorkflow(Child)` | When a child workflow execution fails without reaching one of its `@WorkflowFinish` nodes |
-| `VisitsLimitExceededError` | `.onError(VisitsLimitExceededError, ...)` | When an `@Agent` or `@Router` in a review loop exceeds its `maxVisits` ceiling |
-| `BudgetExceededError` / `StepsLimitExceededError` / `DepthLimitExceededError` / `LimitExceededError` | `.onError(LimitExceededError, ...)` | When an execution or step limit is exceeded. **Note (`[graph.limit-handler-uses-model]`):** side paths catching limit errors may only run deterministic `@Action` and `DecidedBy.Code` `@Router` steps — invoking an `@Agent` or `DecidedBy.Model` `@Router` inside a limit handler is rejected at assembly time. |
-| `StepFailedError` | `.onError(StepFailedError, ...)` after `.join()` | When one or more parallel branches fail during `.toParallelAgents()` or `.toParallelWorkflows()` |
-| `QuorumNotReachedError` | `.onError(QuorumNotReachedError, ...)` after `.joinQuorum()` / `.joinQuorumGroups()` | When too many branches fail or the quorum `deadline` expires before the quorum is satisfied |
+| Custom `Error` subclass (e.g. `CarrierError`) | `.onError(CarrierError, ...)` after `@Action` / `@Router` | When the step throws `CarrierError` (or an `StepError.Action` wrapping it in `cause`) |
+| `StepError.Child` | `.onError(StepError.Child, ...)` after `.toWorkflow(Child)` | When a child workflow execution fails without reaching one of its `@WorkflowFinish` nodes |
+| `LimitError.Visits` | `.onError(LimitError.Visits, ...)` | When an `@Agent` or `@Router` in a review loop exceeds its `maxVisits` ceiling |
+| `LimitError.Budget` / `LimitError.Steps` / `LimitError.Depth` / `LimitError` | `.onError(LimitError, ...)` | When an execution or step limit is exceeded. **Note (`[graph.limit-handler-uses-model]`):** side paths catching limit errors may only run deterministic `@Action` and `DecidedBy.Code` `@Router` steps — invoking an `@Agent` or `DecidedBy.Model` `@Router` inside a limit handler is rejected at assembly time. |
+| `StepError` | `.onError(StepError, ...)` after `.join()` | When one or more parallel branches fail during `.toParallelAgents()` or `.toParallelWorkflows()` |
+| `StepError.QuorumNotReached` | `.onError(StepError.QuorumNotReached, ...)` after `.joinQuorum()` / `.joinQuorumGroups()` | When too many branches fail or the quorum `deadline` expires before the quorum is satisfied |
 
 ## How error matching and checkpoint recovery work
 
@@ -194,7 +194,7 @@ test("reserves stock and ships order on the happy path", async ({ app }) => {
 
 ## How do declarative transactional sagas (`compensateWith` & `committedBy`) and automatic LIFO unwinding work?
 
-Manual `.onError(...)` chains only catch step failures along normal graph edges — they do not run when an execution or parallel branch is externally aborted by `app.cancel(threadId)`, sibling `FailurePolicy.FailFast`, quorum `BranchVerdict.Surplus`, or a limit error (`BudgetExceededError`, `StepsLimitExceededError`, `DepthLimitExceededError`).
+Manual `.onError(...)` chains only catch step failures along normal graph edges — they do not run when an execution or parallel branch is externally aborted by `app.cancel(threadId)`, sibling a sibling branch's failure, quorum `BranchVerdict.Surplus`, or a limit error (`LimitError.Budget`, `LimitError.Steps`, `LimitError.Depth`).
 
 AGBoss solves both static rollback completeness and runtime external aborts with declarative compensation contracts on `@Action`:
 
@@ -206,7 +206,7 @@ AGBoss solves both static rollback completeness and runtime external aborts with
    - `agboss describe` and `agboss describe --json` include `compensateWith` and `committedBy` metadata on action nodes.
 3. **Automatic runtime LIFO unwinding on external abort:**
    - Whenever an `@Action` with `compensateWith` completes, the runtime checkpoints an uncommitted compensation entry `(stepId, action, outputDto, compensator)`.
-   - If the execution or branch is aborted before `committedBy` (via `app.cancel(threadId)`, `FailurePolicy.FailFast`, quorum `Surplus`, or `BudgetExceededError`), the runtime automatically executes all uncommitted compensators in **reverse completion order (LIFO)** using a live cleanup signal bounded by `@Application({ compensationTimeout: seconds(15) })`.
+   - If the execution or branch is aborted before `committedBy` (via `app.cancel(threadId)`, a sibling branch's failure, quorum `Surplus`, or `LimitError.Budget`), the runtime automatically executes all uncommitted compensators in **reverse completion order (LIFO)** using a live cleanup signal bounded by `@Application({ compensationTimeout: seconds(15) })`.
    - If a worker pod crashes mid-rollback, the recovering instance resumes the remaining uncompensated entries idempotently using deterministic `step.idempotencyKey` values.
 
 <!--
@@ -239,7 +239,7 @@ export class ConfirmOfferAction implements ActionHandler<ConfirmOfferAction> {
 ```
 -->
 <!-- snippet-context
-import { ActionFailedError, Workflow, WorkflowFinish, WorkflowStart, onStart, toAction, Ttl } from "@agboss/core";
+import { StepError, Workflow, WorkflowFinish, WorkflowStart, onStart, toAction, Ttl } from "@agboss/core";
 import { ConfirmOfferAction, OfferDraftDto, RegisteredOfferDto } from "./offer.contracts.js";
 // @snippet
 @WorkflowStart({ name: "offer-saga-workflow-start", description: "Start", input: OfferDraftDto })
@@ -255,7 +255,7 @@ export class OfferSagaFinish {}
       .toAction(RegisterOfferAction)
       .toAction(ConfirmOfferAction)
       .onError(
-        ActionFailedError,
+        StepError.Action,
         toAction(WithdrawOfferAction)
           .toFinish(OfferSagaFinish),
       )

@@ -85,7 +85,33 @@ Two things make a migration mechanical. `npx agboss check` names every rule an o
 | `app.listPauses({ role })` | `app.listPauses({ target })` |
 | `app.cancel` throwing `ExecutionCancelledError` out of `execute` | an outcome: `ExecutionStatus.Cancelled` / `Stopped`; `app.stop`, `app.pause`, `app.unpause` are new |
 
-A stored pause, run or answer entry written under `0.1.0` has no `target` and is refused with `StoredNamesUnreadableError`, never read. Finish or drain such executions before the upgrade.
+A stored pause, run or answer entry written under `0.1.0` has no `target` and is refused with `StoreError.UnreadableRecord`, never read. Finish or drain such executions before the upgrade.
+
+### Errors and test fixtures
+
+Every error class below is gone from `@agboss/core` (no alias). Catch the variant, or its family for all of them; a variant is a sibling of the others of its family, never their subclass. `ExecutionFencedError`, `ExecutionLeaseLostError`, `ApplicationStoppingError` and `ToolTimeoutError` stay classes.
+
+| 0.1.0 | 0.1.1 |
+| :--- | :--- |
+| `StepFailedError`, `PaidStepError` | `StepError` |
+| `AgentFailedError`, `AgentAnswerInvalidError`, `QualityGateError` | `StepError.Agent`, `StepError.AgentAnswerInvalid`, `StepError.QualityGate` |
+| `ActionFailedError`, `QuestionFailedError`, `GuardFailedError` | `StepError.Action`, `StepError.ExternalTask`, `StepError.Guardrail` |
+| `RouterFailedError`, `RouterDecisionError`, `ArbiterError` | `StepError.Router`, `StepError.RouterDecision`, `StepError.Arbiter` |
+| `QuorumNotReachedError`, `ChildExecutionFailedError`, `PauseExpiredError`, `ToolBlockedError` | `StepError.QuorumNotReached`, `.Child`, `.PauseExpired`, `.ToolBlocked` |
+| `GuardrailBlockedError`, `PiiRefusedError`, `PiiDetectionFailedError` | `GuardrailError.Blocked`, `PiiError.Refused`, `PiiError.DetectionFailed` |
+| `LimitExceededError`, `BudgetExceededError`, `DeadlineExceededError` | `LimitError`, `LimitError.Budget`, `LimitError.Deadline` |
+| `StepsLimitExceededError`, `VisitsLimitExceededError`, `DepthLimitExceededError`, `HopsLimitExceededError`, `MeshLoopDetectedError` | `LimitError.Steps`, `.Visits`, `.Depth`, `.Hops`, `.MeshLoop` |
+| `GraphRuleError`, `ConfigurationError`, `EnvironmentError`, `ModelKindError` | `ConfigError.GraphRules`, `.ModelSettings`, `.Environment`, `.ModelKind` |
+| `UnknownThreadError`, `ThreadOwnerError`, `IncompatibleResumeError`, `CompensationFailedError` | `ExecutionError.UnknownThread`, `.ThreadOwnerMismatch`, `.IncompatibleResume`, `.CompensationFailed` |
+| `PauseClosedError`, `UnknownPauseError`, `UninterpretableReplyError`, `PauseExtensionContendedError` | `PauseError.Closed`, `.UnknownPause`, `.UninterpretableReply`, `.UpdateContended` |
+| `StoreOutcomeUnknownError`, `StoreCallTimeoutError`, `StoredNamesUnreadableError` | `StoreError.OutcomeUnknown`, `.CallTimeout`, `.UnreadableRecord` (from `@agboss/core/stores`) |
+| `A2ARemoteError`, `A2ACallerRejectedError` and the other `A2A*Error` of the client | `A2AError.Remote`, `A2AError.CallerRejected`, `A2AError.*` |
+| `mockLlm(X)`, `mockOf(S)`, `mcpOf(S)` fixtures | `mockModel(X)`, `mockService(S)`, `mockMcp(S)` |
+| `.thenAnswer(handler)` on a model script | `.respondWith(handler)`; every script has `reset()` |
+| `mcpServerStub(Server, handlers)` | `mockMcp(Server).thenReturn({ ... })` |
+| `testTool`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testPii`, `testGuardrail`, `testToolInterceptor`, `testCompaction` | `testUnit(Component)` |
+
+A record's code line is `[variant code, family code, "agboss"]`; for example a budget stop is `limit.budget`, `limit`, `agboss`.
 
 ### Surfaces, PII, CLI
 

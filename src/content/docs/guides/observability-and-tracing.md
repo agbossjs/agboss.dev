@@ -111,10 +111,10 @@ import { PingApplication, MetricsObserver, PingWorkflowStart } from "../src/obse
 
 const test = testWith(PingApplication);
 
-test("records execution and agent lifecycle events in MetricsObserver", async ({ app, mockOf }) => {
+test("records execution and agent lifecycle events in MetricsObserver", async ({ app, mockService }) => {
   const res = await app.execute(PingWorkflowStart, { text: "Check invoice #102" });
   expect(res.status).toBe(ExecutionStatus.Finished);
-  expect(mockOf(MetricsObserver).onExecutionEnd).toHaveBeenCalledTimes(1);
+  expect(mockService(MetricsObserver).onExecutionEnd).toHaveBeenCalledTimes(1);
 });
 ```
 

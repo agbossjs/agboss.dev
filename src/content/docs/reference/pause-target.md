@@ -217,9 +217,9 @@ const test = testWith(RefundSupportApplication);
 
 test("pauses the tool call under RefundToolApproval until a manager answers", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(RefundSupportAgent).thenReturn(
+  mockModel(RefundSupportAgent).thenReturn(
     callTool(RefundTool, { orderId: "ch_901", amountCents: 15_000 }),
   );
   const res = await app.execute(RefundWorkflowStart, { text: "Refund ch_901" });
@@ -244,14 +244,14 @@ test("pauses the tool call under RefundToolApproval until a manager answers", as
 | `maxVisits` | `@ExternalTask` | `number` | No | The step's limit when it is asked again on a cycle. |
 | `deps` | Both | `readonly Token[]` | No | Constructor dependencies for the optional hooks. |
 
-Optional hooks on the class: `assign(ctx)` picks the assignees of a new pause, `resolveTimeout(ctx)` its deadline, `permitAnswer(ctx)` whether an answer is taken (a refusal is `PauseError.PermissionDenied`; enforced by `app.resume` after the answer is read and validated and before it is recorded), `permitTimeoutChange(ctx)` and `permitReassign(ctx)` for `extendPause` and `reassignPause`, and `onExpired(ctx)` for what an expiry means: `PauseExpiration.fail()` (the step fails with `PauseExpiredError`, the default), `PauseExpiration.decide(answer)` (the step goes on with that answer, recorded as answered by the framework) or `PauseExpiration.reassign({ target?, channel?, assignees?, timeout?, reason? })` (the escalation: "the manager did not answer, ask the director").
+Optional hooks on the class: `assign(ctx)` picks the assignees of a new pause, `resolveTimeout(ctx)` its deadline, `permitAnswer(ctx)` whether an answer is taken (a refusal is `PauseError.PermissionDenied`; enforced by `app.resume` after the answer is read and validated and before it is recorded), `permitTimeoutChange(ctx)` and `permitReassign(ctx)` for `extendPause` and `reassignPause`, and `onExpired(ctx)` for what an expiry means: `PauseExpiration.fail()` (the step fails with `StepError.PauseExpired`, the default), `PauseExpiration.decide(answer)` (the step goes on with that answer, recorded as answered by the framework) or `PauseExpiration.reassign({ target?, channel?, assignees?, timeout?, reason? })` (the escalation: "the manager did not answer, ask the director").
 
 ## How a pause lives
 
 1. Before every call of the tool (or at the task's step) the framework creates a pause record and calls the target's channel; an `Owner` target with no channel asks nobody and waits for `app.resume`.
 2. The channel's `send(ask)` returns `ChannelOutcome.decided(answer)` (go on at once) or `ChannelOutcome.awaitReply()` (the execution rests: `result.status === ExecutionStatus.Paused`, `result.pending`).
-3. Later `app.resume({ pauseId, decision }, { tenantId, actor | ownerId })` — or `{ pauseId, reply }`, read by the interpreter — answers it. Exactly one answer wins (`PauseClosedError` for the second); another instance continues it; `app.cancel` withdraws it.
-4. A pause answers one of: `Pending → Resolved → Taken`, or `Cancelled`. The deadline is hard: an answer at or after it is `PauseClosedError` (`reason: expired`).
+3. Later `app.resume({ pauseId, decision }, { tenantId, actor | ownerId })` — or `{ pauseId, reply }`, read by the interpreter — answers it. Exactly one answer wins (`PauseError.Closed` for the second); another instance continues it; `app.cancel` withdraws it.
+4. A pause answers one of: `Pending → Resolved → Taken`, or `Cancelled`. The deadline is hard: an answer at or after it is `PauseError.Closed` (`reason: expired`).
 
 `result.pending[i]` is a `PendingPause`: `kind` (`PauseKind.Approval` or `PauseKind.ExternalTask`), `pauseId?` (`Owner` targets only), `respondent`, `step`, `target`, `channel?`, `input` (masked), `toolCall` for an approval, `expiresAt`, `assignees?`. A parallel launch's branches pause on their own; an expired branch in a quorum did not vote.
 

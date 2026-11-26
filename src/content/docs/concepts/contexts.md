@@ -137,8 +137,8 @@ it("injects custom TenantContext and ExecutionContext fields into tools", async 
 
 When an execution starts with `tenant: { tenantId: "acme" }` and `ownerId: "user-42"`, AGBoss records ownership on the thread and every pause record:
 
-- **Cross-tenant isolation:** A thread is keyed by `tenantId` + `threadId`: another tenant's thread does not exist for the caller. `app.execute(…, { threadId })` and `app.cancel(threadId, { tenantId })` throw `UnknownThreadError` (with no hint that the id is taken elsewhere), and `app.resume` of another tenant's pause finds none (`UnknownPauseError`) — all before any checkpoint state is loaded.
-- **Owner vs. channel responder:** Inside the tenant, a user-owned thread (`ownerId`) can only be continued or cancelled by that `ownerId` (`ThreadOwnerError` otherwise). A pause records who may answer (`respondent`: `PauseRespondent.Owner` or `Delegate`) and who did (`answerer`), and the target's `permitAnswer` is enforced before the answer is recorded.
+- **Cross-tenant isolation:** A thread is keyed by `tenantId` + `threadId`: another tenant's thread does not exist for the caller. `app.execute(…, { threadId })` and `app.cancel(threadId, { tenantId })` throw `ExecutionError.UnknownThread` (with no hint that the id is taken elsewhere), and `app.resume` of another tenant's pause finds none (`PauseError.UnknownPause`) — all before any checkpoint state is loaded.
+- **Owner vs. channel responder:** Inside the tenant, a user-owned thread (`ownerId`) can only be continued or cancelled by that `ownerId` (`ExecutionError.ThreadOwnerMismatch` otherwise). A pause records who may answer (`respondent`: `PauseRespondent.Owner` or `Delegate`) and who did (`answerer`), and the target's `permitAnswer` is enforced before the answer is recorded.
 
 ## The tenant gate
 

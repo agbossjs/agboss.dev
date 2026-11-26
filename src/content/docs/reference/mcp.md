@@ -93,18 +93,22 @@ export class WorkspaceReaderAgent {}
 
 ```ts title="test/workspace-fs.mcp.test.ts" file=test/workspace-fs.mcp.test.ts
 import { expect, it } from "vitest";
-import { mcpServerStub, testUnit } from "@agboss/core/testing";
+import { testModule, testUnit } from "@agboss/core/testing";
 import {
   PingWorkspaceTool,
-   WorkspaceFsMcpServer,
+  ReadWorkspaceFileTool,
+  WorkspaceFsMcpServer,
 } from "../src/mcp/workspace-fs.mcp.js";
 
 it("stubs @McpServer calls and unit-tests exposed @Tool offline", async () => {
-  const fsStub = mcpServerStub(WorkspaceFsMcpServer, {
+  const module = await testModule({ components: [ReadWorkspaceFileTool, PingWorkspaceTool] });
+  const fs = module.mockMcp(WorkspaceFsMcpServer).thenReturn({
     read_file: ({ path }) => Promise.resolve({ content: `file:${path}` }),
   });
-  const readRes = await fsStub.call("read_file", { path: "README.md" });
-  expect(readRes.content).toBe("file:README.md");
+  const read = await module.runTool(ReadWorkspaceFileTool, { path: "README.md" });
+  expect(read.output).toEqual({ content: "file:README.md" });
+  expect(fs.calls).toHaveLength(1);
+  await module.close();
 
   const runPing = testUnit(PingWorkspaceTool);
   const { output } = await runPing({ path: "src/index.ts" });
@@ -135,4 +139,4 @@ A call is `call(name, args, { key?, signal?, timeout? })`: two calls of one step
 | `McpServerClient<TTools>` | `"@agboss/core/mcp"` | Base class extended by `@McpServer` classes; provides `this.call(toolName, input)` with compile-checked arguments and return types. |
 | `McpTransport`, `connectMcp`, `connectMcpStdio`, `mcpHttpListener` | `"@agboss/core/mcp"` | The transports of a client and of an [`@McpEndpoint`](/reference/mcp-endpoint/). |
 | `bearer(secretRef)`, `defineEnv`, `env`, `secret` | `"@agboss/core"` | The references a server's settings are written with. |
-| `mcpServerStub(ServerClass, handlers)` | `"@agboss/core/testing"` | Stubs an `@McpServer` in unit tests without spawning an external process; `mcpOf(Server).thenReturn({ … })` does the same in `testWith`. |
+| `mockMcp(ServerClass).thenReturn({ … })` | fixture of `testWith`, `testModule`, `testAgent` | Stubs an `@McpServer` in tests without spawning an external process; `.calls` lists what the server got, `.reset()` forgets handlers and calls. |

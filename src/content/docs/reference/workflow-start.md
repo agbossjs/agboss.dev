@@ -136,8 +136,8 @@ import { RoleMatchWorkflowStart } from "../src/workflows/role-match/role-match.w
 
 const test = testWith(RoleMatchApplication);
 
-test("validates RoleMatchWorkflowStart input before entering the graph", async ({ app, mockLlm }) => {
-  mockLlm(MatcherAgent).thenReturn(replyWith("Strong match for Principal Systems Engineer"));
+test("validates RoleMatchWorkflowStart input before entering the graph", async ({ app, mockModel }) => {
+  mockModel(MatcherAgent).thenReturn(replyWith("Strong match for Principal Systems Engineer"));
   const res = await app.execute(
     RoleMatchWorkflowStart,
     {

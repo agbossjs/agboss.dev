@@ -21,7 +21,7 @@ What happens when you run these three commands:
 
 1. **Pre-wired `package.json` (`@agboss/core` + `@agboss/cli`):** `npx --yes --package=@agboss/cli agboss create my-app` creates a ready-to-run TypeScript project where `package.json` already places `@agboss/core` in `dependencies` and `@agboss/cli` in `devDependencies`, alongside committed `AGENTS.md` and `CLAUDE.md` (`@AGENTS.md`) files.
 2. **Automatic `postinstall` compilation & skill unpacking:** When you run `npm install`, the `"postinstall": "npm run types"` hook automatically executes `agboss check`, which:
-   - Generates **`.agboss/types.d.ts`** so TypeScript immediately knows the Path Scope input of every node (`Produced<Dto, Producer>`), `app.execute`, and test scripts.
+   - Generates **`.agboss/types.d.ts`** so TypeScript immediately knows the Path Scope input of every node (`Tracked<Dto, Producer>`), `app.execute`, and test scripts.
    - Unpacks **13 version-matched reference guides** into `.claude/skills/agboss/` (`SKILL.md` + `references/01..13`, including `13-migrating-from-langgraph.md`) so Claude Code, Cursor, Codex, Windsurf, and Copilot write idiomatic AGBoss v2 code from the first prompt.
 3. **Interactive or non-interactive scaffolding:** Pass `--yes` and component flags directly in scripts or CI:
 

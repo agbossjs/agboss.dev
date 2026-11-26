@@ -271,7 +271,7 @@ Every `@Router` class name ends with `Router` and its `name` option ends with `-
 | `decidedBy` | Both | `DecidedBy.Model \| DecidedBy.Code` | Yes | Selects whether an LLM/decision model or a TypeScript `route(input)` method chooses the branch. |
 | `input` | Both | `InputFields` | Yes | Non-empty map of DTOs read from Path Scope (`[router.empty-input]` if empty). |
 | `routes` | Both | `readonly [Route, ...]` | Yes | The allowed targets. The flow must continue every route exactly once with `.onRoute(…)`, or list them in `.chooseMany([…])` (`[router.routes-mismatch]`). |
-| `maxVisits` | Both | `number` | No | Maximum visits per execution before throwing `VisitsLimitExceededError`. |
+| `maxVisits` | Both | `number` | No | Maximum visits per execution before throwing `LimitError.Visits`. |
 | `model` | `DecidedBy.Model` | `string` | No | Decision model (`"typesafe/jev-1.13"`) or chat model; inherits `defaults.router.model` when omitted. |
 | `modelProvider` | `DecidedBy.Model` | `Class` | No | The provider of the router's model (a decision model needs a `DecisionsDriver` provider); the workflow's, then the application's, when omitted. |
 | `prompt` | `DecidedBy.Model` | `PromptSource` | No | Instructions telling the model how to evaluate the input and select a route: a file path, `inline("…")` or a list. |
@@ -298,5 +298,5 @@ Every `@Router` class name ends with `Router` and its `name` option ends with `-
 | `RouterHandler<Self>` & `Route<Self>` | `"@agboss/core"` | Contract and return type for `DecidedBy.Code` routers (`route(input)` returns one target for `.onRoute()` or a list of targets for `.chooseMany()`). |
 | `.toRouter(R).onRoute(subPath)…` | `"@agboss/core"` | Connects a router to its exclusive branch paths in `@Workflow({ flow })`: one `.onRoute(toAgent(X)…)` per route. |
 | `toRouter(R).chooseMany([toAgent(A), …])` | `"@agboss/core"` | A router as a branch of `.inParallel([…])`: it decides which of its routes are launched (none, some or all), while its siblings always run. |
-| `RouterFailedError` & `RouterDecisionError` | `"@agboss/core"` | Errors thrown when a router cannot select a valid route; catchable in the flow via `.onError(RouterFailedError, sidePath)` right after the router. |
+| `StepError.Router` & `StepError.RouterDecision` | `"@agboss/core"` | Errors thrown when a router cannot select a valid route; catchable in the flow via `.onError(StepError.Router, sidePath)` right after the router. |
 | `testUnit(RouterClass, options?)` | `"@agboss/core/testing"` | Unit runner that tests a model or code router in isolation without booting the workflow. |

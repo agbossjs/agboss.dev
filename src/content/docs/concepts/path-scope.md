@@ -196,16 +196,16 @@ const test = testWith(OfferScopeApplication);
 
 test("tracks the producer of OfferDraftDto across ReviewerAgent -> EditorAgent revision loop", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(DraftAgent).thenReturn(
+  mockModel(DraftAgent).thenReturn(
     replyWith(OfferDraftDto, { text: "Draft v1" }),
   );
-  mockLlm(ReviewerAgent).thenReturn(
+  mockModel(ReviewerAgent).thenReturn(
     replyWith(ChangesRequestedDto, { notes: "Add equity cliff details" }),
     replyWith(DraftApprovedDto, { summary: "Approved v2" }),
   );
-  mockLlm(EditorAgent).thenReturn(
+  mockModel(EditorAgent).thenReturn(
     replyWith(OfferDraftDto, { text: "Draft v2 with equity cliff" }),
   );
 
