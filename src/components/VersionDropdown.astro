@@ -1,0 +1,261 @@
+---
+// Custom version dropdown (replaces the native <select> of starlight-versions): button + listbox, no framework.
+// Switching keeps the same page when it exists in the other version, otherwise goes to that version's home.
+import { getCollection } from 'astro:content';
+import starlightVersionsConfig from 'virtual:starlight-versions-config';
+import { RELEASE_META } from '../config/release';
+
+const VERSION_SLUG = '0.1.0';
+const pathname = Astro.url.pathname;
+const isArchived = pathname === `/${VERSION_SLUG}` || pathname.startsWith(`/${VERSION_SLUG}/`);
+const currentPath = isArchived ? pathname.slice(VERSION_SLUG.length + 1) || '/' : pathname;
+const archived = starlightVersionsConfig.versions.find((v) => v.slug === VERSION_SLUG);
+
+const docs = await getCollection('docs');
+const ids = new Set(docs.map((d) => d.id));
+const slugOf = (p: string) => p.replace(/^\/|\/$/g, '');
+const archivedSlug = slugOf(currentPath) ? `${VERSION_SLUG}/${slugOf(currentPath)}` : VERSION_SLUG;
+const archivedHref = ids.has(archivedSlug) ? `/${VERSION_SLUG}${currentPath === '/' ? '/' : currentPath}` : `/${VERSION_SLUG}/`;
+const currentHref = slugOf(currentPath) === '' || ids.has(slugOf(currentPath)) ? currentPath : '/';
+
+const options = [
+	{ label: starlightVersionsConfig.current.label, badge: RELEASE_META.releaseChannelLabel, href: currentHref, selected: !isArchived },
+	{ label: archived?.label ?? VERSION_SLUG, badge: '', href: archivedHref, selected: isArchived },
+];
+const selected = options.find((o) => o.selected)!;
+---
+
+<agb-version-dropdown>
+	<button type="button" class="vd-button" aria-haspopup="listbox" aria-expanded="false" aria-label="Select documentation version">
+		<svg class="vd-clock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5" /><path d="M8 4.5V8l2.25 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+		<span class="vd-label">{selected.label}</span>
+		<svg class="vd-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+	</button>
+	<ul class="vd-menu" role="listbox" aria-label="Documentation version" tabindex="-1" hidden>
+		{
+			options.map((o) => (
+				<li role="option" aria-selected={String(o.selected)} data-href={o.href} tabindex="-1">
+					<svg class="vd-check" viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 6.25 2.25 2.25 4.75-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+					<span class="vd-name">{o.label}</span>
+					{o.badge && <span class="vd-badge">{o.badge}</span>}
+				</li>
+			))
+		}
+	</ul>
+</agb-version-dropdown>
+
+<style>
+	agb-version-dropdown {
+		position: relative;
+		display: block;
+		flex: none;
+		margin-inline: 0.25rem 0.5rem;
+	}
+
+	.vd-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 2.5rem; /* same height as the search field */
+		padding-inline: 0.7rem 0.55rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 8px;
+		background: var(--sl-color-black);
+		color: var(--sl-color-gray-1);
+		font-family: 'Ubuntu Mono', var(--sl-font-mono);
+		font-size: 0.8rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: border-color 0.15s ease, color 0.15s ease;
+	}
+
+	.vd-button:hover,
+	.vd-button[aria-expanded='true'] {
+		border-color: var(--sl-color-accent-high);
+		color: var(--sl-color-white);
+	}
+
+	.vd-button:focus-visible {
+		outline: 2px solid var(--sl-color-accent-high);
+		outline-offset: 2px;
+	}
+
+	.vd-clock {
+		width: 0.9rem;
+		height: 0.9rem;
+		opacity: 0.75;
+	}
+
+	.vd-chev {
+		width: 0.8rem;
+		height: 0.8rem;
+		opacity: 0.7;
+		transition: transform 0.15s ease;
+	}
+
+	.vd-button[aria-expanded='true'] .vd-chev {
+		transform: rotate(180deg);
+	}
+
+	.vd-menu {
+		position: absolute;
+		top: calc(100% + 0.35rem);
+		inset-inline-start: 0;
+		z-index: 50;
+		box-sizing: border-box;
+		min-width: max(100%, 11rem);
+		max-width: calc(100vw - 1.5rem);
+		margin: 0;
+		padding: 0.3rem;
+		list-style: none;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 8px;
+		background: var(--sl-color-bg-nav);
+		box-shadow: var(--sl-shadow-md, 0 12px 32px -12px rgba(0, 0, 0, 0.45));
+	}
+
+	.vd-menu[hidden] {
+		display: none;
+	}
+
+	.vd-menu li {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		padding: 0.5rem 0.75rem;
+		border-radius: 6px;
+		color: var(--sl-color-gray-2);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vd-menu li:hover,
+	.vd-menu li:focus-visible,
+	.vd-menu li.is-active {
+		background: var(--sl-color-gray-6);
+		color: var(--sl-color-white);
+		outline: none;
+	}
+
+	.vd-menu li[aria-selected='true'] {
+		color: var(--sl-color-white);
+	}
+
+	.vd-check {
+		flex: none;
+		width: 0.8rem;
+		height: 0.8rem;
+		color: var(--sl-color-accent-high);
+		visibility: hidden;
+	}
+
+	.vd-menu li[aria-selected='true'] .vd-check {
+		visibility: visible;
+	}
+
+	.vd-name {
+		font-family: 'Ubuntu Mono', var(--sl-font-mono);
+		font-weight: 700;
+	}
+
+	.vd-badge {
+		margin-inline-start: auto;
+		padding: 0.05rem 0.45rem;
+		border: 1px solid color-mix(in srgb, var(--sl-color-accent-high) 55%, transparent);
+		border-radius: 999px;
+		color: var(--sl-color-accent-high);
+		font-size: 0.65rem;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+
+	/* medium desktop widths: leave room for the search field */
+	@media (min-width: 72rem) and (max-width: 99.99rem) {
+		agb-version-dropdown {
+			margin-inline: 0 0.25rem;
+		}
+		.vd-clock {
+			display: none;
+		}
+	}
+
+	@media (max-width: 49.99rem) {
+		agb-version-dropdown {
+			margin-inline: 0.15rem 0;
+		}
+		.vd-clock {
+			display: none;
+		}
+		.vd-menu {
+			inset-inline-start: auto;
+			inset-inline-end: 0;
+		}
+	}
+</style>
+
+<script>
+	class AgbVersionDropdown extends HTMLElement {
+		connectedCallback() {
+			const button = this.querySelector<HTMLButtonElement>('.vd-button')!;
+			const menu = this.querySelector<HTMLElement>('.vd-menu')!;
+			const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="option"]'));
+			let active = -1;
+
+			const setActive = (i: number) => {
+				active = (i + items.length) % items.length;
+				items.forEach((el, n) => el.classList.toggle('is-active', n === active));
+				items[active]?.focus();
+			};
+			const open = () => {
+				menu.hidden = false;
+				button.setAttribute('aria-expanded', 'true');
+				setActive(Math.max(0, items.findIndex((el) => el.getAttribute('aria-selected') === 'true')));
+			};
+			const close = (refocus = false) => {
+				menu.hidden = true;
+				button.setAttribute('aria-expanded', 'false');
+				items.forEach((el) => el.classList.remove('is-active'));
+				if (refocus) button.focus();
+			};
+			const choose = (el: HTMLElement | undefined) => {
+				const href = el?.dataset.href;
+				if (!href) return;
+				if (el.getAttribute('aria-selected') === 'true') close(true);
+				else window.location.pathname = href;
+			};
+
+			button.addEventListener('click', (e) => {
+				e.stopPropagation();
+				menu.hidden ? open() : close();
+			});
+			button.addEventListener('keydown', (e) => {
+				if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+					e.preventDefault();
+					if (menu.hidden) open();
+				}
+			});
+			items.forEach((el, n) => {
+				el.addEventListener('click', () => choose(el));
+				el.addEventListener('mousemove', () => {
+					if (active !== n) setActive(n);
+				});
+			});
+			menu.addEventListener('keydown', (e) => {
+				if (e.key === 'ArrowDown') setActive(active + 1);
+				else if (e.key === 'ArrowUp') setActive(active - 1);
+				else if (e.key === 'Home') setActive(0);
+				else if (e.key === 'End') setActive(items.length - 1);
+				else if (e.key === 'Enter' || e.key === ' ') choose(items[active]);
+				else if (e.key === 'Escape') close(true);
+				else if (e.key === 'Tab') close();
+				else return;
+				e.preventDefault();
+			});
+			document.addEventListener('click', (e) => {
+				if (!this.contains(e.target as Node)) close();
+			});
+			window.addEventListener('pageshow', () => close());
+		}
+	}
+	customElements.define('agb-version-dropdown', AgbVersionDropdown);
+</script>
