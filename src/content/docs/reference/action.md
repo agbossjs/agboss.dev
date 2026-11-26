@@ -1,9 +1,9 @@
 ---
 title: "@Action"
-description: Complete API reference for the @Action decorator in AGBoss — deterministic workflow graph nodes, ActionHandler<Self>, DI, idempotency, and testAction().
+description: Complete API reference for the @Action decorator in AGBoss — deterministic workflow graph nodes, ActionHandler<Self>, DI, idempotency, and testUnit().
 ---
 
-The `@Action` decorator defines a deterministic code node (`actions/*.action.ts`) in a `@Workflow` graph that runs without calling an LLM. Actions read typed DTOs from the workflow's Path Scope, inject `@Injectable` services and `ExecutionContext` through their constructor, and either return a new DTO to the path (`.returns(OutputDto)`) or perform a side effect (`Promise<void>`) before transitioning to the next node.
+The `@Action` decorator defines a deterministic code node (`actions/*.action.ts`) in a `@Workflow` graph that runs without calling an LLM. Actions read typed DTOs from the workflow's Path Scope, inject `@Injectable` services and `ExecutionContext` through their constructor, and either return a new DTO to the path (its declared `output`) or perform a side effect (`void`) before transitioning to the next node. `execute` is sync or async: a pure data mapping returns its value.
 
 ## Complete `@Action` examples (value-producing and side-effect-only)
 
@@ -18,7 +18,7 @@ import {
   type OutputOf,
 } from "@agboss/core";
 import { Text } from "@agboss/core/dto";
-import { usd } from "@agboss/core/units";
+import { seconds, usd } from "@agboss/core/units";
 import { MailerService } from "../services/mailer.service.js";
 import { DraftApprovedDto, OfferDraftDto } from "../dto/offer.dto.js";
 
@@ -27,7 +27,7 @@ export class DeliveryReceiptDto {
   receiptId!: string;
 }
 
-// 1. Value-producing @Action (declares output -> wired with .toAction(SendOfferAction).returns(DeliveryReceiptDto)):
+// 1. Value-producing @Action (declares output: the next step reads it from the path):
 @Action({
   name: "send-offer-action",
   description: "Sends the approved offer letter via the mailer service with an idempotency key",
@@ -36,6 +36,7 @@ export class DeliveryReceiptDto {
     approval: DraftApprovedDto,
   },
   output: DeliveryReceiptDto,
+  timeout: seconds(20), // optional: a step past it fails with StepError.ActionOutcomeUnknown, and its signal aborts
   deps: [ExecutionContext, SpendRecorder, MailerService],
 })
 export class SendOfferAction implements ActionHandler<SendOfferAction> {
@@ -46,9 +47,9 @@ export class SendOfferAction implements ActionHandler<SendOfferAction> {
   ) {}
 
   async execute(input: InputOf<SendOfferAction>): Promise<OutputOf<SendOfferAction>> {
-    // Single-value inputs in InputOf<Self> are wrapped in Produced<Dto, Producer> ({ value, producer }):
+    // each input field is the DTO itself (Tracked<Dto, Producer>): input.draft.letterText
     const receiptId = await this.mailerService.sendDocument({
-      body: input.draft.value.letterText,
+      body: input.draft.letterText,
       idempotencyKey: this.executionContext.step.idempotencyKey,
       signal: this.executionContext.signal,
     });
@@ -57,7 +58,7 @@ export class SendOfferAction implements ActionHandler<SendOfferAction> {
   }
 }
 
-// 2. Side-effect-only @Action (no output -> wired directly with .toAction(NotifyRecruiterAction).toFinish(...)):
+// 2. Side-effect-only @Action (no output: it gives the path nothing):
 @Action({
   name: "notify-recruiter-action",
   description: "Alerts the recruiting channel when an offer loop fails",
@@ -71,7 +72,7 @@ export class NotifyRecruiterAction implements ActionHandler<NotifyRecruiterActio
 
   async execute(input: InputOf<NotifyRecruiterAction>): Promise<void> {
     await this.mailerService.notifySlack(
-      `Manual review needed for draft: ${input.draft?.value.letterText ?? "none"}`,
+      `Manual review needed for draft: ${input.draft?.letterText ?? "none"}`,
     );
   }
 }
@@ -112,12 +113,13 @@ export class DraftApprovedDto {
 
 ```ts title="src/workflows/offer-delivery.workflow.ts" file=src/workflows/offer-delivery.workflow.ts
 import {
-  StepFailedError,
+  StepError,
   Workflow,
   WorkflowFinish,
   WorkflowStart,
-  start,
+  onStart,
   toAction,
+  Ttl,
 } from "@agboss/core";
 import {
   DeliveryReceiptDto,
@@ -154,18 +156,16 @@ export class OfferAlertedFinish {}
 @Workflow({
   name: "offer-delivery-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   providers: [MailerService],
   flow: [
-    start(OfferDeliveryStart)
-      .returns(OfferDraftDto)
-      .returns(DraftApprovedDto)
+    onStart(OfferDeliveryStart)
       .toAction(SendOfferAction)
       .onError(
-        StepFailedError,
+        StepError,
         toAction(NotifyRecruiterAction)
           .toFinish(OfferAlertedFinish),
       )
-      .returns(DeliveryReceiptDto)
       .toFinish(OfferDeliveryFinish),
   ],
 })
@@ -198,11 +198,12 @@ export class OfferDeliveryApplication {}
 
 ```ts title="test/send-offer.action.test.ts" file=test/send-offer.action.test.ts
 import { expect, it } from "vitest";
-import { override, testAction } from "@agboss/core/testing";
+import { Injectable } from "@agboss/core";
+import { testUnit } from "@agboss/core/testing";
 import { SendOfferAction } from "../src/actions/send-offer.action.js";
-import { OfferDeliveryStart } from "../src/workflows/offer-delivery.workflow.js";
 import { MailerService } from "../src/services/mailer.service.js";
 
+@Injectable()
 class FakeMailerService extends MailerService {
   override sendDocument(): Promise<string> {
     return Promise.resolve("msg-9001");
@@ -210,13 +211,11 @@ class FakeMailerService extends MailerService {
 }
 
 it("sends the approved draft and returns the receipt DTO", async () => {
-  const runAction = testAction(SendOfferAction, {
-    overrides: [override(MailerService, FakeMailerService)],
-  });
+  const runAction = testUnit(SendOfferAction, { services: [FakeMailerService] });
 
   const { output, spend } = await runAction({
-    draft: { producer: OfferDeliveryStart, value: { letterText: "Welcome to Acme!" } },
-    approval: { producer: OfferDeliveryStart, value: { summary: "Approved by VP" } },
+    draft: { letterText: "Welcome to Acme!" }, // plain DTO literals, tracked by default
+    approval: { summary: "Approved by VP" },
   });
 
   expect(output).toEqual({ receiptId: "msg-9001" });
@@ -232,18 +231,20 @@ Every `@Action` class name ends with `Action` and its `name` option ends with `-
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | Yes | Unique kebab-case identifier ending with `-action` (e.g., `"send-offer-action"`). |
 | `description` | `string` | Yes | Human-readable summary of what the action does for Studio graphs and logs. |
-| `input` | `InputFields` | No | Map of DTOs read from the workflow's Path Scope (`{ draft: OfferDraftDto, approval: optional(DraftApprovedDto) }`). |
-| `output` | `OutputShape` | No | DTO class, `listOf(Dto)`, or `oneOf(A, B)` returned by `execute()`. Omit `output` for side-effect-only actions returning `Promise<void>`. |
-| `compensateWith` | `Type<ActionHandler>` | No | Deterministic `@Action` class that reverses this action's external side effect on error paths (verified by `agboss check` via `[flow.uncompensated-action]`) and automatically in LIFO order on `app.cancel`, `FailFast`, quorum `Surplus`, or `@Budget` abort. |
-| `committedBy` | `Type<ActionHandler>` | No | Optional downstream `@Action` class that finalizes the side effect so subsequent errors or cancellations no longer trigger `compensateWith`. |
-| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `SpendRecorder`, `Clock`, `@Injectable` services) verified against constructor parameters at compile time. |
+| `input` | `InputFields` | No | Map of DTOs read from the workflow's Path Scope (`{ draft: OfferDraftDto, approval: optional(DraftApprovedDto) }`). An action that declares no `input` has `execute()`. |
+| `output` | `OutputShape` | No | DTO class, `listOf(Dto)`, or `oneOf(A, B)` returned by `execute()` (a plain object; a `oneOf` result is told apart by its strict schema). Omit `output` for side-effect-only actions. |
+| `compensateWith` | `Class` | No | Deterministic `@Action` class that reverses this action's external side effect on error paths (verified by `agboss check` via `[flow.uncompensated-action]`) and automatically in LIFO order on `app.cancel`, a failed branch, quorum `Surplus`, or `@Budget` abort. A child workflow's undoable actions bubble up to its parent. |
+| `committedBy` | `Class` | No | Optional downstream `@Action` class that finalizes the side effect so subsequent errors or cancellations no longer trigger `compensateWith`. |
+| `timeout` | `Milliseconds` | No | A bound on `execute`. An action has **no** timeout by default (a tool's is 30 s). A step past it fails with `StepError.ActionOutcomeUnknown` (`step.action.outcome-unknown`): `executionContext.signal` aborts at the timeout, a late write through `Idempotency` is refused, and nothing retries or undoes it — a retry is the flow's explicit choice. |
+| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `SpendRecorder`, `Clock`, `Idempotency`, `@Injectable` services) verified against constructor parameters at compile time. |
 
 ## What related entities work with `@Action`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `ActionHandler<Self>` | `"@agboss/core"` | Interface implemented by every `@Action` class (`execute(input: InputOf<Self>): Promise<OutputOf<Self>>`). |
+| `ActionHandler<Self>` | `"@agboss/core"` | Optional signature check for an `@Action` class (`execute(input: InputOf<Self>): OutputOf<Self> \| Promise<OutputOf<Self>>`, sync or async). |
 | `InputOf<Self>` & `OutputOf<Self>` | `"@agboss/core"` | Type helpers generated by `agboss check` (`.agboss/types.d.ts`) that type `execute(input)` from the decorator's `input` and `output`. |
-| `.toAction(ActionClass)` & `action(ActionClass)` | `"@agboss/core"` | HarnessDSL (HDSL) flow methods for chaining an action on a path or starting a shared continuation path from an action. |
-| `testAction(ActionClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that executes an `@Action` directly with mocked `overrides` and custom `executionContext` without booting the workflow. |
+| `Idempotency` | `"@agboss/core"` | One injectable service for a side effect that must happen once: `runOnce({ name, ttl, execute })` for a write of your own database, `sendOnce({ name, target, request, send, recovery, timeout, ttl })` for a call that leaves the system. It replaces `FencedEffects` and `OutboundCalls`. |
+| `.toAction(ActionClass)` & `onAction(ActionClass)` | `"@agboss/core"` | HarnessDSL (HDSL) flow methods for chaining an action on a path or starting the own path of an action reached from two places. |
+| `testUnit(ActionClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that executes an `@Action` directly with fake `services` and a custom `executionContext` without booting the workflow. |
 | `mockAction(ActionClass)` | `"@agboss/core/testing"` | Spies on or overrides an `@Action` inside a `testWith(Application)` workflow test. |

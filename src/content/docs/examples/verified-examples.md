@@ -3,11 +3,13 @@ title: "Examples: 7 Verified Applications (01–07), flow-patterns & 08-job-scou
 description: Explore the 7 standalone verified examples in agbossjs/agboss-examples (01–07) alongside examples/flow-patterns in agbossjs/agboss and 08-job-scout in agbossjs/agboss-examples.
 ---
 
+> **Version note:** the code on the pages of this site is compiled against `@agboss/core@0.1.1` by `check:docs`. The example repositories linked below were verified on `0.1.0` and are moved to `0.1.1` in their own repositories, so their file names, decorators and flow forms may still read as `0.1.0` until that lands; this page describes them in `0.1.1` terms.
+
 AGBoss provides three complementary repositories of runnable, CI-verified examples so you can prove compile-time and runtime guarantees in seconds for `$0` and inspect production-grade reference architectures.
 
 1. **7 Standalone Verified Examples ([`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples)):** Seven self-contained applications (`01-hello-agboss` through `07-langgraph-migration`) following the **`Promise → Failure Injection → Reproducible Proof`** discipline — each with its own `package.json`, canonical `1 class = 1 file` component subfolder layout, symmetric Spring-style `tests/` mirroring `src/`, `.claude/skills/agboss/`, `npx agboss check`, and `$0` offline test & demo suites.
-2. **Distributed Agent Recovery Showcase ([`agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distributed-agent-recovery) · [Architectural Walkthrough →](/examples/distributed-agent-recovery/)):** A multi-process distributed AI release pipeline ("Ghost in the Machine: The Zombie AI Worker") proving `ChildPlacement.AnyInstance` cross-process load balancing, LIFO `compensateWith` saga rollback, live `openai/gpt-4o-mini` recovery planning, same-task checkpoint takeover after 30s lease expiration, and two-layer zombie worker lease fencing across 8 automated invariants.
-3. **`examples/flow-patterns` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) and [`08-job-scout`](https://github.com/agbossjs/agboss-examples/tree/main/08-job-scout) in `agbossjs/agboss-examples`:** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `ThisWorkflow` recursion in `< 5 seconds` for `$0`; `08-job-scout` is the interactive career assistant.
+2. **Distributed Agent Recovery Showcase ([`agbossjs/distributed-agent-recovery`](https://github.com/agbossjs/distributed-agent-recovery) · [Architectural Walkthrough →](/examples/distributed-agent-recovery/)):** A multi-process distributed AI release pipeline ("Ghost in the Machine: The Zombie AI Worker") proving `ChildPlacement.AnyWorker` cross-process load balancing, LIFO `compensateWith` saga rollback, live `openai/gpt-4o-mini` recovery planning, same-task checkpoint takeover after 30s lease expiration, and two-layer zombie worker lease fencing across 8 automated invariants.
+3. **`examples/flow-patterns` in [`agbossjs/agboss`](https://github.com/agbossjs/agboss) and [`08-job-scout`](https://github.com/agbossjs/agboss-examples/tree/main/08-job-scout) in `agbossjs/agboss-examples`:** `examples/flow-patterns` verifies loops, code/model routers, parallel waves, and `toWorkflow(() => Self)` recursion in `< 5 seconds` for `$0`; `08-job-scout` is the interactive career assistant.
 
 ---
 
@@ -15,13 +17,13 @@ AGBoss provides three complementary repositories of runnable, CI-verified exampl
 
 | Example | Architectural Proof & Capabilities Demonstrated | Key Primitives & CLI Commands |
 | :--- | :--- | :--- |
-| **[`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss)** | **First-run, real HTTP service DI, web server & CLI scaffolding:** Demonstrates `PricingCatalogService` (`async onInit()`, `fetch` with `ExecutionContext.signal` + `step.idempotencyKey`), `src/http/server.ts` (multi-tenant headers, `202 Accepted` on pauses, `/api/pauses/:pauseId/resume`, `/health/live`, `/health/ready`), and canonical `1 class = 1 file` + symmetric `tests/` layout. | `@Application`, `@Workflow`, `@Agent`, `@Router`, `@Tool`, `@Injectable`, `testWith`, `mockOf` |
+| **[`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss)** | **First-run, real HTTP service DI, web server & CLI scaffolding:** Demonstrates `PricingCatalogService` (`async onInit()`, `fetch` with `ExecutionContext.signal` + `step.idempotencyKey`), `src/http/server.ts` (multi-tenant headers, `202 Accepted` on pauses, `/api/pauses/:pauseId/resume`, `/health/live`, `/health/ready`), and canonical `1 class = 1 file` + symmetric `tests/` layout. | `@Application`, `@Workflow`, `@Agent`, `@Router`, `@Tool`, `@Injectable`, `testWith`, `mockService` |
 | **[`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof)** | **Compile-time Path Scope vs raw LangGraph:** Proves 4 structural graph bug classes (`01-missing-input`, `02-outdated-data`, `03-parallel-invalidation`, `04-uncompensated-action`) that pass `tsc --noEmit` in raw LangGraph `Annotation.Root` (`langgraph-broken/`) and are caught before runtime by `agboss check` (`agboss-broken/` vs `agboss-fixed/`). | `[input.missing-on-path]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`, `[flow.uncompensated-action]` |
-| **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** | **PII roundtrip, tool interception, in-memory BM25 RAG, compaction & 5-layer evals:** Reversible HMAC `@PiiPolicy` (`replaceWithToken`, `revealPii: true`, `PiiRefusedError`), `@ToolInterceptor` (`replyToModel`, `block`), `@InputGuardrail` (`DecidedBy.Code`), `@OutputGuardrail`, `InMemoryKnowledgeIndexService` + `RefundPolicyRetriever` (`@Rag`), `PolicyAwareCompaction`, and `@EvalSuite` with compact git-tracked `eval/baseline/main-baseline.json` and `agboss eval calibrate` (Cohen's $\kappa$). | `@PiiPolicy`, `@ToolInterceptor`, `@InputGuardrail`, `@OutputGuardrail`, `@Rag`, `@Compaction`, `@EvalSuite`, `agboss eval` |
-| **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)** | **Transactional LIFO sagas, idempotency, quorums, closed approval messages & HTTP server:** Reverse-order LIFO compensation across `payment-saga`, `budget-saga`, `quorum-saga` (`.joinQuorum({ min: 2, max: 2 })`), and `hitl-hold-saga` (`onPauseClosed()`, `PauseClosedError`), idempotent external ledgers (`step.idempotencyKey`), SQLite WAL crash recovery, and `src/http/server.ts`. | `@Action({ compensateWith, committedBy })`, `.toParallelAgents().acceptedBy().joinQuorum()`, `@ChannelRole`, `@Channel` |
-| **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)** | **Distributed scheduling, 30s leases, fencing & backpressure:** Parent `CoordinatorWorkflow` fans out `ChunkWorkerWorkflow` with `ChildPlacement.AnyInstance` over `SqliteChildExecutionQueueRepository`, runs bounded recursive `ThisWorkflow` (`maxDepth: 2`), enforces 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck`, and `IncompatibleResumeError`. | `ChildPlacement.AnyInstance`, `SqliteChildExecutionQueueRepository`, `ThisWorkflow`, `@HealthCheck`, `SqliteExecutionLeaseRepository` |
-| **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)** | **3-service A2A + MCP mesh, Ed25519 envelopes, loop guard & federation Blast Radius:** Connects `apps/1-order-gateway`, `apps/2-billing-a2a` (`@A2AExpose`), and `apps/3-catalog-mcp` (`@McpExpose`) with Ed25519-signed mesh envelopes, `MeshLoopDetectedError` / `HopsLimitExceededError`, MCP `_meta.callId` deduplication (`SqliteMeshRequestRepository`), and `agboss check --federation` (`federation/`). | `@A2AExpose`, `@A2AAgent`, `@McpExpose`, `@McpTool`, `SqliteMeshRequestRepository`, `agboss check --federation`, `agboss hub` |
-| **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration)** | **Side-by-side comparison (`before-langgraph/` vs `after-agboss/`):** Compares a raw 15-field LangGraph `Annotation.Root` God State (`before-langgraph/support.graph.ts`) with the migrated AGBoss implementation (`after-agboss/src/` + `after-agboss/tests/`) using 10 narrow `@Dto`s, `DecidedBy.Model` & `DecidedBy.Code` `@Router`s, bounded `.toParallelAgents()`, idempotent `@Action`, typed `@Channel`, and co-located `.prompt.md` files. | `@Dto`, `@Router`, `.switch(caseOf())`, `.toParallelAgents()`, `@Action`, `@Channel`, `13-migrating-from-langgraph.md` |
+| **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)** | **PII roundtrip, tool interception, in-memory BM25 RAG, compaction & 5-layer evals:** Reversible HMAC `@PiiPolicy` (`replaceWithToken`, `revealPii: true`, `PiiError.Refused`), `@ToolInterceptor` (`replyToModel`, `block`), `@InputGuardrail` (a code guardrail), `@OutputGuardrail`, `InMemoryKnowledgeIndexService` + `RefundPolicyRetriever` (`@Rag`), `PolicyAwareMemory`, and `@EvalSuite` with compact git-tracked `eval/baseline/main-baseline.json` and `agboss eval calibrate` (Cohen's $\kappa$). | `@PiiPolicy`, `@ToolInterceptor`, `@InputGuardrail`, `@OutputGuardrail`, `@Rag`, `@Memory`, `@EvalSuite`, `agboss eval` |
+| **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)** | **Transactional LIFO sagas, idempotency, quorums, closed approval messages & HTTP server:** Reverse-order LIFO compensation across `payment-saga`, `budget-saga`, `quorum-saga` (`.joinQuorum({ min: 2, max: 2 })`), and `hitl-hold-saga` (`onPauseClosed()`, `PauseError.Closed`), idempotent external ledgers (`step.idempotencyKey`), SQLite WAL crash recovery, and `src/http/server.ts`. | `@Action({ compensateWith, committedBy })`, `.inParallel([…]).join().arbitratedBy().joinQuorum()`, `@ToolApproval`, `@Channel` |
+| **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)** | **Distributed scheduling, 30s leases, fencing & backpressure:** Parent `CoordinatorWorkflow` fans out `ChunkWorkerWorkflow` with `ChildPlacement.AnyWorker` over the shared child queue, runs bounded recursive workflows (`maxDepth: 2`), enforces 30s SQLite leases & fencing (`ExecutionLeaseLostError`), `maxConcurrentSteps: 2` backpressure (`isBusy`), `@HealthCheck`, and `ExecutionError.IncompatibleResume`. | `ChildPlacement.AnyWorker`, `@DatabaseStorage`, `toWorkflow(() => Self)`, `@HealthCheck` |
+| **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)** | **3-service A2A + MCP mesh, Ed25519 envelopes, loop guard & federation Blast Radius:** Connects `apps/1-order-gateway`, `apps/2-billing-a2a` (`@A2AEndpoint`), and `apps/3-catalog-mcp` (`@McpEndpoint`) with Ed25519-signed mesh envelopes, `LimitError.MeshLoop` / `LimitError.Hops`, MCP `_meta.callId` deduplication, and `agboss check --federation` (`federation/`). | `@A2AEndpoint`, `@A2AAgent`, `@McpEndpoint`, `@Mesh`, `agboss check --federation`, `agboss hub` |
+| **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration)** | **Side-by-side comparison (`before-langgraph/` vs `after-agboss/`):** Compares a raw 15-field LangGraph `Annotation.Root` God State (`before-langgraph/support.graph.ts`) with the migrated AGBoss implementation (`after-agboss/src/` + `after-agboss/tests/`) using 10 narrow `@Dto`s, model and code `@Router`s, bounded `.inParallel([…])`, idempotent `@Action`, typed `@Channel`, and co-located `.prompt.md` files. | `@Dto`, `@Router`, `.toOneOf([…])`, `.inParallel([…])`, `@Action`, `@Channel`, `13-migrating-from-langgraph.md` |
 
 ### Canonical Project Layout (`1 class = 1 file` & Symmetric `tests/`)
 
@@ -35,7 +37,7 @@ Every project in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss
 In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof), four structural bug cases (`cases/01-missing-input`, `cases/02-outdated-data`, `cases/03-parallel-invalidation`, `cases/04-uncompensated-action`) are each implemented in three variants — `langgraph-broken/` (compiles with `tsc --noEmit` yet fails or corrupts state at runtime), `agboss-broken/` (rejected before runtime by `agboss check --json` with an exact rule code and witness path), and `agboss-fixed/` (passes `agboss check` and executes cleanly):
 
 1. **Missing input on a conditional route (`01-missing-input` → `[input.missing-on-path]`):** The `fast-track` branch of a router skips `ComplianceReview` (`ComplianceApprovalDto`), yet `PublishContract` requires `approval`. Raw LangGraph silently receives `undefined` at runtime; `agboss check` halts at compile time.
-2. **Stale data after a revision cycle (`02-outdated-data` → `[input.outdated-on-path]`):** `QualityReviewer` emits `RevisionRequested` (`{ about: ContractDraftDto }`) and `RevisionWriter` replaces `ContractDraftDto`, making the earlier `LegalSignoffDto` stale. Skipping `LegalCheck` on the second pass is rejected by `agboss check`.
+2. **Stale data after a revision cycle (`02-outdated-data` → `[input.outdated-on-path]`):** `QualityReviewer` emits `RevisionRequested` and `RevisionWriter` replaces `ContractDraftDto`, making the earlier `LegalSignoffDto` stale. Skipping `LegalCheck` on the second pass is rejected by `agboss check`.
 3. **Parallel sibling invalidation (`03-parallel-invalidation` → `[launch.branch-outdates-sibling]`):** Inside a parallel launch, `PricingRewriter` replaces `QuoteSheetDto` while its sibling `TaxAudit` concurrently audits the pre-launch `QuoteSheetDto`. `agboss check` rejects the race condition statically.
 4. **Uncompensated side effect on an error path (`04-uncompensated-action` → `[flow.uncompensated-action]`):** `ReserveInventory` (`compensateWith: ReleaseInventory`) is followed by `ChargeCard`, whose `.onError(...)` path reaches `OrderFailedFinish` without invoking `ReleaseInventory`. `agboss check` refuses to compile the uncompensated path.
 
@@ -43,21 +45,21 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 ## Detailed Guide to All 7 Standalone Examples (`01–07`)
 
-> **Setup (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.0` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.
+> **Setup (`v0.1.1`):** `@agboss/core@0.1.1` and `@agboss/cli@0.1.1` are published on `registry.npmjs.org`. Run `npm install` inside any example directory (or `node ./scripts/install-published.mjs --live-registry --version 0.1.1` from the [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) repository root) before running per-project commands.
 
 ### 1. [`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss) — Starter, Constructor DI, Budgets & HTTP Server (`P0`)
 
 - **Problem statement:** First-time multi-agent setups often mix business logic, HTTP transport calls, and prompt strings inside untyped node functions without budget ceilings or cancellation signals.
 - **Architecture overview:** `HelloAgbossWorkflow` starts at `HelloWorkflowStart` (`HelloQuestionDto`), routes via `IntentRouter` (`DecidedBy.Model`) to either `SupportSpecialistAgent` or `QuoteAdvisorAgent` (which invokes `CalculateTierQuoteTool` backed by `PricingCatalogService`), and finishes at `HelloWorkflowFinish` (`HelloAnswerDto`).
-- **Main mechanisms demonstrated:** `@Application`, `@Workflow`, `@Router`, `@Agent`, `@Tool`, `@Injectable` (`PricingCatalogService` with `async onInit()`, `ExecutionContext.signal`, and `step.idempotencyKey`), `@Budget` (`Application`, `Tenant`, and `Execution` scopes), `SqliteCostLedgerRepository`, and `src/http/server.ts`.
-- **Representative code:** `start(HelloWorkflowStart).returns(HelloQuestionDto).toRouter(IntentRouter).chooseOne(route("support").toAgent(SupportSpecialistAgent).toFinish(HelloWorkflowFinish), route("pricing").toAgent(QuoteAdvisorAgent).toFinish(HelloWorkflowFinish))`
+- **Main mechanisms demonstrated:** `@Application`, `@Workflow`, `@Router`, `@Agent`, `@Tool`, `@Injectable` (`PricingCatalogService` with `async onInit()`, `ExecutionContext.signal`, and `step.idempotencyKey`), `@Budget` (`Application`, `Tenant`, and `Execution` scopes), a `@DatabaseStorage` ledger, and `src/http/server.ts`.
+- **Representative code:** `onStart(HelloWorkflowStart).toRouter(IntentRouter).onRoute(toAgent(SupportSpecialistAgent).toFinish(HelloWorkflowFinish)).onRoute(toAgent(QuoteAdvisorAgent).toFinish(HelloWorkflowFinish))` (one call per line in real code)
 - **Quickstart commands:**
   ```bash
   cd 01-hello-agboss
   npm run check && npm test && npx tsx src/demo.ts
   ```
 - **Expected proof output:** `npx tsx src/demo.ts` executes both `"support"` and `"pricing"` routes offline against the local pricing HTTP stub server and prints JSON confirming `supportBranch.status: "finished"`, `pricingBranch.status: "finished"`, and `pricingApiRequestsCount: 1`.
-- **Failure scenario tested:** `tests/workflows/hello-agboss/hello-agboss.workflow.test.ts` injects a low execution budget ceiling and verifies `BudgetExceededError` aborts execution before overspending.
+- **Failure scenario tested:** `tests/workflows/hello-agboss/hello-agboss.workflow.test.ts` injects a low execution budget ceiling and verifies `LimitError.Budget` aborts execution before overspending.
 - **Guarantee boundary:**
   - *Verified:* Static workflow assembly, constructor DI lifecycle (`onInit`), tool schema validation, budget enforcement, and deterministic offline execution.
   - *Not verified by default offline run:* Live OpenRouter model quality or network latency (requires `npx tsx src/demo.ts --live` with `OPENROUTER_API_KEY`).
@@ -67,8 +69,8 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 - **Problem statement:** In shared-state graph libraries (`Annotation.Root`), conditional branches that skip required producers, revision loops that leave stale approvals active, parallel branches that overwrite shared slots, and error handlers that bypass compensation all compile under `tsc --noEmit` and fail only at runtime.
 - **Architecture overview:** Four self-contained case directories (`cases/01-missing-input`, `02-outdated-data`, `03-parallel-invalidation`, `04-uncompensated-action`), each containing `langgraph-broken/`, `agboss-broken/`, and `agboss-fixed/`.
-- **Main mechanisms demonstrated:** `agboss check --json` static dominance analysis (`[input.missing-on-path]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`, `[flow.uncompensated-action]`), `.agboss/types.d.ts` `Produced<Dto, Producer>` narrowing, `{ about }` provenance invalidation, and `compensateWith`.
-- **Representative code:** `caseOf(ChangesRequestedDto, { about: ContractDraftDto }).toAgent(RevisionWriterAgent).returns(ContractDraftDto).toAgent(LegalCheckAgent)`
+- **Main mechanisms demonstrated:** `agboss check --json` static dominance analysis (`[input.missing-on-path]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`, `[flow.uncompensated-action]`), `.agboss/types.d.ts` `Tracked<Dto, Producer>` narrowing, replaced-value (`OutdatedReason`) provenance invalidation, and `compensateWith`.
+- **Representative code:** `.toOneOf([…])` on the reviewer's `oneOf(ChangesRequestedDto, ContractApprovedDto)` answer, then `toAgent(RevisionWriterAgent).toAgent(LegalCheckAgent)`: the revised draft replaces the old one on the path, and a loop's old values are `OutdatedReason.Replaced`
 - **Quickstart commands:**
   ```bash
   cd 02-path-scope-proof
@@ -77,15 +79,15 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 - **Expected proof output:** `npx tsx src/demo.ts` runs all 4 cases and outputs JSON proving that `langgraph-broken` passes `tsc` (`passedTsc: true`) and fails at runtime, `agboss-broken` is rejected before runtime with the exact diagnostic code, and `agboss-fixed` finishes cleanly.
 - **Failure scenario tested:** All four `agboss-broken/*.workflow.ts` fixtures are intentionally broken workflows verified to fail `agboss check --json` with exit code `1` and exact witness paths.
 - **Guarantee boundary:**
-  - *Verified:* Static path-dominance of declared `@Dto` slots, `{ about }` invalidation along cyclic/parallel paths, and presence of `compensateWith` along declared error paths.
+  - *Verified:* Static path-dominance of declared `@Dto` slots, `OutdatedReason` invalidation along cyclic/parallel paths, and presence of `compensateWith` along declared error paths.
   - *Not verified:* Arbitrary imperative mutations inside custom `@Injectable` services or external databases outside AGBoss DTO handoffs.
 - **Repository directory:** [`agbossjs/agboss-examples/02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof)
 
 ### 3. [`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk) — PII Masking, Guardrails, RAG, Compaction & Evals (`P0`)
 
 - **Problem statement:** Customer support agents handle sensitive PII (emails, phone numbers, payment cards), face prompt-injection and policy-violation risks, suffer context drift over multi-turn conversations, and require reproducible regression gating.
-- **Architecture overview:** `SupportRefundWorkflow` wraps `RefundSupportAgent` with `CustomerContactPiiPolicy` + `SupportTicketIdPiiPolicy`, `PromptInjectionGuardrail` (`@InputGuardrail`) + `UnauthorizedPayoutGuardrail` (`@OutputGuardrail`), `RefundPolicyToolInterceptor` + `AuditTrailToolInterceptor`, `RefundPolicyRetriever` (`@Rag`), `PolicyAwareCompaction` (`@Compaction`), and `RefundDeskEvalSuite` (`@EvalSuite`).
-- **Main mechanisms demonstrated:** Reversible HMAC `@PiiPolicy` (`replaceWithToken`, `revealPii: true` on `IssueRefundTool`, `PiiRefusedError` on card numbers, masked OTel/Langfuse spans), `@InputGuardrail`, `@OutputGuardrail`, `@ToolInterceptor` (`ToolCallDecision.replyToModel` & `block`), `@Rag`, `@Compaction`, and `@EvalSuite` (`pass@k`, `pass^k`, `--baseline`, Cohen's $\kappa$ calibration, `--chaos`, `--metamorphic`, incident-to-eval drafting).
+- **Architecture overview:** `SupportRefundWorkflow` wraps `RefundSupportAgent` with `CustomerContactPiiPolicy` + `SupportTicketIdPiiPolicy`, `PromptInjectionGuardrail` (`@InputGuardrail`) + `UnauthorizedPayoutGuardrail` (`@OutputGuardrail`), `RefundPolicyToolInterceptor` + `AuditTrailToolInterceptor`, `RefundPolicyRetriever` (`@Rag`), `PolicyAwareMemory` (`@Memory`), and `RefundDeskEvalSuite` (`@EvalSuite`).
+- **Main mechanisms demonstrated:** Reversible HMAC `@PiiPolicy` (`replaceWithToken`, `revealPii: true` on `IssueRefundTool`, `PiiError.Refused` on card numbers, masked OTel/Langfuse spans), `@InputGuardrail`, `@OutputGuardrail`, `@ToolInterceptor` (`ToolCallDecision.replyToModel` & `block`), `@Rag`, `@Memory`, and `@EvalSuite` (`pass@k`, `pass^k`, `--baseline`, Cohen's $\kappa$ calibration, `--chaos`, `--metamorphic`, incident-to-eval drafting).
 - **Representative code:** `@PiiPolicy({ name: "customer-contact-pii-policy", match: [PiiKind.Email, PiiKind.Phone], action: PiiAction.ReplaceWithToken })`
 - **Quickstart commands:**
   ```bash
@@ -93,7 +95,7 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
   npm run check && npm test && npx tsx src/demo.ts
   ```
 - **Expected proof output:** `npx tsx src/demo.ts` prints JSON verifying `pii.modelSawMaskedEmailToken: true`, `pii.modelSawRawEmail: false`, `pii.toolReceivedRealEmail: "alice.synth@example.com"`, `pii.langfuseOtelSpansMaskedPii: true`, `policy.overCapFinalDecision: "escalated"`, `memoryDrift.preservedOrderFact: true`, and `evals.calibration.kappaJudgeAnna: 1`.
-- **Failure scenarios tested:** Raw credit card refusal (`PiiRefusedError`), over-cap refund interception (`ToolCallDecision.replyToModel`), cross-tenant tool block, prompt-injection input guardrail block, unauthorized settlement output guardrail block, and baseline regression detection (`pass^k` drop under `--chaos`).
+- **Failure scenarios tested:** Raw credit card refusal (`PiiError.Refused`), over-cap refund interception (`ToolCallDecision.replyToModel`), cross-tenant tool block, prompt-injection input guardrail block, unauthorized settlement output guardrail block, and baseline regression detection (`pass^k` drop under `--chaos`).
 - **Guarantee boundary:**
   - *Verified:* Deterministic regex/field PII pseudonymization, tool interceptor policy gates, compaction fact retention, and offline `@EvalSuite` statistical calculations (`pass@k`, `pass^k`, Cohen's $\kappa$).
   - *Not verified by default offline run:* Open-ended adversarial jailbreak resilience on live frontier models (requires live model evaluation runs).
@@ -102,8 +104,8 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 ### 4. [`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga) — Transactional LIFO Sagas, Quorums, HITL & Crash Recovery (`P0`)
 
 - **Problem statement:** Multi-step workflows that reserve flights, book hotels, and charge cards leave orphaned reservations when a downstream step fails, a budget limit triggers, a user cancels a paused approval, or a process crashes mid-flight.
-- **Architecture overview:** Four workflows in `TravelBookingSagaApplication` (`PaymentSagaWorkflow`, `BudgetSagaWorkflow`, `HitlHoldSagaWorkflow`, and `QuorumSagaWorkflow`) backed by `SqliteCheckpointSaver`, `SqlitePausedExecutionRepository`, and `SqliteExecutionLeaseRepository`.
-- **Main mechanisms demonstrated:** `@Action({ compensateWith, committedBy })`, `step.idempotencyKey` deduplication, automatic reverse-order (LIFO) compensation on step failure / `BudgetExceededError` / `app.cancel()`, two-phase `@ChannelRole` + `@Channel` (`onPauseClosed` on cancel, `PauseClosedError` on late resume), `.toParallelAgents().acceptedBy(QuorumVoteArbiter).joinQuorum({ min: 2, max: 2 })`, and SQLite crash recovery.
+- **Architecture overview:** Four workflows in `TravelBookingSagaApplication` (`PaymentSagaWorkflow`, `BudgetSagaWorkflow`, `HitlHoldSagaWorkflow`, and `QuorumSagaWorkflow`) backed by a `@DatabaseStorage` on SQLite.
+- **Main mechanisms demonstrated:** `@Action({ compensateWith, committedBy })`, `step.idempotencyKey` deduplication, automatic reverse-order (LIFO) compensation on step failure / `LimitError.Budget` / `app.cancel()`, two-phase `@ToolApproval` + `@Channel` (`onPauseClosed` on cancel, `PauseError.Closed` on late resume), `.inParallel([…]).join().arbitratedBy(QuorumVoteArbiter).joinQuorum({ min: 2, max: 2 })`, and SQLite crash recovery.
 - **Representative code:** `@Action({ name: "reserve-flight-action", input: TravelRequestDto, output: FlightReservationDto, compensateWith: ReleaseFlightAction, committedBy: IssueFinalItineraryAction })`
 - **Quickstart commands:**
   ```bash
@@ -111,7 +113,7 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
   npm run check && npm test && npx tsx src/demo.ts
   ```
 - **Expected proof output:** `npx tsx src/demo.ts` outputs JSON confirming `scenarioA_PaymentDeclined.compensationOrder: ["release-hotel-action", "release-flight-action"]`, `scenarioB_BudgetExceeded.flightState: "RELEASED"`, `scenarioC_CancelAndRollback.closedReason: "cancelled"`, `scenarioD_RollbackCrashAndSqliteRecovery.sqliteResumedOutputStatus: "CONFIRMED"`, and `scenarioE_QuorumApproval.outcomeStatus: "CONFIRMED_BY_QUORUM"`.
-- **Failure scenarios tested:** Payment gateway decline (`PaymentGatewayDeclinedError`), mid-flight `BudgetExceededError`, concurrent `app.cancel()` vs `app.resume()` race, crash inside a compensation handler (`CompensationFailedError`) followed by idempotent recovery replay, and rejected branch inside a 2-of-3 quorum.
+- **Failure scenarios tested:** Payment gateway decline (`PaymentGatewayDeclinedError`), mid-flight `LimitError.Budget`, concurrent `app.cancel()` vs `app.resume()` race, crash inside a compensation handler (`ExecutionError.CompensationFailed`) followed by idempotent recovery replay, and rejected branch inside a 2-of-3 quorum.
 - **Guarantee boundary:**
   - *Verified:* Single-node SQLite WAL durability, deterministic LIFO compensation ordering, idempotent `step.idempotencyKey` propagation to external ledgers, and lease-fenced recovery within the configured SQLite store.
   - *Not verified:* Multi-datacenter distributed consensus or compensation when an external third-party API permanently rejects its own refund/release endpoint without an idempotency contract.
@@ -120,16 +122,16 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 ### 5. [`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing) — Distributed Child Work-Stealing, Leases & Backpressure (`P1`)
 
 - **Problem statement:** Fan-out and recursive workflows executing on a single Node.js instance bottleneck CPU/concurrency and lose progress if a worker crashes mid-batch.
-- **Architecture overview:** `CoordinatorWorkflow` fans out `ChunkWorkerWorkflow` across cluster instances via `.toParallelWorkflows(ChunkWorkerWorkflow, { placement: ChildPlacement.AnyInstance })`, alongside `RecursiveDecomposerWorkflow` (`ThisWorkflow`, `maxDepth: 2`), coordinated through shared SQLite WAL repositories (`SqliteChildExecutionQueueRepository`, `SqliteExecutionLeaseRepository`, `SqliteExecutionTreeRepository`, `SqliteRateLimitRepository`).
-- **Main mechanisms demonstrated:** `ChildPlacement.AnyInstance` work-stealing, parent lease yielding while waiting for children, 30s lease heartbeat & stale-lease reclamation (`recoverApp`), `ExecutionLeaseLostError` split-brain fencing, `maxConcurrentSteps: 2` backpressure (`HealthComponentKind.StepSlots`), `@HealthCheck` (`checkLiveness`, `checkReadiness`), and `IncompatibleResumeError`.
-- **Representative code:** `.toParallelWorkflows(ChunkWorkerWorkflow, { placement: ChildPlacement.AnyInstance, maxItems: 8, onBranchError: ParallelErrorPolicy.CollectAll })`
+- **Architecture overview:** `CoordinatorWorkflow` fans out `ChunkWorkerWorkflow` across cluster instances via `.forEachItem(toWorkflow(ChunkWorkerWorkflow), …)` with `ChildPlacement.AnyWorker` on the child, alongside `RecursiveDecomposerWorkflow` (`toWorkflow(() => Self)`, `maxDepth: 2`), coordinated through shared SQLite WAL repositories (`SqliteChildExecutionQueueRepository`, `SqliteExecutionLeaseRepository`, `SqliteExecutionTreeRepository`, `SqliteRateLimitRepository`).
+- **Main mechanisms demonstrated:** `ChildPlacement.AnyWorker` work-stealing, parent lease yielding while waiting for children, 30s lease heartbeat & stale-lease reclamation (`recoverApp`), `ExecutionLeaseLostError` split-brain fencing, `maxConcurrentSteps: 2` backpressure (`isBusy`), `@HealthCheck` (`checkLiveness`, `checkReadiness`), and `ExecutionError.IncompatibleResume`.
+- **Representative code:** `.forEachItem(toWorkflow(ChunkWorkerWorkflow), { takeFirst: 8, maxConcurrency: 4 })` with `@Workflow({ placement: ChildPlacement.AnyWorker })` on the child, then `.join()` and `.onError(…)`
 - **Quickstart commands:**
   ```bash
   cd 05-cluster-work-stealing
   npm run check && npm test && npx tsx src/demo.ts
   ```
 - **Expected proof output:** `npx tsx src/demo.ts` runs a 2-instance cluster over shared SQLite and prints JSON with `workStealing.batchSummary.succeededCount: 4`, `committedChunkEffects: 4`, `recursiveStatus: "finished"`, and `health.readinessStatus: "healthy"`.
-- **Failure scenarios tested:** Worker crash mid-batch with 30s lease expiry and takeover by a surviving instance, zombie worker split-brain write fenced by `ExecutionLeaseLostError`, `maxConcurrentSteps` saturation flipping readiness to `unhealthy` while liveness stays `healthy`, and `IncompatibleResumeError` on workflow version drift.
+- **Failure scenarios tested:** Worker crash mid-batch with 30s lease expiry and takeover by a surviving instance, zombie worker split-brain write fenced by `ExecutionLeaseLostError`, `maxConcurrentSteps` saturation flipping readiness to `unhealthy` while liveness stays `healthy`, and `ExecutionError.IncompatibleResume` on workflow version drift.
 - **Guarantee boundary:**
   - *Verified:* Multi-instance coordination over shared SQLite WAL storage (single host or shared POSIX/local disk), lease fencing, and step-slot backpressure.
   - *Not verified:* Distributed network database backends (PostgreSQL/Redis adapters are on the roadmap and not shipped in `0.1.0`).
@@ -138,8 +140,8 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 ### 6. [`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh) — Multi-Service A2A + MCP Mesh & Federation Check (`P1`)
 
 - **Problem statement:** When independent microservices expose agents (`A2A`) and tools (`MCP`), untyped payloads, missing authentication, circular cross-service loops, duplicate retries, and breaking schema changes cause cascading outages.
-- **Architecture overview:** Three separate AGBoss applications in one workspace — `apps/1-order-gateway` (`TriageGatewayApplication`), `apps/2-billing-a2a` (`BillingApplication` exposing `@A2AExpose`), and `apps/3-catalog-mcp` (`CatalogApplication` exposing `@McpExpose`).
-- **Main mechanisms demonstrated:** `@A2AExpose` + `a2aHttpListener(app, { expose, callerResolver })`, `@A2AAgent`, `@McpExpose` + `@McpServer` + `@McpTool`, Ed25519-signed mesh envelope propagation (`origin`, `budget.remaining`, `deadline.remaining`, `callChain`), `MeshLoopDetectedError` / `HopsLimitExceededError`, `SqliteMeshRequestRepository` idempotency deduplication, `agboss check --federation`, and `agboss hub`.
+- **Architecture overview:** Three separate AGBoss applications in one workspace — `apps/1-order-gateway` (`TriageGatewayApplication`), `apps/2-billing-a2a` (`BillingApplication` exposing `@A2AEndpoint`), and `apps/3-catalog-mcp` (`CatalogApplication` exposing `@McpEndpoint`).
+- **Main mechanisms demonstrated:** `@A2AEndpoint` + `a2aHttpListener(app, { endpoint, authenticator })`, `@A2AAgent`, `@McpEndpoint` + `@McpServer`, Ed25519-signed mesh envelope propagation (`origin`, `budget.remaining`, `deadline.remaining`, `callChain`), `LimitError.MeshLoop` / `LimitError.Hops`, mesh request deduplication, `agboss check --federation`, and `agboss hub`.
 - **Representative code:** `@A2AAgent({ name: "remote-billing-agent", description: "Calls Billing service over A2A", target: "billing-application/billing-workflow", url: "billingA2aUrl", input: BillingInquiryDto, output: BillingResolutionDto, price: usd(0.05) })`
 - **Quickstart commands:**
   ```bash
@@ -147,7 +149,7 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
   npm run check && npm test && npx tsx apps/1-order-gateway/src/demo.ts
   ```
 - **Expected proof output:** `npx tsx apps/1-order-gateway/src/demo.ts` boots the A2A + MCP services on loopback HTTP ports and prints JSON confirming `a2aResolution.creditedUsd: 45`, `federationProof.compatibleOk: true`, `federationProof.breakingExitCode: 3`, and `federationProof.breakingCodes: ["federation.incompatible-schema", "federation.missing-target"]`.
-- **Failure scenarios tested:** Unauthenticated A2A caller rejection (`A2ACallerRejectedError`), cross-service call-chain cycle (`MeshLoopDetectedError`), hop limit exhaustion (`HopsLimitExceededError`), and breaking cross-service contract drift caught by `agboss check --federation`.
+- **Failure scenarios tested:** Unauthenticated A2A caller rejection (`A2AError.CallerRejected`), cross-service call-chain cycle (`LimitError.MeshLoop`), hop limit exhaustion (`LimitError.Hops`), and breaking cross-service contract drift caught by `agboss check --federation`.
 - **Guarantee boundary:**
   - *Verified:* Cross-service contract verification (`agboss check --federation`), Ed25519 JWS mesh envelope verification, loop/hop guards, and MCP/A2A request deduplication.
   - *Not verified:* External service mesh mTLS/ingress infrastructure or non-AGBoss third-party A2A implementations.
@@ -157,8 +159,8 @@ In [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main
 
 - **Problem statement:** Raw LangGraph workflows often accumulate a 15+ field mutable `Annotation.Root` God State where optional fields are read before they are initialized, stale loop critiques persist across iterations, and side effects lack idempotency keys.
 - **Architecture overview:** Side-by-side implementation of the same customer support & refund workflow in `before-langgraph/` (raw `@langchain/langgraph` `StateGraph` with a 15-field `Annotation.Root`) and `after-agboss/` (canonical AGBoss application with 10 narrow `@Dto` classes, `@Router`, `@Agent`, `@Action`, and `@Channel`).
-- **Main mechanisms demonstrated:** Migrating `Annotation.Root` to narrow `@Dto` handoffs, replacing conditional edges with `.toRouter().chooseOne()` and `.switch(caseOf(..., { about }))`, replacing parallel node fan-out with `.toParallelAgents()`, and adding `step.idempotencyKey` to `@Action`.
-- **Representative code:** `agent(ReplyReviewerAgent).returns(oneOf(ReplyApprovedDto, CritiqueNotesDto)).switch(caseOf(ReplyApprovedDto, { about: DraftReplyDto }).toRouter(RefundSizeRouter), caseOf(CritiqueNotesDto, { about: DraftReplyDto }).toAgent(ReplyWriterAgent))`
+- **Main mechanisms demonstrated:** Migrating `Annotation.Root` to narrow `@Dto` handoffs, replacing conditional edges with `.toRouter().onRoute(…)` and `.toOneOf([…])`, replacing parallel node fan-out with `.inParallel([…])`, and adding `step.idempotencyKey` to `@Action`.
+- **Representative code:** `onAgent(ReplyReviewerAgent).toOneOf([toRouter(RefundSizeRouter), toAgent(ReplyWriterAgent)])` on the reviewer's `oneOf(ReplyApprovedDto, CritiqueNotesDto)` answer
 - **Quickstart commands:**
   ```bash
   cd 07-langgraph-migration
@@ -189,22 +191,26 @@ import {
 } from "./job-scout.components.js";
 -->
 ```ts title="src/job-scout.workflow.ts" file=job-scout.workflow.ts
-import { Workflow, route, start } from "@agboss/core";
+import { Workflow, onStart, toAgent, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 
 @Workflow({
   name: "job-scout-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ChatWorkflowStart)
-      .returns(WorkflowStartTextDto)
+    onStart(ChatWorkflowStart)
       .toRouter(MainRouter)
-      .chooseOne(
-        route(ProfilerAgent)
+      .onRoute(
+        toAgent(ProfilerAgent)
           .toFinish(ChatWorkflowFinish),
-        route(ScoutAgent)
+      )
+      .onRoute(
+        toAgent(ScoutAgent)
           .toFinish(ChatWorkflowFinish),
-        route(ShortlistAgent)
+      )
+      .onRoute(
+        toAgent(ShortlistAgent)
           .toFinish(ChatWorkflowFinish),
       ),
   ],
@@ -219,7 +225,7 @@ export class JobScout {}
 ```
 
 ```ts title="src/job-scout.components.ts" file=job-scout.components.ts
-import { Agent, DecidedBy, Injectable, Router, WorkflowFinish, WorkflowStart } from "@agboss/core";
+import { Agent, DecidedBy, Injectable, Router, WorkflowFinish, WorkflowStart, inline } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 
 @WorkflowStart({ name: "chat-workflow-start", description: "A message", input: WorkflowStartTextDto })
@@ -228,20 +234,20 @@ export class ChatWorkflowStart {}
 @WorkflowFinish({ name: "chat-workflow-finish", description: "The answer", output: WorkflowFinishTextDto })
 export class ChatWorkflowFinish {}
 
-@Agent({ name: "profiler-agent", description: "Reads the resume", prompt: "Read the resume.", model: "moonshotai/kimi-k2.6" })
+@Agent({ name: "profiler-agent", description: "Reads the resume", prompt: inline("Read the resume."), model: "moonshotai/kimi-k2.6" })
 export class ProfilerAgent {}
 
-@Agent({ name: "scout-agent", description: "Finds jobs", prompt: "Find jobs.", model: "moonshotai/kimi-k2.6" })
+@Agent({ name: "scout-agent", description: "Finds jobs", prompt: inline("Find jobs."), model: "moonshotai/kimi-k2.6" })
 export class ScoutAgent {}
 
-@Agent({ name: "shortlist-agent", description: "Saves jobs", prompt: "Save shortlist.", model: "moonshotai/kimi-k2.6" })
+@Agent({ name: "shortlist-agent", description: "Saves jobs", prompt: inline("Save shortlist."), model: "moonshotai/kimi-k2.6" })
 export class ShortlistAgent {}
 
 @Router({
   name: "main-router",
   description: "Sends the message to the agent that answers it",
   decidedBy: DecidedBy.Model,
-  prompt: "Pick the agent that answers the message.",
+  prompt: inline("Pick the agent that answers the message."),
   input: { message: WorkflowStartTextDto },
   routes: [
     { prompt: "Reading the resume", target: ProfilerAgent },
@@ -291,10 +297,10 @@ const test = testWith(JobScoutExampleApp);
 
 test("routes job search queries through MainRouter to ScoutAgent", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(MainRouter).thenReturn(routeTo(ScoutAgent));
-  mockLlm(ScoutAgent).thenReturn(
+  mockModel(MainRouter).thenReturn(routeTo(ScoutAgent));
+  mockModel(ScoutAgent).thenReturn(
     replyWith("Found 2 matching Staff TypeScript roles."),
   );
 
@@ -321,10 +327,10 @@ npx agboss describe
 
 `examples/flow-patterns` (`src/flow-patterns.application.ts`) demonstrates four advanced AGBoss workflow patterns tested 100% offline with `testWith` and `agboss check`:
 
-- **`src/offer/` (Review loop with `{ about }`):** `draft-agent` → `reviewer-agent` returning `oneOf(ChangesRequestedDto, DraftApprovedDto)`. When changes are requested, `caseOf(ChangesRequestedDto, { about: OfferDraftDto })` routes to `editor-agent` (`maxVisits: 2`), with `.onError(VisitsLimitExceededError, ...)` handling exhausted review cycles.
+- **`src/offer/` (Review loop):** `draft-agent` → `reviewer-agent` returning `oneOf(ChangesRequestedDto, DraftApprovedDto)`. When changes are requested, `.toOneOf([…])` routes to `editor-agent` (`executionLimits: { maxVisits: 2 }`), with `.onError(LimitError.Visits, ...)` handling exhausted review cycles.
 - **`src/credit/` (Code router beside model router):** Combines a Jev model router with `credit-limit-router` (`DecidedBy.Code`), routing small orders to `charge-card-action` and larger orders to `approval-agent`.
-- **`src/review/` (Parallel launches in waves):** Runs a reviewer per document section via `.toParallelAgents(...)`, joins their outputs, and launches a second wave with a critic alongside parallel fact-checker copies.
-- **`src/topic/` (Recursive `ThisWorkflow`):** Researches broad topics by launching `.toParallelWorkflows(ThisWorkflow, { maxItems })` with `@Workflow({ maxDepth: 3 })`.
+- **`src/review/` (Parallel launches in waves):** Runs a reviewer per document section via `.forEachItem(toAgent(…), …)`, joins their outputs, and launches a second wave with a critic alongside parallel fact-checker copies.
+- **`src/topic/` (Recursive workflow):** Researches broad topics by launching `.forEachItem(toWorkflow(() => TopicWorkflow), { takeFirst })` with `@Workflow({ executionLimits: { maxDepth: 3 } })`.
 
 Inspect the pattern application directly with the CLI:
 

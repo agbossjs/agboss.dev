@@ -4,15 +4,15 @@
  * JSON-LD structured data, and navigation.
  *
  * Distinguishes:
- * - `sourceVersion`: version prepared in `@agboss/core` and `@agboss/cli` package manifests (`0.1.0`).
- * - `displayVersion`: truthful pre-release label (`v0.1.0-rc`) shown before `0.1.0` is published to npm,
- *   or `'v0.1.0'` once published.
+ * - `sourceVersion`: version prepared in `@agboss/core` and `@agboss/cli` package manifests (`0.1.1`).
+ * - `displayVersion`: truthful pre-release label (`v0.1.1-rc`) shown before `0.1.1` is published to npm,
+ *   or `'v0.1.1'` once published.
  * - `releaseChannelLabel`: `'pre-release'` before publication, `'latest'` after publication.
- * - `softwareVersion`: `'0.1.0-rc'` before publication, `'0.1.0'` after publication.
+ * - `softwareVersion`: `'0.1.1-rc'` before publication, `'0.1.1'` after publication.
  * - `publishedPlaceholderVersion`: initial setup placeholder currently in the npm registry (`0.0.1`).
  *
- * Switching `isPublishedToRegistry` to `true` (along with `displayVersion: 'v0.1.0'`,
- * `releaseChannelLabel: 'latest'`, `softwareVersion: '0.1.0'`) after `npm publish` updates
+ * Switching `isPublishedToRegistry` to `true` (along with `displayVersion: 'v0.1.1'`,
+ * `releaseChannelLabel: 'latest'`, `softwareVersion: '0.1.1'`) after `npm publish` updates
  * all badges, nav items, JSON-LD metadata, and homepage installation cards atomically.
  * Validated at build time by `npm run verify:release-meta`.
  */
@@ -36,7 +36,7 @@ export interface ReleaseMetaConfig {
 }
 
 export function buildReleaseMeta(isPublishedToRegistry: boolean): ReleaseMetaConfig {
-	const sourceVersion = '0.1.0';
+	const sourceVersion = '0.1.1';
 	return {
 		sourceVersion,
 		displayVersion: isPublishedToRegistry ? `v${sourceVersion}` : `v${sourceVersion}-rc`,
@@ -50,7 +50,7 @@ export function buildReleaseMeta(isPublishedToRegistry: boolean): ReleaseMetaCon
 			packTarballs:
 				'git clone https://github.com/agbossjs/agboss.git\ncd agboss && npm ci && npm run build\nnpm pack --workspaces',
 			targetCliPreview:
-				'# Unlocks on npm once v0.1.0 is published:\nnpx --yes --package=@agboss/cli agboss create my-app\n# or: npm i @agboss/core && npm i -D @agboss/cli',
+				'# Unlocks on npm once v0.1.1 is published:\nnpx --yes --package=@agboss/cli agboss create my-app\n# or: npm i @agboss/core && npm i -D @agboss/cli',
 		},
 		publishedCommands: {
 			newProject: 'npx --yes --package=@agboss/cli agboss create my-app\ncd my-app\nnpm install',
@@ -62,7 +62,7 @@ export function buildReleaseMeta(isPublishedToRegistry: boolean): ReleaseMetaCon
 export const RELEASE_META: ReleaseMetaConfig = {
 	...buildReleaseMeta(false),
 	isPublishedToRegistry: true,
-	displayVersion: 'v0.1.0',
+	displayVersion: 'v0.1.1',
 	releaseChannelLabel: 'latest',
-	softwareVersion: '0.1.0',
+	softwareVersion: '0.1.1',
 };

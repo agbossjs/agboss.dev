@@ -6,6 +6,7 @@ import Search from 'virtual:starlight/components/Search';
 import SiteTitle from 'virtual:starlight/components/SiteTitle';
 import SocialIcons from 'virtual:starlight/components/SocialIcons';
 import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import VersionDropdown from './VersionDropdown.astro';
 import { RELEASE_META } from '../config/release';
 import { NAV } from './nav';
 
@@ -14,8 +15,9 @@ const shouldRenderSearch =
 
 const here = Astro.url.pathname;
 const showVersion =
+	here === '/' ||
 	Boolean(Astro.locals.starlightRoute?.hasSidebar) ||
-	/^\/(getting-started|concepts|guides|reference|cli|examples|changelog)(\/|$)/.test(here);
+	/^\/(0\.1\.0|getting-started|concepts|guides|reference|cli|examples|changelog)(\/|$)/.test(here);
 
 const isActive = (item: (typeof NAV)[number]) => {
 	const hrefs = item.href
@@ -30,37 +32,7 @@ const isActive = (item: (typeof NAV)[number]) => {
 		<SiteTitle />
 	</div>
 
-	{
-		showVersion && (
-			<div class="agb-version-switch">
-				<button
-					class="agb-version-btn"
-					type="button"
-					aria-label="Select documentation version"
-					aria-expanded="false"
-				>
-					<span class="agb-version-dot" aria-hidden="true"></span>
-					<span>{RELEASE_META.displayVersion}</span>
-					<svg class="agb-chev" viewBox="0 0 12 12" aria-hidden="true">
-						<path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-				</button>
-				<div class="agb-version-menu" role="menu">
-					<a
-						href={here}
-						role="menuitem"
-						class="agb-version-option is-current"
-					>
-						<span class="agb-version-name">{RELEASE_META.displayVersion}</span>
-						<span class="agb-version-tag agb-version-tag--latest">{RELEASE_META.releaseChannelLabel}</span>
-					</a>
-					<a href="/changelog/" role="menuitem" class="agb-version-footer">
-						Changelog & Release Notes →
-					</a>
-				</div>
-			</div>
-		)
-	}
+	{showVersion && <VersionDropdown />}
 
 	<button class="agb-burger" type="button" aria-label="Menu" aria-expanded="false">
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
@@ -141,27 +113,13 @@ const isActive = (item: (typeof NAV)[number]) => {
 <script>
 	// Click / keyboard support for the dropdowns (hover already works via CSS on desktop).
 	const items = document.querySelectorAll<HTMLLIElement>('.agb-nav-item');
-	const vSwitch = document.querySelector<HTMLElement>('.agb-version-switch');
-	const vBtn = vSwitch?.querySelector<HTMLButtonElement>('.agb-version-btn');
 	const closeAll = (except?: Element) => {
 		items.forEach((li) => {
 			if (li === except) return;
 			li.classList.remove('is-open');
 			li.querySelector('button')?.setAttribute('aria-expanded', 'false');
 		});
-		if (vSwitch && vSwitch !== except) {
-			vSwitch.classList.remove('is-open');
-			vBtn?.setAttribute('aria-expanded', 'false');
-		}
 	};
-
-	vBtn?.addEventListener('click', (e) => {
-		e.stopPropagation();
-		const open = !vSwitch?.classList.contains('is-open');
-		closeAll(vSwitch ?? undefined);
-		vSwitch?.classList.toggle('is-open', open);
-		vBtn.setAttribute('aria-expanded', String(open));
-	});
 
 	items.forEach((li) => {
 		const btn = li.querySelector('button');
@@ -206,123 +164,6 @@ const isActive = (item: (typeof NAV)[number]) => {
 		margin: -0.25rem;
 		min-width: 0;
 		flex: none;
-	}
-
-	/* ---------- version switcher ---------- */
-	.agb-version-switch {
-		position: relative;
-		flex: none;
-	}
-
-	.agb-version-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		padding: 0.22rem 0.55rem;
-		border: 1px solid color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-hairline));
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--sl-color-accent-low) 45%, transparent);
-		color: var(--sl-color-white);
-		font-family: 'Ubuntu Mono', var(--sl-font-mono);
-		font-size: 0.75rem;
-		font-weight: 700;
-		line-height: 1.2;
-		cursor: pointer;
-		transition: border-color 0.15s ease, background-color 0.15s ease;
-	}
-
-	.agb-version-btn.is-legacy {
-		border-color: rgba(245, 158, 11, 0.55);
-		background: rgba(245, 158, 11, 0.14);
-	}
-
-	.agb-version-btn:hover,
-	.agb-version-switch.is-open .agb-version-btn {
-		border-color: var(--sl-color-accent-high);
-	}
-
-	.agb-version-dot {
-		width: 0.42rem;
-		height: 0.42rem;
-		border-radius: 999px;
-		background: #3fb950;
-	}
-
-	.agb-version-btn.is-legacy .agb-version-dot {
-		background: #f59e0b;
-	}
-
-	.agb-version-menu {
-		position: absolute;
-		top: calc(100% + 0.4rem);
-		left: 0;
-		z-index: 45;
-		display: none;
-		min-width: 11.5rem;
-		padding: 0.35rem;
-		border: 1px solid var(--sl-color-hairline);
-		border-radius: 10px;
-		background: var(--sl-color-bg-nav);
-		box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
-	}
-
-	.agb-version-switch:hover .agb-version-menu,
-	.agb-version-switch:focus-within .agb-version-menu,
-	.agb-version-switch.is-open .agb-version-menu {
-		display: block;
-	}
-
-	.agb-version-option {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		padding: 0.42rem 0.6rem;
-		border-radius: 6px;
-		color: var(--sl-color-gray-2);
-		font-size: 0.8rem;
-		text-decoration: none;
-	}
-
-	.agb-version-option:hover,
-	.agb-version-option.is-current {
-		background: color-mix(in srgb, var(--sl-color-gray-5) 45%, transparent);
-		color: var(--sl-color-white);
-	}
-
-	.agb-version-name {
-		font-family: 'Ubuntu Mono', var(--sl-font-mono);
-		font-weight: 700;
-	}
-
-	.agb-version-tag {
-		padding: 0.08rem 0.4rem;
-		border-radius: 999px;
-		border: 1px solid var(--sl-color-hairline);
-		color: var(--sl-color-gray-3);
-		font-size: 0.65rem;
-		font-weight: 600;
-		text-transform: uppercase;
-	}
-
-	.agb-version-tag--latest {
-		border-color: color-mix(in srgb, var(--sl-color-accent-high) 55%, transparent);
-		color: var(--sl-color-accent-high);
-	}
-
-	.agb-version-footer {
-		display: block;
-		margin-top: 0.25rem;
-		padding: 0.4rem 0.6rem 0.25rem;
-		border-top: 1px solid var(--sl-color-hairline);
-		color: var(--sl-color-accent-high);
-		font-size: 0.72rem;
-		font-weight: 600;
-		text-decoration: none;
-	}
-
-	.agb-version-footer:hover {
-		text-decoration: underline;
 	}
 
 	/* ---------- menu ---------- */
@@ -621,6 +462,16 @@ const isActive = (item: (typeof NAV)[number]) => {
 		}
 		.agb-burger {
 			display: none;
+		}
+	}
+
+	/* medium desktop widths: tighter menu so the search field keeps its width */
+	@media (min-width: 72rem) and (max-width: 99.99rem) {
+		.agb-nav-top {
+			padding-inline: 0.45rem;
+		}
+		.agb-search {
+			min-width: 8.5rem;
 		}
 	}
 </style>

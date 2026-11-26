@@ -146,9 +146,9 @@ Every mechanism in the explorer above is backed by runnable verification suites 
 
 - **[`01-hello-agboss`](https://github.com/agbossjs/agboss-examples/tree/main/01-hello-agboss):** Dependency injection, `@Router` + `@Agent` + `@Tool`, SQLite cost ledger, and HTTP server integration.
 - **[`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof):** Build-time `[input.missing-on-path]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`, and `[flow.uncompensated-action]` proofs.
-- **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk):** Reversible HMAC `@PiiPolicy`, `@InputGuardrail` / `@OutputGuardrail`, `@ToolInterceptor`, `@Compaction`, and `@EvalSuite`.
-- **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga):** Declarative `compensateWith` / `committedBy` LIFO sagas, two-phase `@ChannelRole` pauses, `@Arbiter` quorums, and SQLite crash recovery.
-- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** `ChildPlacement.AnyInstance` distributed child workflows, 30s leases, and `@HealthCheck` liveness/readiness probes.
+- **[`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk):** Reversible HMAC `@PiiPolicy`, `@InputGuardrail` / `@OutputGuardrail`, `@ToolInterceptor`, `@Memory`, and `@EvalSuite`.
+- **[`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga):** Declarative `compensateWith` / `committedBy` LIFO sagas, two-phase `@ToolApproval` + `@Channel` pauses, `@Arbiter` quorums, and SQLite crash recovery.
+- **[`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing):** `ChildPlacement.AnyWorker` distributed child workflows, 30s leases, and `@HealthCheck` liveness/readiness probes.
 - **[`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh):** Multi-service A2A + MCP mesh, `agboss check --federation`, and `agboss hub`.
 - **[`07-langgraph-migration`](https://github.com/agbossjs/agboss-examples/tree/main/07-langgraph-migration):** Deterministic before/after migration from raw LangGraph shared state to AGBoss narrow DTOs and `HarnessDSL`.
 

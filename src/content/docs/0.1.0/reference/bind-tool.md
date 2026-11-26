@@ -1,9 +1,10 @@
 ---
 title: "@BindTool"
 description: Complete API reference for the @BindTool method decorator in AGBoss — binding service methods to @Tool or @McpTool invocations.
+slug: 0.1.0/reference/bind-tool
 ---
 
-The `@BindTool(ToolClass, options?)` method decorator (`"@agboss/core"`) binds a method on a workflow provider class to a [`@Tool`](/reference/tool/) or [`@McpTool`](/reference/mcp-tool/) (optionally scoped to a specific [`@Agent`](/reference/agent/) via `{ agent: MyAgent }`).
+The `@BindTool(ToolClass, options?)` method decorator (`"@agboss/core"`) binds a method on a workflow provider class to a [`@Tool`](/0.1.0/reference/tool/) or [`@McpTool`](/0.1.0/reference/mcp-tool/) (optionally scoped to a specific [`@Agent`](/0.1.0/reference/agent/) via `{ agent: MyAgent }`).
 
 ## `@BindTool` example
 

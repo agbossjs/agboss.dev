@@ -1,9 +1,10 @@
 ---
 title: "@OnAnswer"
 description: Complete API reference for the @OnAnswer(AgentClass) method decorator in AGBoss — evaluating arriving parallel branch answers inside a DecidedBy.Code @Arbiter.
+slug: 0.1.0/reference/on-answer
 ---
 
-The `@OnAnswer(AgentClass)` method decorator (`"@agboss/core"`) marks the per-agent evaluation method inside a `DecidedBy.Code` [`@Arbiter`](/reference/arbiter/) class. During a `.joinQuorum()` or `.joinQuorumGroups()` step, AGBoss invokes the matching `@OnAnswer(AgentClass)` method as each parallel branch finishes so your arbiter can return `true` (count toward quorum) or `false` (reject the branch answer) in real time.
+The `@OnAnswer(AgentClass)` method decorator (`"@agboss/core"`) marks the per-agent evaluation method inside a `DecidedBy.Code` [`@Arbiter`](/0.1.0/reference/arbiter/) class. During a `.joinQuorum()` or `.joinQuorumGroups()` step, AGBoss invokes the matching `@OnAnswer(AgentClass)` method as each parallel branch finishes so your arbiter can return `true` (count toward quorum) or `false` (reject the branch answer) in real time.
 
 ## Complete `@OnAnswer` example
 

@@ -1,21 +1,20 @@
 ---
-title: "@McpServer, @McpTool & @McpExpose"
-description: Complete API reference for @McpServer, @McpTool, and @McpExpose in agboss/mcp — consuming external MCP servers with typed DTOs and exposing tools over MCP.
+title: "@McpServer"
+description: Complete API reference for @McpServer in @agboss/core/mcp — consuming external MCP servers from a @Tool with typed DTOs, transports, references, and stubbing in tests. Replaces @McpTool.
 ---
 
-`@agboss/core/mcp` provides three decorators for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/): **`@McpServer`** (declares and supervises a connection to an external stdio or HTTP/SSE MCP server), **`@McpTool`** (wraps an external server's tool in compile-checked TypeScript input/output DTOs and `ToolHandler`), and **`@McpExpose`** (exposes your own `@Tool` and `@WorkflowStart` classes as an MCP server via `createMcpService(app, ConfigClass)`).
+`@agboss/core/mcp` provides two decorators for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/): **`@McpServer`** (declares and supervises a connection to an external stdio or Streamable HTTP MCP server, and types its tools) and **[`@McpEndpoint`](/reference/mcp-endpoint/)** (exposes your own `@Tool` and `@WorkflowStart` classes as an MCP server). **`@McpTool` is gone**, and so are `@Workflow({ mcp })` and the `"mcp-tool"` component kind: a plain [`@Tool`](/reference/tool/) lists its `@McpServer` class in `deps` and calls it, and the application connects every server its components reach when it starts and closes them in `app.close()` — no list, no lifecycle hook of yours.
 
-## Complete `@McpServer`, `@McpTool`, and `@McpExpose` example
+## Complete `@McpServer` and `@McpEndpoint` example
 
 ```ts title="src/mcp/workspace-fs.mcp.ts" file=src/mcp/workspace-fs.mcp.ts
-import { Agent, ExecutionContext, Tool, type ToolHandler } from "@agboss/core";
+import { Agent, ExecutionContext, Tool, inline } from "@agboss/core";
 import { Text } from "@agboss/core/dto";
 import {
-  McpExpose,
+  McpEndpoint,
   McpServer,
   McpServerClient,
-  McpTool,
-  type ServerTools,
+  McpTransport,
 } from "@agboss/core/mcp";
 
 export class ReadFileArgsDto {
@@ -29,41 +28,35 @@ export class ReadFileResultDto {
 }
 
 const serverTools = {
-  read_file: {
-    input: ReadFileArgsDto,
-    output: ReadFileResultDto,
-  },
-} as const satisfies ServerTools;
+  read_file: { input: ReadFileArgsDto, output: ReadFileResultDto }, // the server's own tool name
+};
 
-// 1. @McpServer: connects to an external MCP server and types its tools
+// 1. @McpServer: connects to an external MCP server and types its tools (checked at start)
 @McpServer({
   name: "workspace-fs-mcp",
-  transport: "stdio",
+  transport: McpTransport.Stdio, // or McpTransport.Http with a url
   command: "npx",
   args: ["-y", "@modelcontextprotocol/server-filesystem", "./workspace"],
   tools: serverTools,
 })
 export class WorkspaceFsMcpServer extends McpServerClient<typeof serverTools> {}
 
-// 2. @McpTool: wraps the MCP server call with constructor DI and ToolHandler
-@McpTool({
+// 2. A @Tool the model sees; it lists the server in deps and calls it
+@Tool({
   name: "read_workspace_file",
   description: "Reads a file from the sandboxed workspace MCP server",
-  server: WorkspaceFsMcpServer,
   input: ReadFileArgsDto,
   output: ReadFileResultDto,
   deps: [WorkspaceFsMcpServer, ExecutionContext],
 })
-export class ReadWorkspaceFileMcpTool
-  implements ToolHandler<ReadFileArgsDto, ReadFileResultDto>
-{
+export class ReadWorkspaceFileTool {
   constructor(
     private readonly server: WorkspaceFsMcpServer,
     private readonly executionContext: ExecutionContext,
   ) {}
 
-  async run(input: ReadFileArgsDto): Promise<ReadFileResultDto> {
-    void this.executionContext.signal;
+  execute(input: ReadFileArgsDto): Promise<ReadFileResultDto> {
+    void this.executionContext.signal; // the running step's signal ends the call unless one is given
     return this.server.call("read_file", input);
   }
 }
@@ -74,70 +67,76 @@ export class ReadWorkspaceFileMcpTool
   input: ReadFileArgsDto,
   output: ReadFileResultDto,
 })
-export class PingWorkspaceTool implements ToolHandler<ReadFileArgsDto, ReadFileResultDto> {
-  run(input: ReadFileArgsDto): Promise<ReadFileResultDto> {
-    return Promise.resolve({ content: `ok:${input.path}` });
+export class PingWorkspaceTool {
+  execute(input: ReadFileArgsDto): ReadFileResultDto {
+    return { content: `ok:${input.path}` };
   }
 }
 
-// 3. @McpExpose: publishes @Tool and @WorkflowStart classes as an MCP server
-@McpExpose({
+// 3. @McpEndpoint: publishes @Tool and @WorkflowStart classes as an MCP server
+@McpEndpoint({
   name: "acme-workspace-mcp-server",
   version: "1.0.0",
-  exports: [PingWorkspaceTool],
+  tools: [PingWorkspaceTool],
 })
-export class AcmeWorkspaceMcpConfig {}
+export class AcmeWorkspaceMcpEndpoint {}
 
 @Agent({
   name: "workspace-reader-agent",
   description: "Reads workspace files via MCP",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Use read_workspace_file to inspect requested files.",
-  tools: [ReadWorkspaceFileMcpTool],
+  prompt: inline("Use read_workspace_file to inspect requested files."),
+  tools: [ReadWorkspaceFileTool],
 })
 export class WorkspaceReaderAgent {}
 ```
 
 ```ts title="test/workspace-fs.mcp.test.ts" file=test/workspace-fs.mcp.test.ts
 import { expect, it } from "vitest";
-import { mcpServerStub, testTool } from "@agboss/core/testing";
+import { testModule, testUnit } from "@agboss/core/testing";
 import {
   PingWorkspaceTool,
-   WorkspaceFsMcpServer,
+  ReadWorkspaceFileTool,
+  WorkspaceFsMcpServer,
 } from "../src/mcp/workspace-fs.mcp.js";
 
 it("stubs @McpServer calls and unit-tests exposed @Tool offline", async () => {
-  const fsStub = mcpServerStub(WorkspaceFsMcpServer, {
+  const module = await testModule({ components: [ReadWorkspaceFileTool, PingWorkspaceTool] });
+  const fs = module.mockMcp(WorkspaceFsMcpServer).thenReturn({
     read_file: ({ path }) => Promise.resolve({ content: `file:${path}` }),
   });
-  const readRes = await fsStub.call("read_file", { path: "README.md" });
-  expect(readRes.content).toBe("file:README.md");
+  const read = await module.runTool(ReadWorkspaceFileTool, { path: "README.md" });
+  expect(read.output).toEqual({ content: "file:README.md" });
+  expect(fs.calls).toHaveLength(1);
+  await module.close();
 
-  const runPing = testTool(PingWorkspaceTool);
+  const runPing = testUnit(PingWorkspaceTool);
   const { output } = await runPing({ path: "src/index.ts" });
   expect(output.content).toBe("ok:src/index.ts");
 });
 ```
 
-## What options do `@McpServer`, `@McpTool`, and `@McpExpose` accept?
+## What options does `@McpServer` accept?
 
-| Decorator | Option | Type | Required | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `@McpServer` | `name` | `string` | **Yes** | Unique identifier for the external MCP server (`"workspace-fs-mcp"`). |
-| `@McpServer` | `command` / `args` or `url` | `string` / `readonly string[]` | **Yes** | Launch command for stdio servers (`command`, `args`, `env`) or endpoint `url` for HTTP/SSE servers. |
-| `@McpServer` | `tools` | `ServerTools` (`Record<string, { input: DtoClass; output: DtoClass }>`) | **Yes** | Map of upstream MCP tool names to their input and output DTO classes, typing `this.server.call(toolName, args)`. |
-| `@McpTool` | `name`, `description`, `input`, `output` | Same as [`@Tool`](/reference/tool/) | **Yes** | Exposes the MCP capability to `@Agent({ tools: [...] })` with full DTO validation. |
-| `@McpTool` | `server` | `Class` | **Yes** | The `@McpServer` class this tool calls; also listed in `deps` for constructor injection. |
-| `@McpTool` | `deps` | `readonly Token[]` | No | Constructor dependencies including the `@McpServer` client class and `ExecutionContext`. |
-| `@McpExpose` | `name` | `string` | **Yes** | Server name advertised to connecting MCP clients (`"acme-support-mcp"`). |
-| `@McpExpose` | `version` | `string` | **Yes** | Server version advertised over MCP (`"1.0.0"`). |
-| `@McpExpose` | `exports` | `readonly Class[]` | **Yes** | Array of `@Tool` and `@WorkflowStart` classes exposed over MCP. |
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | Yes | Plain identifier of the external MCP server (`"workspace-fs-mcp"`); no kind suffix. |
+| `transport` | `McpTransport.Stdio \| McpTransport.Http` | Yes | The transport — an enum, not the strings of 0.1.0. |
+| `command` / `args` / `env` | `string` / `readonly string[]` / `Record` | Stdio | Launch command of a stdio server. Each takes text or `defineEnv` references (`EnvRef`, `SecretRef`); an `env` entry that resolves to `undefined` is left out, and `inheritSystemEnv` (default `true`) passes `PATH`, `HOME`, `LANG` and `TMPDIR`. |
+| `url` / `headers` | `string \| EnvRef` / `Record` | Http | Endpoint and headers, read once at start; secrets are references, never values (`headers: { authorization: bearer(secretRef) }`). The class's `protected getHeaders()` adds headers per request. |
+| `tools` | `ServerTools` (`Record<string, { input?: DtoClass; output: DtoClass }>`) | Yes | The server's tools this application uses, typing `this.server.call(toolName, args)`; at start each must exist with a compatible input schema, else the start fails with `McpError.Contract`. A tool that takes no arguments declares no `input`; a plain-text one declares `output: PlainTextDto`. |
+| `timeout` | `Milliseconds` | No | One call at most (30 s by default). |
+| `costPerCall` | `Usd` | No | Charged to the step once per call, under the call's own ledger identity. |
+| `maxConcurrentCalls` | `number` | No | Queues calls past the limit. |
+| `target` | `{ application, endpoint }` | No | Names an AGBoss application's endpoint for `agboss check --federation`. |
 
-## What related entities work with `@McpServer`, `@McpTool`, and `@McpExpose`?
+A call is `call(name, args, { key?, signal?, timeout? })`: two calls of one step to one tool need distinct `key`s to be distinct calls. A failure is an `McpError` (`Unavailable`, `Contract`, `MethodNotFound`) — never the server's text — or the `AGBossError` it carried as it is (a mesh limit, a timeout). Everything a tool gets applies: `timeout`, `maxResultSize`, `approval`, PII masking of arguments and results, `SpendRecorder`, `executionContext.step.idempotencyKey`. `AgentsConfig.mcpServers` is removed.
+
+## What related entities work with `@McpServer`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
 | `McpServerClient<TTools>` | `"@agboss/core/mcp"` | Base class extended by `@McpServer` classes; provides `this.call(toolName, input)` with compile-checked arguments and return types. |
-| `@Workflow({ mcp: [ServerClass] })` | `"@agboss/core"` | Registers `@McpServer` classes on the workflow so the container connects them on startup and closes them on shutdown. |
-| `createMcpService(app, ExposeConfigClass)` | `"@agboss/core/mcp"` | Creates a stdio (`service.connectStdio()`) or session-based MCP server from a booted `App` and an `@McpExpose` class. |
-| `mcpServerStub(ServerClass, handlers)` | `"@agboss/core/testing"` | Stubs an `@McpServer` in unit tests (`testTool`) without spawning an external process. |
+| `McpTransport`, `connectMcp`, `connectMcpStdio`, `mcpHttpListener` | `"@agboss/core/mcp"` | The transports of a client and of an [`@McpEndpoint`](/reference/mcp-endpoint/). |
+| `bearer(secretRef)`, `defineEnv`, `env`, `secret` | `"@agboss/core"` | The references a server's settings are written with. |
+| `mockMcp(ServerClass).thenReturn({ … })` | fixture of `testWith`, `testModule`, `testAgent` | Stubs an `@McpServer` in tests without spawning an external process; `.calls` lists what the server got, `.reset()` forgets handlers and calls. |

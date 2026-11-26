@@ -9,28 +9,29 @@ In **AGBoss** (*Agent Graph Builder Open Source System*) and its declarative spe
 
 | Decorator | Public Entry & File Convention | Role in the Application |
 | :--- | :--- | :--- |
-| [`@Application`](/reference/application/) | `agboss` (`*.application.ts`) | Single assembly root binding workflows, environment, providers, budgets, PII, guardrails, health checks, and observers |
-| [`@Workflow`](/reference/workflow/) | `agboss` (`*.workflow.ts`) | Typed state graph declaring `flow` paths, `defaults`, `compaction`, and `maxSteps` |
-| [`@WorkflowStart`](/reference/workflow-start/) / [`@WorkflowFinish`](/reference/workflow-finish/) | `agboss` (`*.workflow-start.ts` / `*.workflow-finish.ts`) | Entry (`input: Dto`) and exit (`output: Dto` / `FinishHandler`) boundaries of a workflow |
-| [`@Agent`](/reference/agent/) | `agboss` (`*.agent.ts` + `*.prompt.md`) | LLM reasoning node with `model`, `prompt`/`promptUrls`, `tools`, `rag`, `judges`, `input`, and `output` |
-| [`@Action`](/reference/action/) | `agboss` (`*.action.ts`) | Deterministic TypeScript step (`ActionHandler`, `execute(input)`) for code-only workflow nodes |
-| [`@Router`](/reference/router/) | `agboss` (`*.router.ts`) | Branching component (`DecidedBy.Model` or `DecidedBy.Code`) selecting one or more `routes` |
-| [`@Arbiter`](/reference/arbiter/) / [`@OnAnswer`](/reference/on-answer/) | `agboss` (`*.arbiter.ts`) | Quorum consensus voter attached with `.acceptedBy()` before `.joinQuorum()` |
-| [`@Tool`](/reference/tool/) / [`@BindTool`](/reference/bind-tool/) | `agboss` (`*.tool.ts`) | Agent-callable capability (`ToolHandler<In, Out>`, `run(input)`) with DTO schema validation |
-| [`@ToolInterceptor`](/reference/tool-interceptor/) | `agboss` (`*.tool-interceptor.ts`) | Cross-cutting pre-call (`BeforeToolCall` $\to$ `ToolCallDecision`) and post-call (`AfterToolCall`) interceptor for `@Tool` and `@McpTool` |
-| [`@Judge`](/reference/judge/) | `agboss` (`*.judge.ts`) | Quality gate (`JudgeHandler<TReply>`, `DecidedBy.Model` or `DecidedBy.Code`) inspecting reply DTOs and `toolCalls` |
-| [`@Compaction`](/reference/compaction/) | `agboss` (`*.compaction.ts`) | Conversation history compaction strategy (`SummaryQueue`, `SingleSummary`, `Custom` with `CompactionHandler`, or `None`) |
-| [`@Injectable`](/reference/injectable/) | `agboss` (`*.service.ts`) | Injectable service or `ExecutionObserver` with `OnInit`, `OnStart`, `OnStop`, `OnDestroy` hooks |
-| [`@HealthCheck`](/reference/health-check/) | `agboss` (`*.health-check.ts`) | Liveness and readiness probe component (`HealthCheckHandler`, `checkLiveness()`, `checkReadiness()`) |
-| [`@ModelProvider`](/reference/model-provider/) | `@agboss/core/models` (`*.model-provider.ts`) | Model vendor pool (`-model-provider` suffix) with HTTP or custom `ModelProviderHandler` transport, `serves`, `promptCaching`, `rateLimitPolicy`, and `circuitBreakerPolicy` |
-| [`@Budget`](/reference/budget/) | `agboss` (`*.config.ts`) | Spend ceiling (`BudgetHandler`, `maxSpend(): Usd`) for `Application`, `Tenant`, or `Execution` scope |
-| [`@PiiPolicy`](/reference/pii-policy/) | `agboss` (`*.pii-policy.ts`) | Declarative `rules: [pii(...)]` or custom `PiiPolicyHandler.findMatches(text)` with deterministic HMAC `replaceWithToken()` |
-| [`@InputGuardrail` & `@OutputGuardrail`](/reference/guardrail/) | `agboss` (`*.guardrail.ts`) | Input/output guardrails (`DecidedBy.Model` with `threshold` or `DecidedBy.Code` with `GuardrailHandler`) across `Application`, `Workflow`, and `Agent` scopes |
-| [`@ChannelRole`](/reference/channel-role/) / [`@Channel`](/reference/channel/) / [`@ReplyInterpreter`](/reference/reply-interpreter/) | `agboss` (`*.channel.ts`) | Out-of-process pause role (`approves`), free-text `@ReplyInterpreter`, and transport implementation (`send(ask)`, `onPauseClosed(event)`) |
-| [`@Rag`](/reference/rag/) | `agboss` / `@agboss/core/rag` (`*.rag.ts`) | Knowledge base (`RagConnector`, `SqliteFtsConnector`) |
-| [`@McpServer`](/reference/mcp/) / [`@McpTool`](/reference/mcp-tool/) / [`@McpExpose`](/reference/mcp-expose/) | `agboss` / `@agboss/core/mcp` (`*.mcp.ts`) | Model Context Protocol client servers, typed tools, and server exposure |
-| [`@A2AAgent` & `a2aHttpListener`](/reference/a2a-agent/) | `agboss` / `@agboss/core/a2a` (`*.a2a.ts`) | Remote Agent-to-Agent protocol client (`A2AClient`), `@Injectable()` `A2ACallerResolver`, and multi-tenant `a2aHttpListener` |
-| [`@Text`, `@ListOf`, `@Nested`, …](/reference/dto/) | `@agboss/core/dto` (`*.dto.ts`) | Field decorators on plain DTO classes compiled to JSON Schema and checked by `agboss check` |
+| [`@Application`](/reference/application/) | `agboss` (`*.application.ts`) | Single assembly root binding workflows, environment, `modelProvider` and `providers`, `storage`, budgets, PII, guardrails, health checks, and observers |
+| [`@Workflow`](/reference/workflow/) | `agboss` (`*.workflow.ts`) | Typed state graph declaring `flow` paths, `historyTtl` (required), `executionLimits`, `memory`, and `defaults` |
+| [`@WorkflowStart`](/reference/workflow-start/) / [`@WorkflowFinish`](/reference/workflow-finish/) | `agboss` (`*.workflow-start.ts` / `*.workflow-finish.ts`) | Entry (`input: Dto`) and exit (`output: Dto`, a pure boundary port) of a workflow |
+| [`@Agent`](/reference/agent/) | `agboss` (`*.agent.ts` + `*.prompt.md`) | LLM reasoning node with `model`, `prompt` (a `PromptSource`: a file path, `inline(…)` or a list), `tools`, `rag`, `judges`, `input`, and `output` |
+| [`@Action`](/reference/action/) | `agboss` (`*.action.ts`) | Deterministic TypeScript step (`ActionHandler`, `execute(input)` sync or async) for code-only workflow nodes |
+| [`@Router`](/reference/router/) | `agboss` (`*.router.ts`) | Branching component (`DecidedBy.Model` or `DecidedBy.Code`) selecting one or more `routes`, continued with `.onRoute(…)` |
+| [`@Arbiter`](/reference/arbiter/) / [`@Arbitrate`](/reference/arbiter/) | `agboss` (`*.arbiter.ts`) | Quorum consensus voter attached with `.arbitratedBy()` before `.joinQuorum()` |
+| [`@Tool`](/reference/tool/) | `agboss` (`*.tool.ts`) | Agent-callable capability (`execute(input)`) with DTO schema validation; a tool that needs a person names a [`@ToolApproval`](/reference/pause-target/) |
+| [`@ToolInterceptor`](/reference/tool-interceptor/) | `agboss` (`*.tool-interceptor.ts`) | Cross-cutting pre-call (`@BeforeTool` $\to$ `ToolCallDecision`) and post-call (`@AfterTool`) hooks, per tool or for every tool |
+| [`@Judge`](/reference/judge/) | `agboss` (`*.judge.ts`) | Quality gate: a declarative model judge (`prompt` + `threshold`) or a code judge (`JudgeHandler<TReply>`) inspecting reply DTOs and `toolCalls` |
+| [`@Memory`](/reference/memory/) | `agboss` (`*.memory.ts`) | What a workflow, an agent or a model router remembers of its thread: its window, its summaries and its `ttl` (replaces `@Compaction`) |
+| [`@Injectable`](/reference/injectable/) | `agboss` (`*.service.ts`) | Injectable service with `OnInit`, `OnStart`, `OnStop`, `OnDestroy` hooks; `@Observer` for execution observers |
+| [`@HealthCheck`](/reference/health-check/) | `agboss` (`*.health-check.ts`) | Liveness and readiness probe component (`checkLiveness()`, `checkReadiness()`) |
+| [`@ModelProvider`](/reference/model-provider/) | `@agboss/core/models` (`*.model-provider.ts`) | One explicit provider: a `driver` (`OpenRouterDriver`, `OpenAiCompatibleDriver`, `DecisionsDriver`) or a transport class with `complete(request)`, plus `promptCaching`, `rateLimitPolicy`, `circuitBreakerPolicy`, `fallback` |
+| [`@DatabaseStorage`](/concepts/application/) | `agboss` (`*.database-storage.ts`) | Where the rows go: a driver (`SqliteDriver`, the store packages'), `auditLogTtl`, `ledgerEntriesTtl`, and the keys; `@ClusterStorage` and `@ObjectStorage` beside it |
+| [`@Budget`](/reference/budget/) | `agboss` (`*.budget.ts`) | Spend and token ceiling (`maxSpend`, `maxTokens`, or `BudgetHandler`) for `Application`, `Tenant`, or `Execution` scope |
+| [`@PiiPolicy`](/reference/pii-policy/) | `agboss` (`*.pii-policy.ts`) | Declarative rules written on a kind or group (`PiiKind.Email.mask()`, `PiiKind.Phone.tokenize()`, `PiiGroup.….block(refusal)`) or a custom `findMatches(text)`, with a `secret` for the deterministic HMAC token |
+| [`@InputGuardrail` & `@OutputGuardrail`](/reference/guardrail/) | `agboss` (`*.guardrail.ts`) | Input/output guardrails (a model guardrail with `prompt` and `threshold`, or a code guardrail with one `check(content)`) across `Application`, `Workflow`, and `Agent` scopes |
+| [`@ToolApproval` / `@ExternalTask`](/reference/pause-target/) / [`@Channel`](/reference/channel/) / [`@ChannelInterpreter`](/reference/channel-interpreter/) | `agboss` (`*.tool-approval.ts`, `*.external-task.ts`, `*.channel.ts`) | A pause **target** (who may answer, what is asked, when it expires) and the **channel** that carries it (`send(ask)`, `onPauseClosed(event)`), with `@ChannelSelector` and `@ChannelListener` beside them |
+| [`@Rag`](/reference/rag/) | `agboss` / `@agboss/core/rag` (`*.rag.ts`) | Knowledge base: a class extending `RagSource` (`SqliteFtsRagSource`) |
+| [`@McpServer`](/reference/mcp/) / [`@McpEndpoint`](/reference/mcp-endpoint/) | `agboss` / `@agboss/core/mcp` (`*.mcp-server.ts`, `*.mcp-endpoint.ts`) | Model Context Protocol client servers (a `@Tool` lists one in `deps`) and the server contract your application exposes |
+| [`@A2AAgent`](/reference/a2a-agent/) / `@A2AEndpoint` & `a2aHttpListener` | `agboss` / `@agboss/core/a2a` (`*.a2a-agent.ts`, `*.a2a-endpoint.ts`) | Remote Agent-to-Agent client (`A2AClient`), the typed A2A contract you serve (`skills`, `ttl`), an `@HttpAuthenticator` and the `a2aHttpListener` |
+| [`@Text`, `@List`, `@Nested`, …](/reference/dto/) | `@agboss/core/dto` (`*.dto.ts`) | Field decorators on plain DTO classes compiled to JSON Schema and checked by `agboss check` |
 
 ## Naming & suffix invariant (`[name.kind-suffix]`)
 
@@ -42,10 +43,10 @@ This guarantees that both humans and AI coding agents can tell a class's computa
 
 ## How DTO classes and explicit units work
 
-In AGBoss, DTOs are plain TypeScript classes decorated with field decorators from `@agboss/core/dto` (`@Text`, `@ListOf`, `@Integer`, `@Decimal`, `@Flag`). Runtime values returned from tools and actions are plain object literals `{ ... }` (never `new MyDto()`), and all currency and duration values use factory functions from `@agboss/core/units` (`usd()`, `seconds()`, `minutes()`, `hours()`):
+In AGBoss, DTOs are plain TypeScript classes decorated with field decorators from `@agboss/core/dto` (`@Text`, `@Integer`, `@Float`, `@Bool`, `@Enum`, `@List`, `@Nested`). Runtime values returned from tools and actions are plain object literals `{ ... }` (never `new MyDto()`), and all currency and duration values use factory functions from `@agboss/core/units` (`usd()`, `seconds()`, `minutes()`, `hours()`):
 
 ```ts title="src/tools/lookup-order.tool.ts" file=src/tools/lookup-order.tool.ts
-import { Budget, BudgetScope, ExecutionContext, Tool, type BudgetHandler, type ToolHandler } from "@agboss/core";
+import { Budget, BudgetScope, ExecutionContext, Tool, type BudgetHandler, inline } from "@agboss/core";
 import { Integer, Text } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
 
@@ -79,12 +80,10 @@ export class OrderExecutionBudget implements BudgetHandler {
   output: OrderSummaryOutput,
   deps: [ExecutionContext],
 })
-export class LookupOrderTool
-  implements ToolHandler<OrderLookupInput, OrderSummaryOutput>
-{
+export class LookupOrderTool {
   constructor(private readonly executionContext: ExecutionContext) {}
 
-  run({ orderId }: OrderLookupInput): Promise<OrderSummaryOutput> {
+  execute({ orderId }: OrderLookupInput): Promise<OrderSummaryOutput> {
     this.executionContext.signal.throwIfAborted();
     return Promise.resolve({
       status: `shipped:${orderId}`,
@@ -95,14 +94,14 @@ export class LookupOrderTool
 ```
 
 ```ts title="src/agents/order-assistant.agent.ts" file=src/agents/order-assistant.agent.ts
-import { Agent } from "@agboss/core";
+import { Agent, inline } from "@agboss/core";
 import { LookupOrderTool } from "../tools/lookup-order.tool.js";
 
 @Agent({
   name: "order-assistant-agent",
   description: "Looks up customer order status using LookupOrderTool",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Look up the order status before answering.",
+  prompt: inline("Look up the order status before answering."),
   tools: [LookupOrderTool],
 })
 export class OrderAssistantAgent {}
@@ -110,11 +109,11 @@ export class OrderAssistantAgent {}
 
 ```ts title="test/lookup-order.tool.test.ts" file=test/lookup-order.tool.test.ts
 import { expect, it } from "vitest";
-import { testTool } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import { LookupOrderTool } from "../src/tools/lookup-order.tool.js";
 
 it("executes LookupOrderTool in isolation without booting the workflow", async () => {
-  const run = testTool(LookupOrderTool);
+  const run = testUnit(LookupOrderTool);
   const res = await run({ orderId: "ord_104" });
   expect(res.output.status).toBe("shipped:ord_104");
 });
@@ -122,6 +121,6 @@ it("executes LookupOrderTool in isolation without booting the workflow", async (
 
 ## Where to explore individual decorators
 
-- [Workflow HDSL (`@Workflow`)](/concepts/workflow/) for `HarnessDSL` path chains, `.switch(caseOf())`, `.chooseOne(route())`, parallel launches, and quorums.
+- [Workflow HDSL (`@Workflow`)](/concepts/workflow/) for `HarnessDSL` path chains, `.onRoute(…)`, `.toOneOf([…])`, `.inParallel([…])`, and quorums.
 - [Dependency Injection (`@Injectable`)](/concepts/dependency-injection/) for constructor injection, `ExecutionContext`, `Clock`, `Logger`, and lifecycle hooks.
 - [Agent Reference](/reference/agent/), [Router Reference](/reference/router/), and [Tool Reference](/reference/tool/) for full decorator options.

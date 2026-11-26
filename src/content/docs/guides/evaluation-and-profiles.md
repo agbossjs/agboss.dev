@@ -1,16 +1,17 @@
 ---
 title: "Loop 2–4: Live Evals, pass^k, Nightly Polygon & Judge Calibration"
-description: "Run Loops 2–4 of the AGBoss Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k, Cohen's kappa calibration, and RFC 8785 Tern profiling."
+description: "Run Loops 2–4 of the AGBoss Verification Funnel — Fail-Fast @EvalSuite cascades, pass@k vs pass^k, Cohen's kappa calibration, and RFC 8785 Turn profiling."
 ---
 
-In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), once [Loop 0 (`agboss check`) and Loop 1 (`npm test`)](/guides/testing-agents/) have verified your topology and TypeScript harness for `$0`, **Loops 2–4** evaluate live model trajectories, memory compaction survival, and production telemetry. AGBoss combines in-loop [`@Judge`](/reference/judge/) gates (`DecidedBy.Code` and `DecidedBy.Model`), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmarks (`@agboss/core/eval`), Fail-Fast `$0 → $$$` cascades, `pass@k` vs `pass^k` baseline gates (`flaky-on-baseline` quarantine), nightly `--metamorphic` and `--chaos` polygons, Cohen's $\kappa$ calibration (`agboss eval calibrate`), and two production feedback loops (`agboss golden` & [Progressive Crystallization](/concepts/progressive-crystallization/)).
+In the AGBoss [5-Loop Cost & Determinism Verification Funnel](/concepts/verification-funnel/), once [Loop 0 (`agboss check`) and Loop 1 (`npm test`)](/guides/testing-agents/) have verified your topology and TypeScript harness for `$0`, **Loops 2–4** evaluate live model trajectories, memory compaction survival, and production telemetry. AGBoss combines in-loop [`@Judge`](/reference/judge/) gates (code, declarative and model judges), declarative [`@EvalSuite`](/guides/evaluation-and-profiles/#principle-5-declarative-evalsuite-passk--passk-calibration--eval-ui) benchmarks (`@agboss/core/eval`), Fail-Fast `$0 → $$$` cascades, `pass@k` vs `pass^k` baseline gates (`flaky-on-baseline` quarantine), nightly `--metamorphic` and `--chaos` polygons, Cohen's $\kappa$ calibration (`agboss eval calibrate`), and two production feedback loops (`agboss golden` & [Progressive Crystallization](/concepts/progressive-crystallization/)).
 
 ---
 
 ## Complete example: `@Judge` quality gates, `oneOf` narrowing, YAML profile & eval test
 
-<!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
+<!--
+```ts file=src/eval-budgets.ts
+import { Budget, BudgetPeriod, BudgetScope, type BudgetHandler } from "@agboss/core";
 import { usd, type Usd } from "@agboss/core/units";
 @Budget({ name: "eval-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class EvalAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(50); } }
@@ -18,27 +19,33 @@ export class EvalAppBudget implements BudgetHandler { maxSpend(): Usd { return u
 export class EvalTenantBudget implements BudgetHandler { maxSpend(): Usd { return usd(5); } }
 @Budget({ name: "eval-exec-budget", scope: BudgetScope.Execution })
 export class EvalExecBudget implements BudgetHandler { maxSpend(): Usd { return usd(0.5); } }
-// @snippet
+```
 -->
 ```ts title="src/judges/answer-grounded.judge.ts" file=src/judges/answer-grounded.judge.ts
 import {
-  Agent,
-  Application,
-  DecidedBy,
   Decision,
   Judge,
   JudgeModel,
   JudgeVerdict,
   Tool,
-  Workflow,
-  WorkflowFinish,
-  WorkflowStart,
-  start,
+  oneOf,
+  secret,
   type JudgeHandler,
   type JudgeInput,
-  type ToolHandler,
 } from "@agboss/core";
-import { Integer, Text, isVariant, oneOf } from "@agboss/core/dto";
+import { Integer, Text } from "@agboss/core/dto";
+import { DecisionsDriver, ModelCost, ModelProvider } from "@agboss/core/models";
+import { seconds } from "@agboss/core/units";
+
+// decision models are served by a provider with a DecisionsDriver; the judge names it
+@ModelProvider({
+  name: "eval-decisions-model-provider",
+  description: "Decision models on OpenRouter's Decisions API",
+  driver: DecisionsDriver({ baseUrl: "https://openrouter.ai/api/v1", apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: seconds(30),
+  cost: ModelCost.fromResponse(),
+})
+export class EvalDecisionsModelProvider {}
 
 export class OpeningsDto {
   @Text({ prompt: "Verified job openings with [source] citations" })
@@ -61,36 +68,34 @@ export class RefusalDto {
   input: OpeningsDto,
   output: OpeningsDto,
 })
-export class JobBoardSearchTool implements ToolHandler<OpeningsDto, OpeningsDto> {
-  run(input: OpeningsDto): Promise<OpeningsDto> {
-    return Promise.resolve({ openings: `Results for ${input.openings} [gh-104]` });
+export class JobBoardSearchTool {
+  execute(input: OpeningsDto): OpeningsDto {
+    return { openings: `Results for ${input.openings} [gh-104]` };
   }
 }
 
-// 1. $0 deterministic code @Judge checking bracketed citation format before any LLM judge runs:
+// 1. $0 deterministic code @Judge (no JudgeModel in deps) checking bracketed citation format before any LLM judge runs:
 @Judge({
   name: "citation-format-judge",
   description: "Checks that the reply contains at least one bracketed [source] citation",
-  decidedBy: DecidedBy.Code,
-  reply: OpeningsDto,
+  output: OpeningsDto,
 })
 export class CitationFormatJudge implements JudgeHandler<OpeningsDto> {
-  judge(input: JudgeInput<OpeningsDto>): Promise<JudgeVerdict> {
-    const hasCitation = /\[[a-z0-9-]+\]/i.test(input.reply.openings);
-    return Promise.resolve(
-      hasCitation
-        ? JudgeVerdict.passed({ metrics: { hasCitation: true } })
-        : JudgeVerdict.failed({ reason: "Every listed opening must include a [source] tag." }),
-    );
+  judge(input: JudgeInput<OpeningsDto>): JudgeVerdict {
+    const hasCitation = /\[[a-z0-9-]+\]/i.test(input.output.openings);
+    return hasCitation
+      ? JudgeVerdict.passed({ metrics: { hasCitation: true } })
+      : JudgeVerdict.failed("Every listed opening must include a [source] tag.");
   }
 }
 
-// 2. Decision-model @Judge using calibrated Decision.noul + Decision.score:
+// 2. Decision-model @Judge using calibrated Decision.boolean + Decision.score:
 @Judge({
   name: "answer-grounded-judge",
   description: "Verifies that every listed role is grounded and complete",
   model: "typesafe/jev-1.13",
-  reply: OpeningsDto,
+  modelProvider: EvalDecisionsModelProvider,
+  output: OpeningsDto,
   deps: [JudgeModel],
 })
 export class AnswerGroundedJudge implements JudgeHandler<OpeningsDto> {
@@ -98,9 +103,9 @@ export class AnswerGroundedJudge implements JudgeHandler<OpeningsDto> {
 
   async judge(input: JudgeInput<OpeningsDto>): Promise<JudgeVerdict> {
     const answers = await this.judgeModel.decide({
-      state: { task: input.task, openings: input.reply.openings },
+      state: { task: input.task, openings: input.output.openings },
       questions: {
-        grounded: Decision.noul("Are all openings grounded in tool outputs?"),
+        grounded: Decision.boolean("Are all openings grounded in tool outputs?"),
         usefulness: Decision.score("Overall completeness", [
           "useless",
           "partial",
@@ -108,42 +113,70 @@ export class AnswerGroundedJudge implements JudgeHandler<OpeningsDto> {
         ]),
       },
     });
-    return answers.grounded.noul >= 0.8 && answers.usefulness.score >= 1
+    return answers.grounded.probability >= 0.8 && answers.usefulness.score >= 1
       ? JudgeVerdict.passed({
           metrics: {
-            groundedProbability: answers.grounded.noul,
+            groundedProbability: answers.grounded.probability,
             usefulness: answers.usefulness.score,
           },
         })
-      : JudgeVerdict.failed({
-          reason: "Cite a verified [source] for every job opening.",
-        });
+      : JudgeVerdict.failed("Cite a verified [source] for every job opening.");
   }
 }
 
-// 3. Deterministic DTO @Judge narrowing a oneOf(OfferDto, RefusalDto) union via isVariant:
+// 3. Deterministic DTO @Judge over a oneOf(OfferDto, RefusalDto) output: the answer is an instance of its class
 @Judge({
   name: "fair-decision-judge",
   description: "Checks that offers have positive salary and refusals explain why",
-  decidedBy: DecidedBy.Code,
-  reply: oneOf(OfferDto, RefusalDto),
+  output: oneOf(OfferDto, RefusalDto),
 })
 export class FairDecisionJudge implements JudgeHandler<OfferDto | RefusalDto> {
-  judge(input: JudgeInput<OfferDto | RefusalDto>): Promise<JudgeVerdict> {
-    if (isVariant(input, OfferDto)) {
-      return Promise.resolve(
-        input.reply.salary > 0
-          ? JudgeVerdict.passed({ metrics: { salary: input.reply.salary } })
-          : JudgeVerdict.failed({ reason: "An offer must specify salary > 0." }),
-      );
+  judge(input: JudgeInput<OfferDto | RefusalDto>): JudgeVerdict {
+    const answer = input.output;
+    if (answer instanceof OfferDto) {
+      return answer.salary > 0
+        ? JudgeVerdict.passed({ metrics: { salary: answer.salary } })
+        : JudgeVerdict.failed("An offer must specify salary > 0.");
     }
-    return Promise.resolve(
-      input.reply.why.trim().length > 0
-        ? JudgeVerdict.passed()
-        : JudgeVerdict.failed({ reason: "A refusal must explain why." }),
-    );
+    return answer.why.trim().length > 0
+      ? JudgeVerdict.passed()
+      : JudgeVerdict.failed("A refusal must explain why.");
   }
 }
+```
+
+```ts title="src/scout-eval.application.ts" file=src/scout-eval.application.ts
+import {
+  Agent,
+  Application,
+  EmptyEnvironment,
+  Workflow,
+  WorkflowFinish,
+  WorkflowStart,
+  inline,
+  onStart,
+  secret,
+  Ttl,
+} from "@agboss/core";
+import { ModelCost, ModelProvider, OpenRouterDriver } from "@agboss/core/models";
+import { minutes } from "@agboss/core/units";
+import { EvalAppBudget, EvalExecBudget, EvalTenantBudget } from "./eval-budgets.js";
+import {
+  AnswerGroundedJudge,
+  CitationFormatJudge,
+  EvalDecisionsModelProvider,
+  JobBoardSearchTool,
+  OpeningsDto,
+} from "./judges/answer-grounded.judge.js";
+
+@ModelProvider({
+  name: "scout-eval-model-provider",
+  description: "OpenRouter chat models",
+  driver: OpenRouterDriver({ apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: minutes(2),
+  cost: ModelCost.fromResponse(),
+})
+export class ScoutEvalModelProvider {}
 
 @WorkflowStart({
   name: "scout-eval-workflow-start",
@@ -162,24 +195,23 @@ export class ScoutEvalFinish {}
 @Agent({
   name: "scout-eval-agent",
   description: "Finds matching roles gated by CitationFormatJudge and AnswerGroundedJudge",
-  prompt: "List matching roles and cite [source] for each role.",
+  prompt: inline("List matching roles and cite [source] for each role."),
   model: "moonshotai/kimi-k2.6",
   input: { query: OpeningsDto },
   output: OpeningsDto,
   tools: [JobBoardSearchTool],
   judges: [CitationFormatJudge, AnswerGroundedJudge],
-  maxRetries: 2,
+  executionLimits: { maxRetries: 2 },
 })
 export class ScoutEvalAgent {}
 
 @Workflow({
   name: "job-scout-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ScoutEvalStart)
-      .returns(OpeningsDto)
+    onStart(ScoutEvalStart)
       .toAgent(ScoutEvalAgent)
-      .returns(OpeningsDto)
       .toFinish(ScoutEvalFinish),
   ],
 })
@@ -190,51 +222,48 @@ export class JobScoutEvalWorkflow {}
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [JobScoutEvalWorkflow],
+  modelProvider: ScoutEvalModelProvider,
+  providers: [ScoutEvalModelProvider, EvalDecisionsModelProvider],
   budgets: [EvalAppBudget, EvalTenantBudget, EvalExecBudget],
 })
 export class JobScoutEvalApplication {}
 ```
 
-```yaml title="profiles/job-scout-workflow/scout-low-thinking.yaml"
-# yaml-language-server: $schema=../../schema/profile.schema.json
-profile: scout-low-thinking
-version: 1.0.0-low-thinking
-agents:
-  scout-eval-agent:
-    model: moonshotai/kimi-k2.6
-    maxToolCalls: 4
-defaults:
-  models:
-    temperature: 0
-  router:
-    model: typesafe/jev-1.13
+```yaml title="src/config/scout-low-thinking.config.yaml"
+# a profile: only what differs from the TypeScript base; layered with --profile base,scout-low-thinking
+workflows:
+  job-scout-workflow:
+    version: 1.0.0-low-thinking
+    agents:
+      scout-eval-agent:
+        temperature: 0
 ```
+
+A **profile** is `src/config/<name>.config.ts` or `<name>.config.yaml` next to the file `@Application` is declared in (`base.config.*` is the shared layer under every selection); it replaces 0.1.0's `profiles/<workflow>/<name>.yaml`, `profileRoot` and `schema/profile.schema.json`. `createApp(App, { profile })`, `testWith`, and `agboss run | chat | describe | check | eval | golden | compare` take the same selection — `"prod"`, `"prod,economy"` or `["prod", "economy"]`, layered left to right, a later profile winning per key (default `dev` for `createApp` and the CLI, `test` for `testWith`). A `.config.ts` exports `defineConfig({ … })` (`defaults`, `modelProviders`, `workflows` by name with `"*"` for every workflow, `budgets: { "<budget name>": { maxSpend, maxTokens } }`, the model of a `judges` / `arbiters` / `guardrails` / `piiPolicies` / `channelInterpreters` component, `memories`, `routers`, and the classes that stand in for the application's own `modelProvider`, `storage`, `channels`, `observers`, `healthChecks`); a `.config.yaml` holds constants only (no `${ENV}`, no classes). A typo, an unknown agent or a forbidden key fails closed with a `ProfileError` that names the file and the key, never a value; `agboss check` assembles the application under **every** profile of the folder.
 
 ```ts title="test/eval-and-judges.test.ts" file=test/eval-and-judges.test.ts
 import { expect } from "vitest";
-import { decideWith, replyWith, testJudge, testWith } from "@agboss/core/testing";
+import { decideWith, replyWith, testUnit, testWith } from "@agboss/core/testing";
 import {
   AnswerGroundedJudge,
   FairDecisionJudge,
-  JobScoutEvalApplication,
   OfferDto,
   OpeningsDto,
   RefusalDto,
-  ScoutEvalAgent,
-  ScoutEvalStart,
 } from "../src/judges/answer-grounded.judge.js";
+import { JobScoutEvalApplication, ScoutEvalAgent, ScoutEvalStart } from "../src/scout-eval.application.js";
 
 const test = testWith(JobScoutEvalApplication);
 
 test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and unit-tests FairDecisionJudge", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  // 1. Unit-test the oneOf union judge with isVariant narrowing:
-  const runFairJudge = testJudge(FairDecisionJudge);
+  // 1. Unit-test the oneOf union judge (it narrows by instanceof):
+  const runFairJudge = testUnit(FairDecisionJudge);
   const offerVerdict = await runFairJudge({
     variant: OfferDto,
-    reply: { salary: 195_000 },
+    output: { salary: 195_000 },
     task: "Make an offer",
     attempt: 0,
   });
@@ -242,19 +271,19 @@ test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and uni
 
   const emptyRefusal = await runFairJudge({
     variant: RefusalDto,
-    reply: { why: "   " },
+    output: { why: "   " },
     task: "Decline candidate",
     attempt: 0,
   });
   expect(emptyRefusal.output.passed).toBe(false);
 
   // 2. Full workflow test: judge rejects first answer, agent retries and passes on attempt 2:
-  mockLlm(ScoutEvalAgent).thenReturn(
+  mockModel(ScoutEvalAgent).thenReturn(
     replyWith(OpeningsDto, { openings: "Uncited role" }),
     replyWith(OpeningsDto, { openings: "Staff TS Engineer [gh-104]" }),
   );
 
-  mockLlm(AnswerGroundedJudge).thenReturn(
+  mockModel(AnswerGroundedJudge).thenReturn(
     decideWith({ grounded: 0.2, usefulness: 0 }),
     decideWith({ grounded: 0.95, usefulness: 2 }),
   );
@@ -263,7 +292,7 @@ test("retries ScoutEvalAgent when AnswerGroundedJudge rejects attempt 1, and uni
     openings: "Find Staff TS roles",
   });
   expect(result.output).toEqual({ openings: "Staff TS Engineer [gh-104]" });
-  expect(mockLlm(ScoutEvalAgent)).toHaveBeenCalledTimes(2);
+  expect(mockModel(ScoutEvalAgent)).toHaveBeenCalledTimes(2);
 });
 ```
 
@@ -275,22 +304,22 @@ A foundational rule of AGBoss is: **never verify with a paid language model what
 
 | Loop | Command / Runner | Latency & Cost | What It Proves |
 | :--- | :--- | :--- | :--- |
-| **[Loop 0: Compiler](/concepts/verification-funnel/#loop-0-static-proof-agboss-check---federation--0--1-second)** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance, `{ about }` staleness, LIFO saga compensations, and Agent Mesh federation schemas |
-| **[Loop 1: Deterministic Harness](/guides/testing-agents/)** | `npm test` (`testWith(App)`, 10 unit runners, `VirtualClock`, VCR) | `~3s` · **`$0`** (every commit; locked by `[vcr.stale-cassette]`) | **Object 2 (Harness Code):** `@Action`, `DecidedBy.Code` `@Router`/`@Arbiter`, `@Tool`, `@ToolInterceptor`, `@PiiPolicy`, retries, `ModelFailure` chaos, and `{ instances: 2 }` pod leases |
+| **[Loop 0: Compiler](/concepts/verification-funnel/#loop-0-static-proof-agboss-check---federation--0--1-second)** | `$ agboss check --federation` | `< 1s` · **`$0`** (every save) | **Object 1 (Topology & Mesh Contracts):** Path Scope dominance, outdating of stale values, LIFO saga compensations, and Agent Mesh federation schemas |
+| **[Loop 1: Deterministic Harness](/guides/testing-agents/)** | `npm test` (`testWith(App)`, `testUnit`, `VirtualClock`, VCR) | `~3s` · **`$0`** (every commit; locked by `[vcr.stale-cassette]`) | **Object 2 (Harness Code):** `@Action`, code `@Router`/`@Arbiter`, `@Tool`, `@ToolInterceptor`, `@PiiPolicy`, retries, `ModelFailure` chaos, and `{ instances: 2 }` pod leases |
 | **Loop 2: PR Smoke Gate** | `$ agboss eval run --runs 5 --baseline` | `~1 min` · **`$`** (on PR when `promptHash` / `schemaHash` changes) | **Object 3 (Model & Trajectory):** Fail-Fast cascade (`$0` `requiredTools`/`forbiddenTools`/`toolInvariant` $\to$ `$0` code `@Judge` $\to$ LLM `@Judge`), `pass^5` vs cached `--baseline` (`flaky-on-baseline` quarantine), and `eval-report.html` |
-| **Loop 3: Nightly Polygon** | `$ agboss eval run --runs 20 --metamorphic --chaos` | `~15 min` · **`$$`** (nightly on `main` / pre-release) | **Objects 3 & 4 (Trajectory & Memory):** Full 30–50+ task benchmark with pinned `vendorRouting`, `--metamorphic` paraphrase invariance, multi-turn `@Compaction` survival, stale-memory override, `--chaos`, and provider drift detection |
+| **Loop 3: Nightly Polygon** | `$ agboss eval run --runs 20 --metamorphic --chaos` | `~15 min` · **`$$`** (nightly on `main` / pre-release) | **Objects 3 & 4 (Trajectory & Memory):** Full 30–50+ task benchmark with pinned `vendorRouting`, `--metamorphic` paraphrase invariance, multi-turn `@Memory` survival, stale-memory override, `--chaos`, and provider drift detection |
 | **Loop 4: Production & Feedback Loops A/B** | `ExecutionRecord` $\to$ `$ agboss eval ui` / `$ agboss eval calibrate` / `agboss golden` | `24/7` · Continuous | **Loop A:** Failure taxonomy tagging, Cohen's $\kappa \ge 0.80$ judge calibration, and 1-click promotion to `golden/*.yaml`. **Loop B:** [Progressive Crystallization](/concepts/progressive-crystallization/) from paid Loop 2 back into `$0` Loop 1 |
 
 ---
 
-## Principle 2: What every `Tern` stores & RFC 8785 `configHash`
+## Principle 2: What every `Turn` stores & RFC 8785 `configHash`
 
-In AGBoss, one question-to-answer execution round is called a **`Tern`**, and a `threadId` is a client's sequence of `Tern`s. Every execution — whether `answered`, `guarded`, `failed`, or `paused` — writes a `Tern` into `ExecutionRecordRepository` containing:
+In AGBoss, one question-to-answer execution round is called a **`Turn`**, and a `threadId` is a client's sequence of `Turn`s. Every execution — whether `answered`, `guarded`, `failed`, or `paused` — writes a `Turn` into `ExecutionRecordRepository` containing:
 
 - `task`, `answer`, `status`, `stopReason`, `route`, `steps` (what each agent/router answered), and `cost`.
 - **`promptVersion` & `modelVersion`:** Short SHA-256 fingerprints of all agent/router prompts and resolved model settings. Editing a `*.prompt.md` file automatically produces a new `promptVersion`.
 - **`configHash` (RFC 8785 Canonical JSON):** A 64-character SHA-256 fingerprint (first 8 hex characters shown in `agboss describe`) computed over RFC 8785 canonical JSON (UTF-16 code-unit key order, locale-independent) covering:
-  - **`elements`:** Each agent and model router's active `@PiiPolicy` rules, `uncompactedTurns`, `@Compaction` strategy, and attached `@Judge`s.
+  - **`elements`:** Each agent and model router's active `@PiiPolicy` rules, `uncompactedTurns`, `@Memory` strategy, and attached `@Judge`s.
   - **`frame`:** The framework's own system framing for routers, tool loops, judge retry prompts, and RAG citations.
   - **`children`:** Every reachable child `@Workflow` recursively.
   - If you modify a workflow's prompt or flow without bumping `@Workflow({ version })`, AGBoss logs a drift warning at startup: `warning: config "job-scout" 1.0.0 changed without a version bump (hash 3f2a…)`.
@@ -299,12 +328,12 @@ In AGBoss, one question-to-answer execution round is called a **`Tern`**, and a 
 
 ## Principle 3: Scoring, calibrating & replaying with `agboss eval` and `agboss replay`
 
-1. **Calibrate your judge first:** Before trusting aggregate eval numbers, inspect and hand-label 20–30 recorded `Tern`s to verify that your decision judge agrees with human domain judgment.
-2. **Score unscored `Tern`s (`agboss eval score`):**
+1. **Calibrate your judge first:** Before trusting aggregate eval numbers, inspect and hand-label 20–30 recorded `Turn`s to verify that your decision judge agrees with human domain judgment.
+2. **Score unscored `Turn`s (`agboss eval score`):**
    ```bash
    npx agboss eval score --version 1.0.0 --limit 100
    ```
-   Scores every unscored answered `Tern` (`P(adequate)`) and prints a summary table per `promptVersion` (total `Tern`s, scored count, mean score, and USD cost).
+   Scores every unscored answered `Turn` (`P(adequate)`) and prints a summary table per `promptVersion` (total `Turn`s, scored count, mean score, and USD cost).
 3. **Replay historical tasks against a prompt edit (`agboss replay`):**
    ```bash
    npx agboss replay --version <old-prompt-version> --limit 100
@@ -315,7 +344,7 @@ In AGBoss, one question-to-answer execution round is called a **`Tern`**, and a 
 
 ## Principle 4: Golden sets & A/B profile comparisons (`agboss compare` & `compareProfiles`)
 
-A profile YAML file (`profiles/<workflow-name>/<profile>.yaml`) overrides `defaults`, `compactions.<name>`, `agents.*`, or `prompts` without touching TypeScript code.
+A profile (`src/config/<name>.config.yaml` or `.config.ts`, above) overrides `defaults`, the `memories`, `agents`, `routers` and `prompts` of a workflow, a model provider's models, and the limits of a budget without touching TypeScript code.
 
 ### From the CLI (`agboss golden` & `agboss compare`)
 
@@ -368,15 +397,13 @@ export async function runComparison() {
 
 ## Principle 5: Declarative `@EvalSuite`, `pass@k` / `pass^k`, Calibration & Eval UI
 
-In addition to scoring recorded `Tern`s, `@agboss/core/eval` lets you declare typed, multi-turn evaluation suites (`@EvalSuite`) with trajectory expectations (`checkTrajectory()`, `toolCall`, `toolInvariant`) and Fail-Fast cascading judges (`EvalCascade.StopAtFirstFailure`, running `$0` `DecidedBy.Code` judges before `DecidedBy.Model` judges):
+In addition to scoring recorded `Turn`s, `@agboss/core/eval` lets you declare typed, multi-turn evaluation suites (`@EvalSuite`) with trajectory expectations (a case's `tools`: `toolCall`, `toolInvariant`) and Fail-Fast cascading judges (`EvalCascade.StopAtFirstFailure`, running `$0` code judges before model judges):
 
 ```ts title="src/evals/job-scout.eval-suite.ts" file=src/evals/job-scout.eval-suite.ts
 import {
   EvalCascade,
   EvalSuite,
-  checkTrajectory,
   evalCase,
-  judgedBy,
   pastTurn,
   toolCall,
   toolInvariant,
@@ -386,30 +413,29 @@ import {
   AnswerGroundedJudge,
   CitationFormatJudge,
   JobBoardSearchTool,
-  ScoutEvalFinish,
-  ScoutEvalStart,
 } from "../judges/answer-grounded.judge.js";
+import { ScoutEvalFinish, ScoutEvalStart } from "../scout-eval.application.js";
 
 @EvalSuite({
   name: "job-scout-eval-suite",
-  description: "Multi-turn grounding and trajectory benchmark for JobScoutEvalWorkflow",
+  description: "Multi-turn grounding and trajectory benchmark for JobScoutEvalWorkflow", // optional
   start: ScoutEvalStart,
-  checks: [
-    checkTrajectory(), // 1. $0 deterministic trajectory invariants
-    judgedBy(CitationFormatJudge), // 2. $0 DecidedBy.Code judge
-    judgedBy(AnswerGroundedJudge), // 3. Paid DecidedBy.Model judge (runs only if 1 & 2 pass)
+  // a case's `tools` run first ($0 trajectory invariants), then these judges in order
+  judges: [
+    CitationFormatJudge, // 1. a code @Judge: $0
+    AnswerGroundedJudge, // 2. a paid model @Judge (runs only if the checks above passed)
   ],
-  cascade: EvalCascade.StopAtFirstFailure,
+  cascade: EvalCascade.StopAtFirstFailure, // optional: this is the default
   cases: [
     evalCase({
       name: "berlin-staff-ts-roles",
       history: [
-        pastTurn(
-          ScoutEvalStart,
-          { openings: "Focus on remote-friendly EU hubs" },
-          ScoutEvalFinish,
-          { openings: "Filtering to EU remote hubs [eu-hub]" },
-        ),
+        pastTurn({
+          start: ScoutEvalStart,
+          input: { openings: "Focus on remote-friendly EU hubs" },
+          finish: ScoutEvalFinish,
+          output: { openings: "Filtering to EU remote hubs [eu-hub]" },
+        }),
       ],
       turns: [turn({ openings: "Find Staff TypeScript roles in Berlin" })],
       variants: [
@@ -425,6 +451,8 @@ import {
 })
 export class JobScoutEvalSuite {}
 ```
+
+A single-turn case may be written `input: { … }` (with its `pauses`: `answerPause(Target, decision, { actor? })` and `replyToPause(Target, reply)`), and the last turn must end as `expectedStatus` (default `Finished`). `beforeAttempt` / `afterAttempt` on the suite and the case run around every repetition. `runEvalSuite(Application, Suite, { profile?, env?, runs?, chaos?, metamorphic? })` builds the application, runs the suite and closes it; `compareEvalSuite(Application, Suite, { variants })` runs it once per variant. A model judge with no provider pinned (`@Judge`, `@EvalSuite({ modelProvider })`, `@Application`) is `[eval.judge-missing-provider]`; a judge's calls are recorded as `judgeUsd` and are not billed to the application's budgets (`EvalRunSpend` is `{ executionUsd, judgeUsd, totalUsd }`).
 
 ### Multi-Run Reliability (`pass@k` vs `pass^k`), Regression Gates & Calibration
 
@@ -448,7 +476,7 @@ npx agboss eval run --suite job-scout-eval-suite --chaos 0.3 --chaos-seed 42 --m
 npx agboss generate eval-case refund-edge-eval-case --suite job-scout-eval-suite --from-execution exec-9102
 
 # 7. Export stored ExecutionRecords to JSONL for offline analysis or AGBoss Mesh Hub:
-npx agboss records export --all-tenants --out .artifacts/records.jsonl
+npx agboss executions export --all-tenants --out .artifacts/records.jsonl
 
 # 8. Open the local interactive Eval UI workbench (trajectory inspector, failure taxonomy tagging & live kappa labeling):
 npx agboss eval ui --dir .artifacts/eval
@@ -460,7 +488,7 @@ npx agboss eval ui --dir .artifacts/eval
 | **Baseline Regression Gate (`--baseline --fail-on-regression`)** | Compares every case against a baseline report JSON (`exit code 5` on new failures). Any case whose baseline had `0 < pass^k < 1` is marked `flaky-on-baseline` (`CaseComparison.FlakyOnBaseline`) and quarantined so baseline noise never blocks unrelated pull requests. |
 | **Judge Calibration (`eval calibrate` & Cohen's $\kappa$)** | Computes pairwise **Cohen's kappa ($\kappa$)**, a confusion matrix (`TP`, `FP`, `TN`, `FN`), disagreements, and per-metric rubrics between each `@Judge` and human `EvalLabel` JSONL annotations (`eval/labels/<suite>.jsonl`). Also warns with `[judge.same-model-family]` when a model judge shares the evaluated agent's model family. |
 | **Chaos (`--chaos <rate> --chaos-seed <n>`) & Metamorphic (`--metamorphic`)** | `--chaos` injects transient provider faults (`429`, timeouts, truncated answers) below `ProviderFetch` to verify retry and `.onError()` resilience; `--metamorphic` runs case `variants` and verifies that the tool-call trajectory (`metamorphic` check) remains invariant across prompt rewordings. |
-| **Production Flywheel (`generate eval-case --from-execution` & `records export`)** | Reads an `ExecutionRecord` from `ExecutionHistoryRepository` (`SqliteExecutionHistoryRepository`), turns its conversation history, input, and required tool calls into a typed `evalCase(...)` in your `@EvalSuite`, and exports JSONL records (`agboss records export`) for offline auditing and `agboss hub`. |
+| **Production Flywheel (`generate eval-case --from-execution` & `executions export`)** | Reads an `ExecutionRecord` from `ExecutionHistoryRepository` (`SqliteExecutionHistoryRepository`), turns its conversation history, input, and required tool calls into a typed `evalCase(...)` in your `@EvalSuite`, and exports JSONL records (`agboss executions export`) for offline auditing and `agboss hub`. |
 | **HTML Report (`eval show --html`) & Interactive Workbench (`eval ui`)** | Generates a self-contained single-file HTML report for CI artifacts (`eval run --html` or `eval show <run.json> --html`), or launches a local web workbench (`127.0.0.1`) to inspect multi-turn trajectories, tag failure modes, label runs with live $\kappa$ recalculation, and promote production traces into `@EvalSuite` cases. |
 
 ---

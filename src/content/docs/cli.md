@@ -7,13 +7,13 @@ The [`@agboss/cli`](https://www.npmjs.com/package/@agboss/cli) package (paired w
 
 ## How to scaffold projects and generate components
 
-Create a new project interactively or via flags in CI with `npm exec --yes --package=@agboss/cli@0.1.0 -- agboss create` (short alias `agb c`):
+Create a new project interactively or via flags in CI with `npm exec --yes --package=@agboss/cli@0.1.1 -- agboss create` (short alias `agb c`):
 
 ```bash
-npm exec --yes --package=@agboss/cli@0.1.0 -- agboss create my-app
+npm exec --yes --package=@agboss/cli@0.1.1 -- agboss create my-app
 cd my-app
 npm install
-npm exec --yes --package=@agboss/cli@0.1.0 -- agboss c support-desk --yes --agents "triage:Sorts requests,answerer:Answers questions" --tools "answerer:search_orders" --mcp filesystem:/path/to/docs --rag notes --skip-install
+npm exec --yes --package=@agboss/cli@0.1.1 -- agboss c support-desk --yes --agents "triage:Sorts requests,answerer:Answers questions" --tools "answerer:search_orders" --mcp filesystem:/path/to/docs --rag notes --skip-install
 ```
 
 Generate components into an existing workflow module with `agboss generate` (alias `agboss g`) using their full names (including kind suffix) or single-letter/short kind aliases (`a` = `agent`, `r` = `router`, `t` = `tool`, `ar` = `arbiter`, `m` = `mcp`, `oa` = `openapi`, `w` = `workflow`, `ec` = `eval-case`). The CLI enforces a strict **`1 class = 1 file`** layout, placing each `@Workflow` in `src/workflows/<workflow-name>/` alongside its `@WorkflowStart` and `@WorkflowFinish` files, prompt-capable components (`@Agent`, `@Router`, `@Judge`, `@Arbiter`, `@Compaction`, `@InputGuardrail` / `@OutputGuardrail`, `@ReplyInterpreter`) in their own component subdirectory (`src/<kind-plural>/<name>/<name>.<kind>.ts` + `<name>.prompt.md`), and all DTOs flat in `src/dto/<name>.dto.ts`:
@@ -54,15 +54,17 @@ src/
 ├── arbiters/<name>/
 │   ├── <name>.arbiter.ts
 │   └── <name>.prompt.md
-├── compactions/<name>/
-│   ├── <name>.compaction.ts
+├── memories/<name>/
+│   ├── <name>.memory.ts
 │   └── <name>.prompt.md
 ├── guardrails/<name>/
 │   ├── <name>.guardrail.ts
 │   └── <name>.prompt.md
-├── reply-interpreters/<name>/
-│   ├── <name>.reply-interpreter.ts
-│   └── <name>.prompt.md
+├── channels/                         # Pause targets, channels and interpreters
+│   ├── <name>.tool-approval.ts       # or <name>.external-task.ts
+│   ├── <name>.channel.ts
+│   ├── <name>.channel-interpreter.ts
+│   └── <name>.prompt.md              # (for a model interpreter)
 ├── workflows/<workflow-name>/        # Each workflow folder owns its starts & finishes
 │   ├── <workflow-name>.workflow.ts
 │   ├── <start-name>.workflow-start.ts
@@ -77,9 +79,8 @@ src/
 │   └── <name>.service.ts
 ├── observers/
 │   └── <name>.observer.ts
-├── channels/
-│   ├── <name>.channel-role.ts
-│   └── <name>.channel.ts
+├── storages/
+│   └── <name>.database-storage.ts
 ├── pii-policies/
 │   └── <name>.pii-policy.ts
 ├── rag/
@@ -88,11 +89,11 @@ src/
 │   └── <name>.retriever.ts
 ├── mcp/
 │   ├── <name>.mcp-server.ts
-│   ├── <name>.mcp-tool.ts
-│   └── <name>.mcp-expose.ts
+│   └── <name>.mcp-endpoint.ts
 ├── a2a/
 │   ├── <name>.a2a-agent.ts
-│   └── <name>.a2a-expose.ts
+│   ├── <name>.a2a-endpoint.ts
+│   └── <name>.http-authenticator.ts
 ├── model-providers/
 │   └── <name>.model-provider.ts
 ├── budgets/
@@ -115,19 +116,21 @@ src/
 | `agboss check --cassettes` | Verifies recorded VCR cassettes against current `promptHash` and `schemaHash` fingerprints (`[vcr.stale-cassette]`) |
 | `agboss check --federation <path...>` | Verifies cross-repository `@A2AAgent` / `@McpServer` contracts against snapshots from `agboss describe --json` (`[federation.*]`) |
 | `agboss dev` / `agboss studio` | Watches `src/` to regenerate `.agboss/types.d.ts` on save (`dev`), or launches LangGraph Studio for every workflow and child subgraph (`studio`) |
-| `agboss describe [--application <path>]` | Prints paths, node inputs by producer, `{ about }` links, `historyOf` limits, model → provider resolution, budgets, and step limits |
-| `agboss describe --json` | Exports the full declarative revision snapshot (`configHash`, `maxConcurrentSteps`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and `application.contracts.imports` / `exports`) |
+| `agboss describe [--application <path>]` | Prints paths, node inputs by producer, `historyOf` limits, model → provider resolution, budgets, and step limits |
+| `agboss describe --json` | Exports the full declarative revision snapshot (`configHash`, `executionLimits`, `@Action` `compensateWith` / `committedBy` links, per-agent `promptHash`, per-DTO `schemaHash`, and `application.contracts.imports` / `exports`) |
 | `agboss chat` / `agboss run` | Starts an interactive terminal chat (`--thread`, `--profile`, `--env`) or executes a single task on the `@Application` and prints the output and spend summary |
-| `agboss eval score` / `agboss replay` | Scores recent `Tern`s (`--start`, `--version`, `--limit`, `--profile`) or replays a prompt version against recorded tasks |
+| `agboss eval score` / `agboss replay` | Scores recent `Turn`s (`--start`, `--version`, `--limit`, `--profile`) or replays a prompt version against recorded tasks |
 | `agboss eval run --suite <name>` | Runs an `@EvalSuite` across `--runs <k>` trials (`pass@k` and `pass^k`), `--chaos <rate> --chaos-seed <n>`, `--metamorphic`, `--report <run.json>`, `--baseline <run.json> --fail-on-regression`, and `--html <report.html>` |
 | `agboss eval calibrate --report <run.json>` | Computes pairwise **Cohen's kappa ($\kappa$)**, confusion matrices, disagreements, and metric rubrics between `@Judge` verdicts and human `EvalLabel` JSONL annotations (`--labels <file.jsonl>`) |
 | `agboss eval show <run.json> [--html <file>]` / `agboss eval ui` | Re-renders a saved `EvalRunReport` artifact into a self-contained static HTML page without calling models, or launches the local interactive Eval UI workbench (`127.0.0.1`) |
-| `agboss records export` | Exports completed `ExecutionRecord`s from `ExecutionHistoryRepository` (`--tenant <id>` or `--all-tenants`, `--since`, `--until`) to `--out <file.jsonl>` |
+| `agboss executions export` | Exports the application's kept execution records (`retention.executionRecords`) as masked JSON Lines (`--tenant <id>` or exactly `--all-tenants`, `--since`, `--until`) to `--out <file.jsonl>`; the 0.1.0 name of this command is gone |
 | `agboss hub show <path...> [--html <file>]` / `agboss hub ui <path...>` | Stitches `describe --json` snapshots, `.jsonl` execution records, and eval reports into the **AGBoss Mesh Hub** (Global Agent Mesh Graph, Cross-Service Execution Trees, Progressive Crystallization Radar, and Blast Radius) as a static HTML page or local UI server (`127.0.0.1`) |
 | `agboss golden add --name <n>` | Saves recent real tasks as a reusable golden evaluation dataset |
 | `agboss compare --profiles base,<p>` | Compares YAML configuration profiles side by side against a golden set |
 | `agboss rag index` | Builds or updates `@Rag` knowledge-base indexes |
 | `agboss migrate imports` | Rewrites imports from deprecated sub-entries to current AGBoss entries |
+| `agboss migrate db [--allow-live-leases]` | Brings the application's `@DatabaseStorage` database to the build's schema (the driver's `migrate`); it refuses while execution leases are live, so stop the old version first |
+| `agboss help [<command>] [--json]` | Lists the commands, or describes one command's options; every command takes `--json` (one envelope on stdout) and `--debug` |
 
 ## Key static analyzer diagnostics (`agboss check`)
 
@@ -136,15 +139,15 @@ src/
 | Rule Code | What It Catches |
 | :--- | :--- |
 | `[name.kind-suffix]` | A decorated component's `name` option (`"-agent"`, `"-budget"`, `"-tool-interceptor"`) or its TypeScript class identifier (`*Agent`, `*Budget`, `*ToolInterceptor`) is missing its kind suffix. |
-| `[input.missing-on-path]` & `[input.outdated-on-path]` | A downstream node reads a DTO that is not produced on every incoming branch or was invalidated by a review loop's `{ about: Dto }` without being re-produced. |
+| `[input.missing-on-path]` & `[input.outdated-on-path]` | A downstream node reads a DTO that is not produced on every incoming branch or was invalidated by a review loop (`OutdatedReason.Replaced` / `BuiltFromReplaced`) without being re-produced. |
 | `[flow.uncompensated-action]` & `[graph.limit-handler-uses-model]` | A side-effecting `@Action` lacks `compensateWith` / `committedBy`, or a resource-limit `.onError()` handler routes to an LLM node instead of a deterministic `@Action` / `@WorkflowFinish`. |
 | `[prompt.input-in-instructions]` | Runtime `input` fields are interpolated into `prompt` / `promptUrls` (which would break LLM KV prefix caching). |
 | `[compaction.missing-handler]` & `[compaction.invalid-setting]` | A `CompactionStrategy.Custom` class omits `compact(input)`, or sets model-only options (`model`, `prompt`, `summaryQueueLength`, `summaryMaxTokens`). |
-| `[guardrail.missing-handler]` & `[tool-interceptor.missing-handler]` | A `DecidedBy.Code` guardrail omits `check(text)`, or a `@ToolInterceptor` implements neither `BeforeToolCall` nor `AfterToolCall`. |
+| `[guardrail.missing-handler]` & `[tool-interceptor.missing-handler]` | A code guardrail omits `check(text)`, or a `@ToolInterceptor` implements neither `BeforeToolCall` nor `AfterToolCall`. |
 | `[model-provider.both-modes]` | A `@ModelProvider` mixes HTTP `baseUrl` / `apiKey` options with a custom `ModelProviderHandler.complete(request)` implementation. |
-| `[vcr.stale-cassette]` & `[judge.same-model-family]` | A VCR cassette's recorded `promptHash` / `schemaHash` no longer matches current code, or a `DecidedBy.Model` `@Judge` uses the same model family as the judged `@Agent`. |
-| `[flow.conflicting-placement]` & `[application.in-memory-child-queue]` | Two paths to the same child workflow specify different `ChildPlacement` modes, or `ChildPlacement.AnyInstance` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`. |
-| `[federation.incompatible-schema]` & `[federation.missing-target]` | Cross-service `@A2AAgent` / `@McpServer` DTO schemas drifted from the producer's `@A2AExpose` / `@McpExpose` `schemaHash` in `agboss describe --json`. |
+| `[vcr.stale-cassette]` & `[judge.same-model-family]` | A VCR cassette's recorded `promptHash` / `schemaHash` no longer matches current code, or a model `@Judge` uses the same model family as the judged `@Agent`. |
+| `[flow.conflicting-placement]` & `[application.in-memory-child-queue]` | Two paths to the same child workflow specify different `ChildPlacement` modes, or `ChildPlacement.AnyWorker` is used without a shared `ChildExecutionQueueRepository` in `@Application({ providers })`. |
+| `[federation.incompatible-schema]` & `[federation.missing-target]` | Cross-service `@A2AAgent` / `@McpServer` DTO schemas drifted from the producer's `@A2AEndpoint` / `@McpEndpoint` `schemaHash` in `agboss describe --json`. |
 
 ## Exporting a declarative revision snapshot with `agboss describe --json`
 

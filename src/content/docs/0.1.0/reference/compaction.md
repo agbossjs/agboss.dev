@@ -1,9 +1,10 @@
 ---
 title: "@Compaction"
 description: API reference for the @Compaction decorator, CompactionStrategy (SummaryQueue, SingleSummary, Custom, None), and CompactionHandler in AGBoss.
+slug: 0.1.0/reference/compaction
 ---
 
-`@Compaction` (`"@agboss/core"`) declares how completed conversation turns older than a reader's `uncompactedTurns` window are summarized in multi-turn threads. A `@Compaction` class is bound via `compaction: MyCompaction` on [`@Application`](/reference/application/), [`@Workflow`](/reference/workflow/), [`@Agent`](/reference/agent/), or [`@Router`](/reference/router/) (the most specific level that sets `compaction` wins).
+`@Compaction` (`"@agboss/core"`) declares how completed conversation turns older than a reader's `uncompactedTurns` window are summarized in multi-turn threads. A `@Compaction` class is bound via `compaction: MyCompaction` on [`@Application`](/0.1.0/reference/application/), [`@Workflow`](/0.1.0/reference/workflow/), [`@Agent`](/0.1.0/reference/agent/), or [`@Router`](/0.1.0/reference/router/) (the most specific level that sets `compaction` wins).
 
 ## Complete `@Compaction` example
 

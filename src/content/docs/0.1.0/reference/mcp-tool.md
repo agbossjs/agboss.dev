@@ -1,9 +1,10 @@
 ---
 title: "@McpTool"
 description: Complete API reference for the @McpTool decorator in agboss/mcp — wrapping external Model Context Protocol server tools with typed DTO schemas, DI, and channels.
+slug: 0.1.0/reference/mcp-tool
 ---
 
-The `@McpTool` decorator (`"@agboss/core/mcp"`) wraps an external [`@McpServer`](/reference/mcp/) tool inside a typed AGBoss `ToolHandler<In, Out>` class. Because an `@McpTool` is a first-class class with constructor dependency injection (`deps`), it can inject its `@McpServer` client, `ExecutionContext`, `SpendRecorder`, or custom services, and can require human approval via `channel: MyChannelRole`.
+The `@McpTool` decorator (`"@agboss/core/mcp"`) wraps an external [`@McpServer`](/0.1.0/reference/mcp/) tool inside a typed AGBoss `ToolHandler<In, Out>` class. Because an `@McpTool` is a first-class class with constructor dependency injection (`deps`), it can inject its `@McpServer` client, `ExecutionContext`, `SpendRecorder`, or custom services, and can require human approval via `channel: MyChannelRole`.
 
 ## Complete `@McpTool` example
 
@@ -125,12 +126,12 @@ it("unit-tests @McpTool offline using mcpServerStub", async () => {
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | **Yes** | Unique snake_case tool identifier exposed to `@Agent({ tools })` (e.g., `"create_pull_request"`). |
 | `description` | `string` | **Yes** | Instructions telling the LLM when and how to call this MCP tool. |
-| `server` | `Class` | **Yes** | The [`@McpServer`](/reference/mcp/) class that backs this tool (`extends McpServerClient<typeof tools>`). |
+| `server` | `Class` | **Yes** | The [`@McpServer`](/0.1.0/reference/mcp/) class that backs this tool (`extends McpServerClient<typeof tools>`). |
 | `input` | `DtoClass` | **Yes** | DTO class validating arguments before `run(input)` executes. |
 | `output` | `DtoClass` | **Yes** | DTO class validating the structured output returned by `run(input)`. |
 | `deps` | `readonly Token[]` | No | Constructor dependencies (typically `[MyMcpServer]` plus optional `ExecutionContext` or services). |
-| `channel` | `Class` | No | [`@ChannelRole`](/reference/channel-role/) or [`@Channel`](/reference/channel/) requiring human approval before invoking the MCP tool. |
-| `toolInterceptors` | `readonly Class[]` | No | [`@ToolInterceptor`](/reference/tool-interceptor/) classes attached directly to this MCP tool (`BeforeToolCall` / `AfterToolCall`). |
+| `channel` | `Class` | No | [`@ChannelRole`](/0.1.0/reference/channel-role/) or [`@Channel`](/0.1.0/reference/channel/) requiring human approval before invoking the MCP tool. |
+| `toolInterceptors` | `readonly Class[]` | No | [`@ToolInterceptor`](/0.1.0/reference/tool-interceptor/) classes attached directly to this MCP tool (`BeforeToolCall` / `AfterToolCall`). |
 | `excludeToolInterceptors` | `readonly Class[]` | No | Inherited application, workflow, or agent `@ToolInterceptor` classes exempted for this MCP tool. |
 | `timeout` | `Milliseconds` | No | Per-call timeout (`seconds(20)`); defaults to `seconds(30)`. |
 | `maxResultSize` | `Bytes` | No | Maximum UTF-8 result size (`kilobytes(256)`) shown to the model before truncation. |

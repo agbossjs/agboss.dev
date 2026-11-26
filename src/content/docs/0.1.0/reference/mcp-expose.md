@@ -1,9 +1,10 @@
 ---
 title: "@McpExpose"
 description: Complete API reference for @McpExpose and createMcpService in agboss/mcp — exposing AGBoss @WorkflowStart and @Tool classes as an MCP server.
+slug: 0.1.0/reference/mcp-expose
 ---
 
-The `@McpExpose` decorator and `createMcpService(app, ConfigClass)` (`"@agboss/core/mcp"`) turn an AGBoss `@Application` into a standards-compliant **Model Context Protocol (MCP) server**. External MCP clients (Codex, Cursor, Windsurf, Claude Code, or another AGBoss application) can discover and call your exposed [`@WorkflowStart`](/reference/workflow-start/) entry points and [`@Tool`](/reference/tool/) classes with full `@Budget`, `@PiiPolicy`, and `@InputGuardrail` / `@OutputGuardrail` enforcement.
+The `@McpExpose` decorator and `createMcpService(app, ConfigClass)` (`"@agboss/core/mcp"`) turn an AGBoss `@Application` into a standards-compliant **Model Context Protocol (MCP) server**. External MCP clients (Codex, Cursor, Windsurf, Claude Code, or another AGBoss application) can discover and call your exposed [`@WorkflowStart`](/0.1.0/reference/workflow-start/) entry points and [`@Tool`](/0.1.0/reference/tool/) classes with full `@Budget`, `@PiiPolicy`, and `@InputGuardrail` / `@OutputGuardrail` enforcement.
 
 ## Complete `@McpExpose` and `createMcpService` example
 
@@ -148,4 +149,4 @@ test("executes the MCP-exposed tool and workflow start entry point", async ({ ap
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | **Yes** | MCP server identifier advertised during protocol initialization (e.g., `"job-scout-mcp"`). |
 | `version` | `string` | **Yes** | Semantic version of the exposed MCP surface (e.g., `"1.0.0"`). |
-| `exports` | `readonly Class[]` | **Yes** | Array of [`@Tool`](/reference/tool/) and [`@WorkflowStart`](/reference/workflow-start/) classes exposed as callable MCP tools. |
+| `exports` | `readonly Class[]` | **Yes** | Array of [`@Tool`](/0.1.0/reference/tool/) and [`@WorkflowStart`](/0.1.0/reference/workflow-start/) classes exposed as callable MCP tools. |

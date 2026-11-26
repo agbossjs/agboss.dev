@@ -3,17 +3,18 @@ title: "@WorkflowFinish"
 description: Complete API reference for the @WorkflowFinish decorator in AGBoss — pass-through finishes, FinishHandler<Self> transformations, and DI support.
 ---
 
-The `@WorkflowFinish` decorator defines a terminal node (`workflows/<workflow-name>/<finish-name>.workflow-finish.ts`) where a `@Workflow` path completes and returns a typed `output` DTO to the caller of `app.execute()` (or to a parent workflow calling `.toWorkflow(Child)`). A finish can be a **pass-through** (returning the latest `output` DTO already in Path Scope) or a **handled finish** implementing `FinishHandler<Self>` to assemble its `output` from multiple scoped DTOs and injected services.
+The `@WorkflowFinish` decorator defines a terminal node (`workflows/<workflow-name>/<finish-name>.workflow-finish.ts`) where a `@Workflow` path completes and returns a typed `output` DTO to the caller of `app.execute()` (or to a parent workflow calling `.toWorkflow(Child)`). A finish is a **pure boundary port**: an always-empty class that hands back the latest value of its `output` type already on the path. Assembling an output from several scoped DTOs and injected services is the job of an `@Action` (or an agent) in front of it — the 0.1.0 `FinishHandler<Self>` with `input`, `deps` and `finish()` is gone.
 
-## Complete `@WorkflowFinish` examples (pass-through and `FinishHandler`)
+## Complete `@WorkflowFinish` examples (pass-through finishes and an assembling action)
 
 ```ts title="src/workflows/offer-package/offer-package.workflow-finish.ts" file=src/workflows/offer-package/offer-package.workflow-finish.ts
 import {
+  Action,
   Clock,
   ExecutionContext,
   WorkflowFinish,
   listOf,
-  type FinishHandler,
+  type ActionHandler,
   type InputOf,
   type OutputOf,
 } from "@agboss/core";
@@ -43,7 +44,7 @@ export class OfferSummaryDto {
   completedAt!: string;
 }
 
-// 1. Pass-through finish (no input option, no finish() method — passes WorkflowFinishTextDto through):
+// 1. A finish passing the agent's text reply through to the caller:
 @WorkflowFinish({
   name: "chat-reply-workflow-finish",
   description: "Returns the agent's text reply directly to the caller",
@@ -51,9 +52,9 @@ export class OfferSummaryDto {
 })
 export class ChatReplyWorkflowFinish {}
 
-// 2. Handled finish (declares input + deps and implements FinishHandler<Self>):
-@WorkflowFinish({
-  name: "offer-summary-workflow-finish",
+// 2. The summary is assembled by an @Action (input + deps + execute) ...
+@Action({
+  name: "offer-summary-action",
   description: "Assembles the final offer summary from the approved draft and quorum verdicts",
   input: {
     draft: OfferDraftDto,
@@ -62,32 +63,39 @@ export class ChatReplyWorkflowFinish {}
   output: OfferSummaryDto,
   deps: [ExecutionContext, Clock],
 })
-export class OfferSummaryWorkflowFinish implements FinishHandler<OfferSummaryWorkflowFinish> {
+export class OfferSummaryAction implements ActionHandler<OfferSummaryAction> {
   constructor(
     private readonly executionContext: ExecutionContext,
     private readonly clock: Clock,
   ) {}
 
-  finish(
-    input: InputOf<OfferSummaryWorkflowFinish>,
-  ): OutputOf<OfferSummaryWorkflowFinish> {
-    // Single-value inputs in InputOf<Self> are wrapped in Produced<Dto, Producer> ({ value, producer }):
+  execute(input: InputOf<OfferSummaryAction>): OutputOf<OfferSummaryAction> {
+    // each input field is the DTO itself (Tracked<Dto, Producer>): input.draft.letterText
     return {
       executionId: this.executionContext.executionId,
-      letterText: input.draft.value.letterText,
+      letterText: input.draft.letterText,
       signOffCount: input.verdicts.length,
       completedAt: this.clock.now().toISOString(),
     };
   }
 }
+
+// 3. ... and the finish only names what leaves the workflow: an empty class, `output` is one DTO or a list
+@WorkflowFinish({
+  name: "offer-summary-workflow-finish",
+  description: "Returns the assembled offer summary",
+  output: OfferSummaryDto,
+})
+export class OfferSummaryWorkflowFinish {}
 ```
 
 ```ts title="src/workflows/offer-package/offer-package.workflow.ts" file=src/workflows/offer-package/offer-package.workflow.ts
-import { Agent, Workflow, WorkflowStart, listOf, start } from "@agboss/core";
+import { Agent, Workflow, WorkflowStart, listOf, onStart, inline, Ttl } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 import {
   AuditVerdictDto,
   OfferDraftDto,
+  OfferSummaryAction,
   OfferSummaryWorkflowFinish,
 } from "./offer-package.workflow-finish.js";
 
@@ -102,7 +110,7 @@ export class OfferStart {}
   name: "offer-drafter-agent",
   description: "Drafts offer letter",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Draft the offer letter.",
+  prompt: inline("Draft the offer letter."),
   input: { req: WorkflowStartTextDto },
   output: OfferDraftDto,
 })
@@ -112,7 +120,7 @@ export class OfferDrafterAgent {}
   name: "offer-auditor-agent",
   description: "Audits offer letter",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Audit the offer letter.",
+  prompt: inline("Audit the offer letter."),
   input: { draft: OfferDraftDto },
   output: listOf(AuditVerdictDto),
 })
@@ -121,13 +129,12 @@ export class OfferAuditorAgent {}
 @Workflow({
   name: "offer-package-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(OfferStart)
-      .returns(WorkflowStartTextDto)
+    onStart(OfferStart)
       .toAgent(OfferDrafterAgent)
-      .returns(OfferDraftDto)
       .toAgent(OfferAuditorAgent)
-      .returns(listOf(AuditVerdictDto))
+      .toAction(OfferSummaryAction)
       .toFinish(OfferSummaryWorkflowFinish),
   ],
 })
@@ -175,11 +182,11 @@ import {
 
 const test = testWith(OfferApplication);
 
-test("assembles final OfferSummaryDto in OfferSummaryWorkflowFinish", async ({ app, mockLlm }) => {
-  mockLlm(OfferDrafterAgent).thenReturn(
+test("assembles final OfferSummaryDto in OfferSummaryWorkflowFinish", async ({ app, mockModel }) => {
+  mockModel(OfferDrafterAgent).thenReturn(
     replyWith(OfferDraftDto, { letterText: "Welcome to Acme as Staff Engineer!" }),
   );
-  mockLlm(OfferAuditorAgent).thenReturn(
+  mockModel(OfferAuditorAgent).thenReturn(
     replyWith(AuditVerdictDto, [{ auditor: "comp-committee" }]),
   );
   const res = await app.execute(OfferStart, { text: "Prepare Staff Engineer offer" });
@@ -195,15 +202,15 @@ Every `@WorkflowFinish` class name ends with `WorkflowFinish` and its `name` opt
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow-finish` (e.g., `"offer-sent-workflow-finish"`). |
 | `description` | `string` | Yes | Description of this terminal outcome; also used by `agboss describe` and studio visualizations. |
-| `output` | `DtoClass` | Yes | The DTO class returned in `result.output` when execution ends at this finish node. |
-| `input` | `InputFields` | No | Map of DTOs read from Path Scope. When omitted, the finish is a pass-through; when set, the class must implement `FinishHandler<Self>`. |
-| `deps` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `Clock`, `@Injectable` services) injected into a handled finish. |
+| `output` | `DtoClass \| listOf(…)` | Yes | The DTO class (or `listOf(ItemDto)`, `listOf(A, B)`) returned in `result.output` when execution ends at this finish node. The finish passes the latest value of this type on the path through. |
+
+There is no `input`, no `deps` and no handler method: `input`, `deps` and `FinishHandler` are rejected (`[decorator.unknown-option]`).
 
 ## What related entities work with `@WorkflowFinish`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `FinishHandler<Self>` | `"@agboss/core"` | Interface implemented by `@WorkflowFinish` classes that declare `input` (`finish(input): OutputOf<Self> \| Promise<OutputOf<Self>>`). |
-| `WorkflowFinishTextDto` | `"@agboss/core/dto"` | Standard built-in output DTO (`{ text: string }`) for text-returning workflows. |
-| `.toFinish(FinishClass)` | Flow chain | Terminates a path in `@Workflow({ flow })` after the compiler verifies `FinishClass`'s required DTOs exist on the path. |
-| `result.finish` & `result.output` | `"@agboss/core"` | On `ExecutionStatus.Finished`, `result.finish.name` identifies which `@WorkflowFinish` ended the run and `result.output` holds the validated DTO. |
+| `WorkflowFinishTextDto` | `"@agboss/core/dto"` | Standard built-in output DTO (`{ text: string }`) for text-returning workflows; a text agent's reply is one. |
+| `.toFinish(FinishClass)` | Flow chain | Terminates a path in `@Workflow({ flow })` after the compiler verifies `FinishClass`'s `output` DTO exists on the path. |
+| `.toWorkflow(W).onFinish(WFinish, subPath)` | Flow chain | A parent branches on the finish a child workflow with two or more finishes ended at, named by the `@WorkflowFinish` class. |
+| `result.finish` & `result.output` | `"@agboss/core"` | On `ExecutionStatus.Finished`, `result.finish` identifies which `@WorkflowFinish` ended the run and `result.output` holds the validated DTO. A run that ends `Stopped` or `Cancelled` has neither. |

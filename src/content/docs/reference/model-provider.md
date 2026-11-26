@@ -1,46 +1,42 @@
 ---
 title: "@ModelProvider"
-description: "Complete API reference for @ModelProvider in agboss/models — OpenRouterModelProvider, custom chat/decision/embedding adapters, and automatic yield rules."
+description: "Complete API reference for @ModelProvider in @agboss/core/models — drivers (OpenRouterDriver, OpenAiCompatibleDriver, DecisionsDriver), custom transports, the modelProvider cascade, cost, fallback and breaker."
 ---
 
-The `@ModelProvider` decorator (`"@agboss/core/models"`) defines an application-level LLM gateway registered in [`@Application({ providers })`](/reference/application/). Every model string referenced by an `@Agent`, `@Router`, `@Arbiter`, `@Judge`, `@Compaction`, `@InputGuardrail`, `@OutputGuardrail`, or `@PiiPolicy` is matched at startup against the `serves` regular expressions of your registered `@ModelProvider` classes (`[model.unserved]` or `[model.ambiguous-provider]` if zero or multiple custom providers match).
+The `@ModelProvider` decorator (`"@agboss/core/models"`) defines an application-level LLM gateway registered in [`@Application({ providers })`](/reference/application/). **There are no built-in providers and none is picked by a model's name**: a `@ModelProvider` is an independent class that speaks one protocol (its **driver**) and holds the model names of its own, and a component reaches it through `modelProvider` — its own, its workflow's or its application's — never by a regex over the model's name. An application that lists no provider has none: a model use whose cascade names no provider is `[model.missing-provider]` at assembly, in a test too.
 
-:::tip[Built-in providers automatically yield claimed models (`#454`)]
-Every application includes the built-in catch-all `OpenRouterModelProvider` (`serves: [/.*/]`) and `DecisionsModelProvider` (`serves: [/^typesafe\/jev-/]`). You do **not** need to subclass `OpenRouterModelProvider` just to add a custom `@ModelProvider` (such as an Anthropic, Bedrock, or local Ollama provider) — the built-in catch-all providers automatically yield any model matched by another `@ModelProvider` listed in `@Application({ providers })`. Subclass `OpenRouterModelProvider` (`extends OpenRouterModelProvider`) only when you want to replace the default OpenRouter catch-all itself.
-:::
-
-`@ModelProvider` supports two transport modes (`[model-provider.both-modes]` if mixed):
-1. **HTTP base URL mode (`OpenRouterProvider` / `OpenAiCompatibleProvider`):** Configured with `baseUrl` / `baseUrlField` and optional `apiKey` (plus OpenRouter host and quantization pinning `only`, `ignore`, `quantizations`, `allowFallbacks`).
-2. **Custom transport mode (`implements ModelProviderHandler`):** Implements `complete(request: ModelProviderRequest): Promise<ModelProviderResponse>` with constructor DI (`deps: [...]`) for AWS Bedrock SDK (`SigV4`), Google Vertex AI, or corporate mTLS gateways while retaining every AGBoss gateway policy (`@Budget` pre-check & ledger, `RateLimitRepository`, 429 AIMD, retries, circuit breaker, PII masking, structured output answer tools, and `mockLlm` interception).
+`@ModelProvider` has two modes (`[model-provider.both-modes]` if mixed, or if neither):
+1. **Driver mode:** `driver: OpenRouterDriver({ apiKey })`, `OpenAiCompatibleDriver({ baseUrl, apiKey? })` (OpenAI, LiteLLM, vLLM, Ollama, Groq, DeepSeek) or `DecisionsDriver({ baseUrl, apiKey? })` (OpenRouter's Decisions API: decision models such as `typesafe/jev-1.13`, for routers, guardrails, judges and arbiters; no chat). The class is empty. `baseUrl`, `apiKey` and header values are text, `env(…)` or `secret(…)` references read once when the application starts; a provider never reads `process.env` itself.
+2. **Custom transport mode:** a class with `complete(request: ModelProviderRequest): Promise<ModelProviderResponse>` and constructor DI (`deps: [...]`) for AWS Bedrock, Google Vertex AI, or corporate mTLS gateways, while retaining every AGBoss gateway policy (`@Budget` pre-check and ledger, `RateLimitRepository`, 429 backoff, retries, circuit breaker, PII masking, answer tools, and `mockModel` interception).
 
 ## Complete `@ModelProvider` example
 
 ```ts title="src/model-providers/openrouter.model-provider.ts" file=src/model-providers/openrouter.model-provider.ts
+import { secret } from "@agboss/core";
 import {
-  DecisionsModelProvider,
+  DecisionsDriver,
   ModelCost,
   ModelProvider,
-  OPENROUTER_BASE_URL,
-  OpenRouterProvider,
+  OpenRouterDriver,
   PromptCaching,
+  ProviderSort,
   QueueBalancingStrategy,
   RateLimitPolicy,
   Reasoning,
   RetryPolicy,
+  CircuitBreakerPolicy,
   TRANSIENT_FAILURES,
-  type OpenRouterFields,
 } from "@agboss/core/models";
 import { minutes, seconds } from "@agboss/core/units";
-
-export { DecisionsModelProvider };
 
 @ModelProvider({
   name: "openrouter-model-provider",
   description: "Serves primary chat and reasoning models via OpenRouter with tenant-fair queueing",
-  serves: [/^moonshotai\//, /^anthropic\//, /^google\//],
-  baseUrl: OPENROUTER_BASE_URL,
-  baseUrlField: "openRouterBaseUrl",
-  apiKey: "openRouterApiKey",
+  driver: OpenRouterDriver({
+    apiKey: secret("OPENROUTER_API_KEY"), // read from the process when the application starts
+    routing: { ignore: ["Inceptron"], sort: ProviderSort.Price }, // OpenRouter's provider routing
+  }),
+  model: "moonshotai/kimi-k2.6", // the model of a component that names none
   timeout: minutes(2),
   cost: ModelCost.fromResponse(),
   reasoning: Reasoning.modelDecides(),
@@ -57,62 +53,38 @@ export { DecisionsModelProvider };
     perMinute: { calls: 240 },
     balancing: QueueBalancingStrategy.TenantRoundRobin,
   }),
-  circuitBreakerPolicy: {
+  circuitBreakerPolicy: CircuitBreakerPolicy.fixed({
     failureThreshold: 5,
-    window: minutes(1),
-    openFor: seconds(30),
-  },
+    failureWindow: minutes(1),
+    openDuration: seconds(30),
+  }),
 })
-export class CustomOpenRouterModelProvider extends OpenRouterProvider {
-  override readonly requestFields: OpenRouterFields = {
-    provider: {
-      ignore: ["Inceptron"],
-    },
-  };
-}
+export class CustomOpenRouterModelProvider {}
+
+// decision models are a driver of their own; a router, arbiter or judge on one names this provider
+@ModelProvider({
+  name: "decisions-model-provider",
+  description: "Decision models on OpenRouter's Decisions API",
+  driver: DecisionsDriver({ baseUrl: "https://openrouter.ai/api/v1", apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: seconds(30),
+  cost: ModelCost.fromResponse(),
+})
+export class DecisionsModelProvider {}
 ```
 
-<!-- snippet-context
+A custom transport, for a gateway that is not an OpenAI-compatible HTTP server:
+
+```ts title="src/model-providers/bedrock.model-provider.ts" file=src/model-providers/bedrock.model-provider.ts
+// Custom transport (a complete(request) method + DI) for AWS Bedrock / Vertex AI
 import { Injectable } from "@agboss/core";
 import {
   ModelCost,
-  PromptCaching,
-  Reasoning,
-  RetryPolicy,
-  TRANSIENT_FAILURES,
+  ModelProvider,
+  type ModelProviderRequest,
+  type ModelProviderResponse,
 } from "@agboss/core/models";
-import { minutes, seconds, usd } from "@agboss/core/units";
+import { minutes, usd } from "@agboss/core/units";
 
-export interface ModelProviderMessage {
-  readonly role: "system" | "user" | "assistant" | "tool";
-  readonly content: string;
-}
-
-export interface ModelProviderRequest {
-  readonly model: string;
-  readonly messages: readonly ModelProviderMessage[];
-  readonly signal: AbortSignal;
-}
-
-export interface ModelProviderResponse {
-  readonly text?: string;
-  readonly usage?: {
-    readonly inputTokens: number;
-    readonly outputTokens: number;
-  };
-}
-
-export interface ModelProviderHandler {
-  complete(request: ModelProviderRequest): Promise<ModelProviderResponse>;
-}
-
-export function ModelProvider(_options: Record<string, unknown>) {
-  return (_target: unknown, _context?: unknown): void => {};
-}
-// @snippet
--->
-```ts title="src/model-providers/bedrock.model-provider.ts" file=src/model-providers/bedrock.model-provider.ts
-// Custom transport (@ModelProvider + ModelProviderHandler + DI) for AWS Bedrock / Vertex AI
 @Injectable()
 export class BedrockSdkClient {
   converse(model: string, promptCount: number): Promise<{ text: string; inTokens: number; outTokens: number }> {
@@ -127,7 +99,7 @@ export class BedrockSdkClient {
 @ModelProvider({
   name: "bedrock-model-provider",
   description: "Serves bedrock/* models over the AWS Bedrock Converse SDK with SigV4 auth",
-  serves: [/^bedrock\//],
+  model: "bedrock/claude-sonnet-4-5",
   timeout: minutes(2),
   cost: ModelCost.fromPrices({
     "bedrock/claude-sonnet-4-5": {
@@ -135,18 +107,9 @@ export class BedrockSdkClient {
       outputPerMillion: usd(15),
     },
   }),
-  reasoning: Reasoning.off(),
-  promptCaching: PromptCaching.off(),
-  retryPolicy: RetryPolicy.exponential({
-    maxAttempts: 3,
-    initialDelay: seconds(1),
-    maxDelay: seconds(10),
-    jitter: true,
-    retryOn: TRANSIENT_FAILURES,
-  }),
   deps: [BedrockSdkClient],
 })
-export class BedrockModelProvider implements ModelProviderHandler {
+export class BedrockModelProvider {
   constructor(private readonly bedrock: BedrockSdkClient) {}
 
   async complete(request: ModelProviderRequest): Promise<ModelProviderResponse> {
@@ -156,6 +119,8 @@ export class BedrockModelProvider implements ModelProviderHandler {
       usage: {
         inputTokens: res.inTokens,
         outputTokens: res.outTokens,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
       },
     };
   }
@@ -163,30 +128,24 @@ export class BedrockModelProvider implements ModelProviderHandler {
 ```
 
 <!--
-```ts file=src/environments/app.environment.ts
-import type { Secret } from "@agboss/core";
-
-export class ProviderEnv {
-  openRouterApiKey!: Secret;
-  openRouterBaseUrl?: string;
-}
-```
 ```ts file=src/provider-demo.application.ts
 import {
   Agent,
   Application,
+  EmptyEnvironment,
   Budget,
   BudgetPeriod,
   BudgetScope,
   Workflow,
   WorkflowFinish,
   WorkflowStart,
-  start,
+  onStart,
   type BudgetHandler,
+  inline,
+  Ttl,
 } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { usd, type Usd } from "@agboss/core/units";
-import { ProviderEnv } from "./environments/app.environment.js";
 import {
   CustomOpenRouterModelProvider,
   DecisionsModelProvider,
@@ -202,16 +161,16 @@ export class ProviderDemoWorkflowFinish {}
   name: "provider-demo-agent",
   description: "Calls moonshotai/kimi-k2.6 via CustomOpenRouterModelProvider",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Reply concisely.",
+  prompt: inline("Reply concisely."),
 })
 export class ProviderDemoAgent {}
 
 @Workflow({
   name: "provider-demo-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ProviderDemoWorkflowStart)
-      .returns(WorkflowStartTextDto)
+    onStart(ProviderDemoWorkflowStart)
       .toAgent(ProviderDemoAgent)
       .toFinish(ProviderDemoWorkflowFinish),
   ],
@@ -228,8 +187,9 @@ export class MpExecBudget implements BudgetHandler { maxSpend(): Usd { return us
 @Application({
   name: "provider-demo-application",
   version: "1.0.0",
-  environment: ProviderEnv,
+  environment: EmptyEnvironment,
   workflows: [ProviderDemoWorkflow],
+  modelProvider: CustomOpenRouterModelProvider,
   providers: [CustomOpenRouterModelProvider, DecisionsModelProvider],
   budgets: [MpAppBudget, MpTenantBudget, MpExecBudget],
 })
@@ -249,11 +209,11 @@ import {
 
 const test = testWith(ProviderDemoApplication);
 
-test("matches moonshotai/kimi-k2.6 against CustomOpenRouterModelProvider serves regex", async ({
+test("reaches moonshotai/kimi-k2.6 through the application's modelProvider", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(ProviderDemoAgent).thenReturn(replyWith("Served by CustomOpenRouterModelProvider"));
+  mockModel(ProviderDemoAgent).thenReturn(replyWith("Served by CustomOpenRouterModelProvider"));
   const res = await app.execute(ProviderDemoWorkflowStart, { text: "Ping provider" });
   expect(res.status).toBe(ExecutionStatus.Finished);
 });
@@ -261,35 +221,37 @@ test("matches moonshotai/kimi-k2.6 against CustomOpenRouterModelProvider serves 
 
 ## What options does `@ModelProvider` accept?
 
-Every `@ModelProvider` class extends `OpenRouterProvider`, `OpenAiCompatibleProvider`, or implements `ModelProviderHandler`, and its `name` ends with `-model-provider` (class name ending with `ModelProvider`, `[name.kind-suffix]`):
+`name` and `description` are optional (the class name in kebab-case by default; `[name.kind-suffix]` is no longer raised). An option that is not on the list is `[decorator.unknown-option]`:
 
 | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `name` | `string` | **Yes** | Unique kebab-case identifier ending with `-model-provider` (e.g., `"openrouter-model-provider"`). |
-| `description` | `string` | **Yes** | Human-readable summary of which models and upstream endpoint this provider serves. |
-| `serves` | `readonly (string \| RegExp)[]` | **Yes** | Non-empty array of model names or regex patterns matching model IDs served by this provider (`[/^moonshotai\//, /^anthropic\//]`). |
-| `baseUrl` | `string` | For HTTP providers | Default upstream base URL (`OPENROUTER_BASE_URL`). Forbidden when implementing `ModelProviderHandler` (`[model-provider.both-modes]`). |
-| `baseUrlField` | `string` | No (HTTP only) | Optional field name on `AppEnvironment` (`env.optional("OPENROUTER_BASE_URL")`) that overrides `baseUrl` when set. |
-| `apiKey` | `string` | No (HTTP only) | Field name on `AppEnvironment` holding the `secret("...")` API key; omit for unauthenticated local model servers. |
-| `deps` | `readonly Token[]` | No (`ModelProviderHandler`) | Constructor dependencies (`@Injectable()` SDK clients, `ApplicationContext`, `TenantContext`, `ExecutionContext`) injected into custom transport providers. |
+| `name` | `string` | No | Unique kebab-case identifier; it keys the provider's shared state (slots, windows, pause and breaker in `RateLimitRepository`) and appears in logs and `agboss describe`. |
+| `description` | `string` | No | Human-readable summary of which models and upstream endpoint this provider serves. |
+| `driver` | `ModelDriver` | Driver mode | `OpenRouterDriver({ apiKey, baseUrl?, headers?, routing?, transforms? })`, `OpenAiCompatibleDriver({ baseUrl, apiKey?, headers?, requestFields? })` or `DecisionsDriver({ baseUrl, apiKey?, headers?, path?, knownModels? })`. A driver says what a model is: `ModelKind.Chat` or `ModelKind.Decisions`. |
+| `deps` | `readonly Token[]` | Transport mode | Constructor dependencies (`@Injectable()` SDK clients, `ApplicationContext`, `TenantContext`, `ExecutionContext`) of a transport provider; it is created by the container on its first call. |
+| `model` / `models` | `string` / `Record<string, string>` | One of the two for a component that names no model | The model names this provider owns: `model`, or `models`, a map of role names (`default`, `fast`) to the vendor's names. A component's `model: "fast"` is the vendor's name `models.fast` maps to; a name that is no role goes to the server as written. `[model.missing]` when a component names none and the provider has neither `model` nor `models.default`. |
 | `timeout` | `Milliseconds` | **Yes** | Per-attempt request timeout (`minutes(2)`), passed via `request.signal`. |
-| `cost` | `ModelCost` | **Yes** | Cost calculation policy (`ModelCost.fromResponse()`, `ModelCost.fromPrices(...)`, or `ModelCost.free()`). |
-| `reasoning` | `Reasoning` | **Yes** | Default reasoning mode (`Reasoning.off()`, `Reasoning.on({ effort })`, or `Reasoning.modelDecides()`). |
-| `promptCaching` | `PromptCaching` | **Yes** | Default prompt caching policy (`PromptCaching.off()`, `PromptCaching.whereSupported(...)`). |
-| `retryPolicy` | `RetryPolicy` | **Yes** | Per-call retry backoff (`RetryPolicy.exponential({ maxAttempts, initialDelay, maxDelay, jitter, retryOn })` or `RetryPolicy.none()`). |
-| `rateLimitPolicy` | `RateLimitPolicy` | No | Cluster-wide concurrency (`maxConcurrentCalls`), RPM (`perMinute`), and tenant fairness (`QueueBalancingStrategy.TenantRoundRobin`) coordinated via `RateLimitRepository`. |
-| `circuitBreakerPolicy` | `CircuitBreakerPolicy` | No | Trips open across all instances when upstream fails (`{ failureThreshold, window, openFor }`), shifting `app.checkReadiness()` to `HealthStatus.Degraded` and activating `fallbackModels`. |
-| `only` / `ignore` / `quantizations` / `allowFallbacks` | `OpenRouterProvider` options | No | OpenRouter host and quantization pinning (`only: ["Fireworks"]`, `ignore: ["Inceptron"]`, `quantizations: ["fp8", "bf16"]`, `allowFallbacks: false`) to prevent silent quantization degradation in production and evals. |
+| `cost` | `ModelCost` | No (a call with no cost fails closed) | `ModelCost.fromResponse()` (the provider reports `usage.cost`), `ModelCost.fromPrices({ "<model>": { inputPerMillion, outputPerMillion, cacheReadPerMillion?, cacheWritePerMillion? } })`. A model it does not price fails at start (`model.no-price`); a call with neither fails with `ModelCostError`. |
+| `reasoning` | `Reasoning` | No | Default reasoning mode (`Reasoning.off()`, `Reasoning.on({ effort })`, or `Reasoning.modelDecides()`); a component overrides it. |
+| `promptCaching` | `PromptCaching` | No | `PromptCaching.on({ retention, cachedParts, key? })` or `PromptCaching.off()`; unset caches opportunistically. `PromptCaching.whereSupported` is gone. |
+| `retryPolicy` | `RetryPolicy` | No | Per-call retry backoff (`RetryPolicy.exponential({ maxAttempts, initialDelay, maxDelay, jitter, retryOn })` or `RetryPolicy.fixed(…)`); omit for no retries. |
+| `rateLimitPolicy` | `RateLimitPolicy` | No | `RateLimitPolicy.of({ maxConcurrentCalls?, perMinute?: { calls?, tokens? }, balancing? })`: one limit for the whole application, coordinated via `RateLimitRepository`. Without it there is no limit. |
+| `circuitBreakerPolicy` | `CircuitBreakerPolicy` | No | `CircuitBreakerPolicy.fixed({ failureThreshold, failureWindow, openDuration })`; it trips open across all instances and is half-open when it closes, shifting `app.checkReadiness()` to `HealthStatus.Degraded`. |
+| `fallback` | `Class \| { provider, models }` | No | Another provider that answers an open breaker or an exhausted retry, chained (`A → B → C`); `{ provider, models }` maps the models. |
+
+## The model cascade
+
+A provider is named by `Component.modelProvider ?? Workflow.modelProvider ?? Application.modelProvider`. `@Agent`, a model `@Router`, `@Arbiter`, `@Judge`, `@InputGuardrail` / `@OutputGuardrail`, `@ChannelInterpreter`, a `@Memory`'s compaction and a `@PiiPolicy` (its `model`) take `modelProvider`, and so do `@Workflow` and `@Application`. A provider the cascade names is part of the application even when it is not in `providers`. A model for a component that names none comes from, in this order: its profile's override, its own `model`, the workflow's then the application's `defaults.models.model`, the provider's `model`, the provider's `models.default`. A router or an arbiter on a decision model names its own provider (`modelProvider: DecisionsModelProvider`); a chat provider does not serve it (`[model.incompatible-provider]`).
 
 ## What related entities work with `@ModelProvider`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `OpenRouterProvider` & `OpenAiCompatibleProvider` | `"@agboss/core/models"` | Base classes for OpenRouter and OpenAI-compatible chat/decision model servers (OpenAI, vLLM, Ollama, LiteLLM). |
-| `ModelProviderHandler` (`complete(request)`) | `"@agboss/core/models"` | Interface for custom SDK/transport gateways (AWS Bedrock, Vertex AI, corporate proxies) wrapped by all AGBoss FinOps, rate-limit, circuit-breaker, and PII policies. |
-| `ModelProviderFailureError` | `"@agboss/core/models"` | Thrown inside `complete(request)` to report classified failures (`ModelFailure.RateLimit` with `retryAfter`, `ModelFailure.Overloaded`, `ModelFailure.InvalidOutput`, `ModelFailure.InvalidToolArguments`) to the retry and AIMD engines. |
-| `OpenRouterModelProvider` & `DecisionsModelProvider` | `"@agboss/core/models"` | Built-in catch-all providers (`serves: [/.*/]` and `[/^typesafe\/jev-/]`) that automatically yield any model claimed by another `@ModelProvider` in `@Application({ providers })` (unless explicitly replaced by subclassing `extends OpenRouterModelProvider` or `extends DecisionsModelProvider`). |
+| `OpenRouterDriver`, `OpenAiCompatibleDriver`, `DecisionsDriver` | `"@agboss/core/models"` | The three drivers. `OpenRouterProvider`, `OpenAiCompatibleProvider`, `OpenRouterModelProvider`, `DecisionsModelProvider`, `JevModelProvider`, `DEFAULT_MODEL_PROVIDERS`, `serves`, `baseUrl`, `baseUrlField` and `apiKey` of 0.1.0 are removed. |
+| A transport class with `complete(request)` | `"@agboss/core/models"` | For custom SDK/transport gateways (AWS Bedrock, Vertex AI, corporate proxies) wrapped by all AGBoss FinOps, rate-limit, circuit-breaker, and PII policies. A transport takes `model` / `models` like a driver one; `capabilities(model)` is optional. |
+| `ModelProviderFailureError` | `"@agboss/core/models"` | Thrown inside `complete(request)` to report classified failures (`ModelFailure.RateLimited` with `retryAfter`, `Timeout`, `ServerError`, `NetworkError`) to the retry and breaker engines. |
+| `DecisionModel` | `"@agboss/core"` | The injectable decisions service: [`DecisionModel`](/reference/decision-model/). |
 | `RateLimitPolicy` & `QueueBalancingStrategy` | `"@agboss/core/models"` | Configures `maxConcurrentCalls`, `perMinute`, and `QueueBalancingStrategy` (`TenantRoundRobin`, `TenantLeastInFlight`, `TenantWeighted`, `Fifo`). |
-| `RetryPolicy` & `CircuitBreakerPolicy` | `"@agboss/core/models"` | Configures per-call exponential backoff and shared multi-instance circuit breaking. |
-| `ModelCost`, `Reasoning`, `PromptCaching` | `"@agboss/core/models"` | Configures token pricing, thinking effort (`ReasoningEffort`), and KV prefix cache policies. |
-| `RateLimitRepository` & `SqliteRateLimitRepository` | `"@agboss/core"` | Storage contract that coordinates concurrency slots, `429` cooldown windows, and circuit breaker state across worker processes. |
+| `RetryPolicy`, `CircuitBreakerPolicy` | `"@agboss/core/models"` | Per-call backoff and the shared multi-instance circuit breaker. |
+| `ModelCost`, `Reasoning`, `PromptCaching` | `"@agboss/core/models"` | Token pricing, thinking effort (`ReasoningEffort`), and KV prefix cache policies. |
+| `testWith(App)` | `"@agboss/core/testing"` | Scripts or replays models above the provider (`complete()` is never called by a scripted test) and needs no key. |

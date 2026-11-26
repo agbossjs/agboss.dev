@@ -59,7 +59,7 @@ template: splash
 <div class="agp-feature-icon">⇄</div>
 <div>
 <h3>Distributed Child Work-Stealing</h3>
-<p><code>ChildPlacement.AnyInstance</code> scheduling for horizontal fan-out of <code>.toParallelWorkflows()</code> across a Kubernetes cluster via atomic <code>ClaimPendingChild</code> queue handoffs.</p>
+<p><code>ChildPlacement.AnyWorker</code> scheduling for horizontal fan-out of <code>.forEachItem(toWorkflow(Child))</code> across a Kubernetes cluster via atomic child-queue handoffs.</p>
 </div>
 </div>
 

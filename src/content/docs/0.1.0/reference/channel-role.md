@@ -1,9 +1,10 @@
 ---
 title: "@ChannelRole"
 description: "Complete API reference for the @ChannelRole decorator in AGBoss — declaring tool-approval and question/answer pause contracts with PauseAnswerer."
+slug: 0.1.0/reference/channel-role
 ---
 
-The `@ChannelRole` decorator (`"@agboss/core"`) defines a transport-independent **human-in-the-loop pause contract**. Tools (`@Tool({ channel: RefundApprovalChannel })`) reference the abstract `@ChannelRole` class, while [`@Application({ providers })`](/reference/application/) binds the concrete [`@Channel`](/reference/channel/) implementation (such as Slack, webhook, or `AutoApproveChannel` in tests) by class inheritance.
+The `@ChannelRole` decorator (`"@agboss/core"`) defines a transport-independent **human-in-the-loop pause contract**. Tools (`@Tool({ channel: RefundApprovalChannel })`) reference the abstract `@ChannelRole` class, while [`@Application({ providers })`](/0.1.0/reference/application/) binds the concrete [`@Channel`](/0.1.0/reference/channel/) implementation (such as Slack, webhook, or `AutoApproveChannel` in tests) by class inheritance.
 
 ## Complete `@ChannelRole` example
 
@@ -219,13 +220,13 @@ Every `@ChannelRole` class extends `ChannelOf<Self>`, has a `name` ending with `
 | `answerer` | `PauseAnswerer.Channel \| PauseAnswerer.ThreadOwner` | **Yes** | Who may call `app.resume()`: the external channel (`PauseAnswerer.Channel`, requiring `{ answeredBy }`) or the thread's owner (`PauseAnswerer.ThreadOwner`, checked against `ownerId`). |
 | `approves` | `DtoClass` | Form 1* | Input DTO class of the `@Tool`s this role approves (`[channel.wrong-tool]` if a tool with another input DTO names this role). *Mutually exclusive with `ask`/`answer`. |
 | `ask` & `answer` | `DtoClass` | Form 2* | Custom question and answer DTO classes (*mutually exclusive with `approves`). |
-| `replyInterpreter` | `Class` | No | Optional [`@ReplyInterpreter`](/reference/reply-interpreter/) class that turns free-text `app.resume({ pauseId, reply })` messages into the role's typed decision. |
+| `replyInterpreter` | `Class` | No | Optional [`@ReplyInterpreter`](/0.1.0/reference/reply-interpreter/) class that turns free-text `app.resume({ pauseId, reply })` messages into the role's typed decision. |
 
 ## What related entities work with `@ChannelRole`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| [`@Channel`](/reference/channel/) & `ChannelOf<Role>` | `"@agboss/core"` | Concrete transport implementation bound in `@Application({ providers })` by extending the `@ChannelRole` class. |
-| [`@ReplyInterpreter`](/reference/reply-interpreter/) | `"@agboss/core"` | Parses free-text human replies (`app.resume({ pauseId, reply })`) into the role's typed decision. |
+| [`@Channel`](/0.1.0/reference/channel/) & `ChannelOf<Role>` | `"@agboss/core"` | Concrete transport implementation bound in `@Application({ providers })` by extending the `@ChannelRole` class. |
+| [`@ReplyInterpreter`](/0.1.0/reference/reply-interpreter/) | `"@agboss/core"` | Parses free-text human replies (`app.resume({ pauseId, reply })`) into the role's typed decision. |
 | `AutoApproveChannel` & `AutoRejectChannel` | `"@agboss/core"` | Built-in test channels for automated approval or rejection. |
 | `ToolCallApprovalAskDto` & `ToolCallApprovalDecisionDto` | `"@agboss/core/dto"` | Standard DTOs used by `@ChannelRole({ approves })`. |

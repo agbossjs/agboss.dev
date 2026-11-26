@@ -3,36 +3,36 @@ title: "@Workflow"
 description: Complete API reference for @Workflow in AGBoss — options, HarnessDSL (HDSL) Path Scope flow methods, parallel waves, quorums, child workflows, and review loops.
 ---
 
-The `@Workflow` decorator defines a typed state graph (`*.workflow.ts`) in AGBoss using **HarnessDSL (`HDSL`)** — our declarative graph syntax. Every workflow declares its `name`, `version`, and `flow` array of paths built with `start()`, `agent()`, `router()`, `action()`, `workflow()`, `route()`, and `caseOf()`, enforcing strictly one chained method call per line (`@stylistic/newline-per-chained-call`) and compile-time Path Scope verification.
+The `@Workflow` decorator defines a typed state graph (`*.workflow.ts`) in AGBoss using **HarnessDSL (`HDSL`)** — our declarative graph syntax. Every workflow declares its `name`, `version`, a `historyTtl` and a `flow` array of paths built with `onStart()`, `onAgent()`, `onRouter()`, `onAction()`, `onWorkflow()` and `onExternalTask()` and the steps `toAgent()`, `toAction()`, `toRouter()`, `toWorkflow()`, `toExternalTask()`, `toFinish()`, `toOneOf()`, `onRoute()`, `inParallel()` and `forEachItem()`, enforcing strictly one chained method call per line (`@stylistic/newline-per-chained-call`) and compile-time Path Scope verification.
 
 ## Complete `@Workflow` example with all capabilities
 
 ```ts title="src/workflows/offer-negotiation.workflow.ts" file=src/workflows/offer-negotiation.workflow.ts
 import {
-  StepFailedError,
-  VisitsLimitExceededError,
+  StepError,
+  LimitError,
   Workflow,
-  action,
-  agent,
-  caseOf,
-  listOf,
-  oneOf,
-  route,
-  start,
+  onAction,
+  onAgent,
+  onStart,
   toAction,
+  toAgent,
+  toFinish,
+  toRouter,
+  toWorkflow,
+  Ttl,
 } from "@agboss/core";
 import { Reasoning, ReasoningEffort } from "@agboss/core/models";
-import { seconds } from "@agboss/core/units";
+import { days, seconds } from "@agboss/core/units";
 import {
   AuditArbiter,
   AuditTrailGuardrail,
   ComplianceCheckWorkflow,
-  DirectoryMcpServer,
   DrafterAgent,
   EditorAgent,
   LegalAuditAgent,
   NotifyRecruiterAction,
-  OfferCompaction,
+  OfferMemory,
   OfferFailedWorkflowFinish,
   OfferFormattingService,
   OfferPiiPolicy,
@@ -43,27 +43,16 @@ import {
   SendOfferAction,
   TriageRouter,
 } from "../offer.components.js";
-import {
-  AuditVerdictDto,
-  CandidateInputDto,
-  ChangesRequestedDto,
-  ComplianceReportDto,
-  DraftApprovedDto,
-  OfferDraftDto,
-} from "../dto/offer-negotiation.dto.js";
 
 @Workflow({
   name: "offer-workflow",
   version: "1.0.0",
-  maxSteps: 18,
-  maxDepth: 3,
-  maxConcurrentExecutions: 8,
+  historyTtl: days(90), // how long the history of finished executions is kept; Ttl.Forever, Ttl.None
+  executionLimits: { maxSteps: 18, maxDepth: 3, maxConcurrency: 8 },
   providers: [OfferFormattingService],
-  mcp: [DirectoryMcpServer],
   piiPolicies: [OfferPiiPolicy],
   guardrails: [AuditTrailGuardrail],
-  compaction: OfferCompaction,
-  uncompactedTurns: 8,
+  memory: OfferMemory, // without one the workflow is stateless: no earlier turn is read
   promptVariables: {
     companyName: "Acme Corp",
   },
@@ -80,43 +69,35 @@ import {
     },
   },
   flow: [
-    start(OfferWorkflowStart)
-      .returns(CandidateInputDto)
+    onStart(OfferWorkflowStart)
       .toRouter(TriageRouter)
-      .chooseOne(
-        route(DrafterAgent)
-          .returns(OfferDraftDto)
+      .onRoute(
+        toAgent(DrafterAgent)
           .toAgent(ReviewerAgent),
-        route(OfferFailedWorkflowFinish),
-      ),
+      )
+      .onRoute(toFinish(OfferFailedWorkflowFinish)),
 
-    agent(ReviewerAgent)
+    onAgent(ReviewerAgent)
       .onError(
-        VisitsLimitExceededError,
+        LimitError.Visits,
         toAction(NotifyRecruiterAction),
       )
-      .returns(oneOf(DraftApprovedDto, ChangesRequestedDto))
-      .switch(
-        caseOf(DraftApprovedDto)
-          .toWorkflow(ComplianceCheckWorkflow)
-          .returns(ComplianceReportDto)
-          .toParallelAgents(SecurityAuditAgent, LegalAuditAgent)
-          .acceptedBy(AuditArbiter)
+      .toOneOf([
+        toWorkflow(ComplianceCheckWorkflow)
+          .inParallel([toAgent(SecurityAuditAgent), toAgent(LegalAuditAgent)])
+          .arbitratedBy(AuditArbiter)
           .joinQuorum({ min: 2, deadline: seconds(15) })
-          .onJoinError(
-            StepFailedError,
+          .onError(
+            StepError,
             toAction(NotifyRecruiterAction),
           )
-          .returns(listOf(AuditVerdictDto))
           .toAction(SendOfferAction)
           .toFinish(OfferWorkflowFinish),
-        caseOf(ChangesRequestedDto, { about: OfferDraftDto })
-          .toAgent(EditorAgent)
-          .returns(OfferDraftDto)
+        toAgent(EditorAgent)
           .toAgent(ReviewerAgent),
-      ),
+      ]),
 
-    action(NotifyRecruiterAction)
+    onAction(NotifyRecruiterAction)
       .toFinish(OfferFailedWorkflowFinish),
   ],
 })
@@ -159,28 +140,29 @@ import {
   Action,
   Agent,
   Arbiter,
-  Compaction,
-  CompactionStrategy,
+  Arbitrate,
   DecidedBy,
   Injectable,
-  OnAnswer,
+  Memory,
   OutputGuardrail,
-  PiiAction,
   PiiKind,
   PiiPolicy,
   Router,
   Workflow,
   WorkflowFinish,
   WorkflowStart,
+  CompactionStrategy,
+  inline,
   listOf,
   oneOf,
+  onStart,
   optional,
-  pii,
-  start,
+  toAgent,
+  Ttl,
   type ActionHandler,
   type InputOf,
 } from "@agboss/core";
-import { McpServer, McpServerClient, type ServerTools } from "@agboss/core/mcp";
+import { days } from "@agboss/core/units";
 import {
   AuditVerdictDto,
   CandidateInputDto,
@@ -193,42 +175,30 @@ import {
 @Injectable()
 export class OfferFormattingService {}
 
-const serverTools = {
-  lookup_dir: { input: CandidateInputDto, output: ComplianceReportDto },
-} as const satisfies ServerTools;
-
-@McpServer({
-  name: "directory-mcp",
-  transport: "stdio",
-  command: "npx",
-  args: ["dir-mcp"],
-  tools: serverTools,
-})
-export class DirectoryMcpServer extends McpServerClient<typeof serverTools> {}
-
 @PiiPolicy({
   name: "offer-pii-policy",
   description: "Masks emails in offer workflow",
-  rules: [pii(PiiKind.Email, PiiAction.replaceWithKind())],
+  rules: [PiiKind.Email.mask()],
 })
 export class OfferPiiPolicy {}
 
 @OutputGuardrail({
   name: "audit-trail-guardrail",
   description: "Checks audit trail compliance",
-  prompt: "Does the reply omit required disclaimers?",
+  prompt: inline("Does the reply omit required disclaimers?"),
   model: "typesafe/jev-1.13",
   threshold: 0.85,
   refusal: "Blocked by audit trail policy.",
 })
 export class AuditTrailGuardrail {}
 
-@Compaction({
-  name: "offer-compaction",
-  description: "Window-only compaction",
-  strategy: CompactionStrategy.None,
+@Memory({
+  name: "offer-memory",
+  description: "Remembers eight turns in full",
+  ttl: days(30),
+  uncompactedTurns: 8,
 })
-export class OfferCompaction {}
+export class OfferMemory {}
 
 @WorkflowStart({ name: "offer-workflow-start", description: "Start", input: CandidateInputDto })
 export class OfferWorkflowStart {}
@@ -243,7 +213,7 @@ export class OfferFailedWorkflowFinish {}
   name: "drafter-agent",
   description: "Drafts offer",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Draft the offer for {{companyName}}.",
+  prompt: inline("Draft the offer for {{companyName}}."),
   input: { candidate: CandidateInputDto },
   output: OfferDraftDto,
 })
@@ -253,7 +223,7 @@ export class DrafterAgent {}
   name: "editor-agent",
   description: "Edits offer",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Revise the offer.",
+  prompt: inline("Revise the offer."),
   input: { draft: OfferDraftDto, critique: ChangesRequestedDto },
   output: OfferDraftDto,
 })
@@ -263,8 +233,8 @@ export class EditorAgent {}
   name: "reviewer-agent",
   description: "Reviews offer",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Review the offer.",
-  maxVisits: 3,
+  prompt: inline("Review the offer."),
+  executionLimits: { maxVisits: 3 },
   input: { draft: OfferDraftDto },
   output: oneOf(DraftApprovedDto, ChangesRequestedDto),
 })
@@ -274,7 +244,7 @@ export class ReviewerAgent {}
   name: "security-audit-agent",
   description: "Security audit",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Security audit.",
+  prompt: inline("Security audit."),
   input: { report: ComplianceReportDto },
   output: AuditVerdictDto,
 })
@@ -284,7 +254,7 @@ export class SecurityAuditAgent {}
   name: "legal-audit-agent",
   description: "Legal audit",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Legal audit.",
+  prompt: inline("Legal audit."),
   input: { report: ComplianceReportDto },
   output: AuditVerdictDto,
 })
@@ -295,7 +265,7 @@ export class LegalAuditAgent {}
   description: "Triages candidate input",
   decidedBy: DecidedBy.Model,
   input: { candidate: CandidateInputDto },
-  prompt: "Triage the candidate request.",
+  prompt: inline("Triage the candidate request."),
   routes: [
     { target: DrafterAgent, prompt: "Valid candidate request" },
     { target: OfferFailedWorkflowFinish, prompt: "Stop and send the answer: Invalid candidate request" },
@@ -303,24 +273,19 @@ export class LegalAuditAgent {}
 })
 export class TriageRouter {}
 
-@Arbiter({
-  name: "audit-arbiter",
-  decidedBy: DecidedBy.Code,
-})
+@Arbiter({ name: "audit-arbiter" })
 export class AuditArbiter {
-  @OnAnswer(SecurityAuditAgent)
-  fromSecurityAudit(v: AuditVerdictDto): boolean { return v.auditor.length > 0; }
-  @OnAnswer(LegalAuditAgent)
-  fromLegalAudit(v: AuditVerdictDto): boolean { return v.auditor.length > 0; }
+  @Arbitrate(SecurityAuditAgent, LegalAuditAgent)
+  hasAuditor(v: AuditVerdictDto): boolean { return v.auditor.length > 0; }
 }
 
 @Action({
   name: "send-offer-action",
   description: "Sends approved offer",
-  input: { draft: OfferDraftDto, verdicts: listOf(AuditVerdictDto) },
+  input: { approval: DraftApprovedDto, verdicts: listOf(AuditVerdictDto) },
 })
 export class SendOfferAction implements ActionHandler<SendOfferAction> {
-  execute(_input: InputOf<SendOfferAction>): Promise<void> { return Promise.resolve(); }
+  execute(_input: InputOf<SendOfferAction>): void {}
 }
 
 @Action({
@@ -329,10 +294,10 @@ export class SendOfferAction implements ActionHandler<SendOfferAction> {
   input: { draft: optional(OfferDraftDto) },
 })
 export class NotifyRecruiterAction implements ActionHandler<NotifyRecruiterAction> {
-  execute(_input: InputOf<NotifyRecruiterAction>): Promise<void> { return Promise.resolve(); }
+  execute(_input: InputOf<NotifyRecruiterAction>): void {}
 }
 
-@WorkflowStart({ name: "compliance-check-workflow-start", description: "Start", input: OfferDraftDto })
+@WorkflowStart({ name: "compliance-check-workflow-start", description: "Start", input: DraftApprovedDto })
 export class ComplianceCheckStart {}
 @WorkflowFinish({ name: "compliance-check-workflow-finish", description: "Finish", output: ComplianceReportDto })
 export class ComplianceCheckFinish {}
@@ -340,8 +305,8 @@ export class ComplianceCheckFinish {}
   name: "compliance-agent",
   description: "Compliance check",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Check compliance.",
-  input: { draft: OfferDraftDto },
+  prompt: inline("Check compliance."),
+  input: { approval: DraftApprovedDto },
   output: ComplianceReportDto,
 })
 export class ComplianceAgent {}
@@ -349,11 +314,10 @@ export class ComplianceAgent {}
 @Workflow({
   name: "compliance-check-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ComplianceCheckStart)
-      .returns(OfferDraftDto)
+    onStart(ComplianceCheckStart)
       .toAgent(ComplianceAgent)
-      .returns(ComplianceReportDto)
       .toFinish(ComplianceCheckFinish),
   ],
 })
@@ -408,21 +372,21 @@ import {
 
 const test = testWith(OfferApplication);
 
-test("runs OfferWorkflow through review loop and quorum to approval", async ({ app, mockLlm }) => {
-  mockLlm(TriageRouter).thenReturn(routeTo(DrafterAgent));
-  mockLlm(DrafterAgent).thenReturn(
+test("runs OfferWorkflow through review loop and quorum to approval", async ({ app, mockModel }) => {
+  mockModel(TriageRouter).thenReturn(routeTo(DrafterAgent));
+  mockModel(DrafterAgent).thenReturn(
     replyWith(OfferDraftDto, { summary: "Staff TS Engineer", baseUsd: 215_000 }),
   );
-  mockLlm(ReviewerAgent).thenReturn(
+  mockModel(ReviewerAgent).thenReturn(
     replyWith(DraftApprovedDto, { signedBy: "comp-committee" }),
   );
-  mockLlm(ComplianceAgent).thenReturn(
+  mockModel(ComplianceAgent).thenReturn(
     replyWith(ComplianceReportDto, { status: "passed" }),
   );
-  mockLlm(SecurityAuditAgent).thenReturn(
+  mockModel(SecurityAuditAgent).thenReturn(
     replyWith(AuditVerdictDto, { auditor: "sec-1" }),
   );
-  mockLlm(LegalAuditAgent).thenReturn(
+  mockModel(LegalAuditAgent).thenReturn(
     replyWith(AuditVerdictDto, { auditor: "legal-1" }),
   );
   const res = await app.execute(OfferWorkflowStart, { role: "Staff TS", region: "EU" });
@@ -432,40 +396,45 @@ test("runs OfferWorkflow through review loop and quorum to approval", async ({ a
 
 ## What options does `@Workflow` accept?
 
-Every `@Workflow` class name ends with `Workflow` and its `name` option ends with `-workflow`:
+Every `@Workflow` class name ends with `Workflow` and its `name` option ends with `-workflow`. An option that is not on the list is `[decorator.unknown-option]` at assembly (the message says where a moved option went):
 
 | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `name` | `string` | Yes | Unique kebab-case identifier ending with `-workflow` (e.g., `"offer-workflow"`). |
 | `version` | `string` | Yes | Behavior version of the workflow (`"1.0.0"`), checked when resuming paused executions across deploys. |
-| `flow` | `readonly FlowPath[]` | Yes | List of paths starting with `start()`, `agent()`, `router()`, `action()`, or `workflow()`. |
-| `maxSteps` | `number` | No | Maximum agent and router visits per execution; defaults to `(agents + routers) * 3`. |
-| `maxDepth` | `number` | No | Maximum nesting depth for child workflows and `ThisWorkflow` recursive calls (soft stop omitting the recursion tool at `depth === maxDepth` for model launches; throws `DepthLimitExceededError` for deterministic launches). |
-| `maxConcurrentExecutions` | `number` | No | Maximum concurrent executions across the root workflow and all child/recursive subtrees (`10` by default). |
-| `defaults` | `WorkflowDefaults` | No | Workflow-level defaults for `models`, `router`, `guardrail`, `tools`, and `flow.maxPathDepth`. |
-| `providers` | `readonly Provider[]` | No | Workflow-scoped `@Injectable` services, `@A2AAgent` clients, or `provide(TOKEN, value)` bindings. |
-| `mcp` | `readonly Class[]` | No | `@McpServer` classes whose tools are used by agents in this workflow. |
-| `piiPolicies` | `readonly Class[]` | No | Additional `@PiiPolicy` classes applied to all agents and routers in this workflow. |
+| `historyTtl` | `Milliseconds \| Ttl` | Yes | How long the history of the workflow's finished executions is kept: a duration (`days(90)`), `Ttl.Forever` (never swept) or `Ttl.None` (no history is kept). Left out: `[limits.history-ttl-required]`. |
+| `flow` | `readonly FlowPath[]` | Yes | List of paths starting with `onStart()`, `onAgent()`, `onRouter()`, `onAction()`, `onWorkflow()` or `onExternalTask()`. |
+| `executionLimits` | `WorkflowExecutionLimits` | No | `{ maxSteps, maxDepth, maxPathDepth, maxConcurrency }`. `maxSteps`: agent, router, action and external-task visits per execution; `maxDepth`: nesting depth of child workflows and `() => Self` recursion (soft stop omitting the recursion option at `depth === maxDepth` for model launches; throws `LimitError.Depth` for deterministic launches); `maxConcurrency`: concurrent executions across the root workflow and all child/recursive subtrees. The flat `maxSteps`, `maxDepth` and `maxConcurrentExecutions` of 0.1.0 are gone. |
+| `defaults` | `WorkflowDefaults` | No | Workflow-level defaults for `models`, `router`, `guardrail`, `tools` and `files`. |
+| `modelProvider` | `Class` | No | The `@ModelProvider` of every model of this workflow that names none (the application's is the next level of the cascade). |
+| `memory` | `Class` | No | The [`@Memory`](/reference/memory/) of the workflow's agents and routers: its window, summaries and `ttl`. A workflow without one is stateless. |
+| `budget` | `Class` | No | A `@Budget` attached to this workflow (found without listing it in the application); workflows sharing one budget share one cap. |
+| `filePolicy` | `Class` | No | The `@FilePolicy` bounding the workflow's files: how many, how large, of which media types. |
+| `placement` | `ChildPlacement` | No | Where this workflow runs when it is a child: `CurrentProcess`, `AnyWorker`, `OtherWorker` or `IsolatedWorker`. |
+| `providers` | `readonly Provider[]` | No | Workflow-scoped `@Injectable` services, `@A2AAgent` clients, `@McpServer` classes or `provide(TOKEN, value)` bindings. Infrastructure (model providers, stores) belongs to the application: `[di.infrastructure-in-workflow]`. |
+| `piiPolicies` | `readonly Class[]` | No | Additional `@PiiPolicy` classes applied to all agents and routers in this workflow, and, for a child, to its whole chain. |
+| `excludePiiPolicies` | `readonly Class[]` | No | Inherited policies exempted at this workflow's models (observability stays masked). |
 | `guardrails` | `readonly Class[]` | No | [`@InputGuardrail` and `@OutputGuardrail`](/reference/guardrail/) classes applied across all agents and model routers in this workflow. |
-| `excludeGuardrails` | `readonly Class[]` | No | Inherited application guardrails exempted for this workflow. |
-| `toolInterceptors` | `readonly Class[]` | No | [`@ToolInterceptor`](/reference/tool-interceptor/) classes applied across all `@Tool` and `@McpTool` invocations in this workflow. |
+| `toolInterceptors` | `readonly Class[]` | No | [`@ToolInterceptor`](/reference/tool-interceptor/) classes applied across all `@Tool` invocations in this workflow. |
 | `excludeToolInterceptors` | `readonly Class[]` | No | Inherited application `@ToolInterceptor` classes exempted for this workflow. |
-| `compaction` | `Class` | No | [`@Compaction`](/reference/compaction/) class summarizing conversation turns older than `uncompactedTurns`. |
-| `uncompactedTurns` | `number \| TurnLimit` | No | Number of recent finished turns shown in full to agents and model routers in this workflow (`5` by default, or `TurnLimit.ALL`). |
-| `promptVariables` | `Readonly<Record<string, string>>` | No | Static `{{variable}}` substitutions available to every prompt in the workflow. |
+| `promptVariables` | `Record<string, string \| EnvRef<string>>` | No | Static `{{variable}}` substitutions available to every prompt in the workflow. |
 
 ## What HarnessDSL (HDSL) flow functions and related entities work with `@Workflow`?
 
 | Builder / Entity | Import Path | Description |
 | :--- | :--- | :--- |
-| `start(StartClass)` | `"@agboss/core"` | Begins a root path from a `@WorkflowStart` class. |
-| `agent(AgentClass)`, `router(RouterClass)`, `action(ActionClass)`, `workflow(ChildWorkflow)` | `"@agboss/core"` | Begins a shared continuation path from a node reached by multiple upstream paths. |
-| `.returns(Dto, { about? })` | Flow chain | Declares one output DTO added to Path Scope; `{ about: TargetDto }` binds review verdicts to the artifact they judge. |
-| `.toAgent(A)`, `.toAction(A)`, `.toRouter(R)`, `.toWorkflow(W, { placement? })`, `.toFinish(F)` | Flow chain | Transitions execution to the next node after verifying its `input` fields exist in Path Scope; `.toWorkflow` and `route(W, { placement? })` accept `placement: ChildPlacement.ParentInstance \| ChildPlacement.AnyInstance`. |
-| `.chooseOne(route(Target, { placement? })...)` | Flow chain | Branches after `.toRouter(R)` to exactly one chosen route target. |
-| `.switch(caseOf(Dto, { about? })...)` | Flow chain | Branches deterministically based on which union output variant (`oneOf(...)`) the preceding node produced. |
-| `.toParallelAgents(...)`, `.toParallelWorkflows(W, { maxItems?, maxConcurrency?, placement? })` | Flow chain | Fans out across multiple agents, `{ agent, count }` copies, or `{ agent, each: ListDto }` items with `{ maxItems, maxConcurrency, placement: ChildPlacement.AnyInstance }`. |
-| `.join()`, `.joinQuorum({ min, max?, deadline? })`, `.joinQuorumGroups(...)` | Flow chain | Joins all parallel branches or resolves early as soon as a quorum verified by `.acceptedBy(Arbiter)` is reached. |
-| `.onError(ErrorClass, sidePath)`, `.onJoinError(ErrorClass, sidePath)` | Flow chain | Catches step or parallel-join failures (`StepFailedError`, `VisitsLimitExceededError`, `QuorumNotReachedError`) onto a typed recovery path. |
-| `ThisWorkflow` | `"@agboss/core"` | Sentinel target passed to `.toWorkflow(ThisWorkflow)` or `.toParallelWorkflows(ThisWorkflow)` for bounded self-recursion. |
-| `oneOf(A, B)`, `listOf(Dto)`, `optional(Dto)`, `historyOf(Dto, { limit })` | `"@agboss/core"` | Path Scope input/output shape wrappers used on component `input` and `output` declarations. |
+| `onStart(StartClass)` | `"@agboss/core"` | Begins a root path from a `@WorkflowStart` class: it gives its `input` (one value per field of a map). |
+| `onAgent(A)`, `onRouter(R)`, `onAction(A)`, `onWorkflow(W)`, `onExternalTask(Q)` | `"@agboss/core"` | Begins the own path of a node reached from two or more places, written once. |
+| `.toAgent(A)`, `.toAction(A)`, `.toRouter(R)`, `.toWorkflow(W)`, `.toExternalTask(Q)`, `.toFinish(F)` | Flow chain | Transitions execution to the next node after verifying its `input` fields exist in Path Scope. What a step gives is derived from its declaration; there is no `.returns`. |
+| `.toRouter(R).onRoute(subPath)…` | Flow chain | The router's choice: exactly one `.onRoute(toAgent(X)…)` per route of the `@Router`. |
+| `.toOneOf([…])` | Flow chain | One side path per variant of a step's `oneOf(…)` output, without naming a DTO. |
+| `.toWorkflow(W).onFinish(WFinish, subPath)` | Flow chain | One path per finish of a child workflow that has two or more finishes. |
+| `.inParallel([toAgent(A), toAction(X)…], { maxConcurrency })` | Flow chain | A launch of branches of any kind; `.onError(E, skip())` on a branch drops its failure from the join. |
+| `.forEachItem(toAgent(A), { takeFirst \| maxItems, maxConcurrency })` | Flow chain | One run per item of the list the step before gives; also `toAction`, `toExternalTask`, `toWorkflow(W)`. |
+| `.join()`, `.arbitratedBy(Arbiter)` + `.joinQuorum({ min, max?, deadline? })`, `.joinQuorumGroups({ deadline })` + `.onGroup([…], { priority }, subPath)` | Flow chain | Joins all parallel branches or resolves early as soon as a quorum verified by one `@Arbiter` is reached. |
+| `.onError(ErrorClass, sidePath)` | Flow chain | Catches step or join failures (`StepError`, `LimitError.Visits`, `StepError.QuorumNotReached`) onto a typed recovery path. Also after a join. |
+| `toWorkflow(() => Self)` | `"@agboss/core"` | A workflow launches itself with a thunk of its own class, bounded by `executionLimits.maxDepth`. `ThisWorkflow` is gone. |
+| `oneOf(A, B)`, `listOf(A, B…)`, `optional(Dto)`, `historyOf(Dto, { maxPrevious })` | `"@agboss/core"` | Path Scope input/output shape wrappers used on component `input` and `output` declarations. |
+| `Metadata`, `Tracked<T, P>` | `"@agboss/core"` | The provenance of a value: `Metadata.createdBy(value)`; an input field is the DTO itself. |
+
+Removed with the 0.1.1 flow: `start`, `agent`, `router`, `action`, `workflow`, `route`, `caseOf`, `.returns`, `{ about }`, `.switch`, `.chooseOne`, `.toParallelAgents`, `.toParallelActions`, `.toParallelWorkflows`, `.acceptedBy`, `anyOf`, `.onJoinError`, `ThisWorkflow`, `SpawnPolicy` and `FailurePolicy`.

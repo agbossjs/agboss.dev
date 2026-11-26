@@ -1,0 +1,124 @@
+---
+title: Roadmap
+description: "Explore the AGBoss engineering roadmap — shipped v2 architecture, 13 AI coding skills, Kubernetes probes, progressive crystallization, and Mesh Hub."
+template: splash
+slug: 0.1.0/roadmap
+---
+
+<div class="agp is-roadmap not-content">
+
+<p class="agp-acronym" id="agp-acronym"><b>A</b>gent <b>G</b>raph <b>B</b>uilder <b>O</b>pen <b>S</b>ource <b>S</b>ystem</p>
+
+<script src="/scripts/acronym.js" is:inline></script>
+
+<section class="agp-section">
+<h2 class="agp-h2">Why AGBoss is a compiler-verified framework, not a hosted platform</h2>
+<div class="agp-manifesto">
+<p>AGBoss is an open-source TypeScript application framework for LangGraph agents that runs inside your own Node.js infrastructure under the <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a> license. Instead of routing prompts, checkpoints, and traces through a third-party SaaS platform, AGBoss compiles your workflows, dependency injection container, and FinOps budgets directly into your service.</p>
+<p>As multi-agent systems grow to hundreds of nodes and AI coding agents generate the implementation, teams need deterministic compiler guardrails — not another cloud dashboard. AGBoss enforces <a href="/0.1.0/concepts/architecture/">7 distributed-systems invariants</a> at build time so coding agents and engineers ship reliable systems inside your existing perimeter.</p>
+</div>
+</section>
+
+<section class="agp-section">
+<h2 class="agp-h2">Free for everyone. Enterprise support for teams that need it.</h2>
+<div class="agp-split">
+<div class="agp-plan">
+<p class="agp-kicker">Open source · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a></p>
+<h3>Everything in the framework</h3>
+<ul>
+<li>Every decorator, Path Scope flow builder, repository contract, and integration</li>
+<li>Offline workflow testing, 10 unit runners, trajectory matchers, <code>@EvalSuite</code> (<code>pass@k</code> / <code>pass^k</code>, Cohen&apos;s &kappa;), and FinOps budgets</li>
+<li>Deploy anywhere: your cloud, your Kubernetes cluster, your SQLite or Postgres store</li>
+<li>Offline-bundled AI coding skills (<code>AGENTS.md</code>, <code>CLAUDE.md</code>, and <code>.claude/skills/agboss/</code>)</li>
+</ul>
+<p class="agp-plan-note">Take it, run it, change it. No vendor lock-in and nothing to pay.</p>
+</div>
+<div class="agp-plan is-enterprise">
+<p class="agp-kicker">Enterprise <span class="agp-pill">Coming</span></p>
+<h3>Guarantees from the people who build it</h3>
+<ul>
+<li>A dedicated engineering team that answers within an SLA</li>
+<li>Long-term support (LTS) release lines and Day-0 security patches</li>
+<li>Architecture reviews, compliance reports, and custom connectors</li>
+<li>Automated codemods and upgrade assistance across major versions</li>
+</ul>
+<p class="agp-plan-note">This is how AGBoss is funded. <a href="/0.1.0/enterprise/">See what's planned →</a></p>
+</div>
+</div>
+</section>
+
+<section class="agp-section">
+<h2 class="agp-h2">Where we are going</h2>
+<p class="agp-sub">No guesswork — milestones backed by GitHub issues and verified by CI.</p>
+<ol class="agp-timeline">
+<li class="agp-phase is-done">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">Shipped</p>
+<h3>Production application architecture &amp; AI-native DX</h3>
+<p class="agp-phase-goal">Single <code>@Application</code> assembly root, compile-time Path Scope <code>HarnessDSL (HDSL)</code>, transactional LIFO sagas, 5-loop verification &amp; evals, Agent Mesh Hub, Kubernetes health probes, and built-in coding agent skills.</p>
+<div class="agp-shipped">
+<div class="agp-shipped-row"><p class="agp-phase-group">Architecture &amp; Flow</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/261" target="_blank" rel="noopener" title="@Application root, single DI container by inheritance, 4 lifecycle hooks, typed AppEnvironment.">@Application &amp; 4 lifecycle hooks</a></li><li><a href="https://github.com/agbossjs/agboss/issues/272" target="_blank" rel="noopener" title="Chain-per-line Path Scope HDSL: start().returns().toAgent(), .switch(caseOf()), .chooseOne(route()), and .agboss/types.d.ts.">Path Scope HDSL &amp; .agboss/types.d.ts</a></li><li><a href="https://github.com/agbossjs/agboss/issues/271" target="_blank" rel="noopener" title="Review loops with .returns(Dto, { about }), caseOf(Dto, { about }), historyOf(Dto, { limit }), and staleness checks.">Review loops &amp; historyOf</a></li><li><a href="https://github.com/agbossjs/agboss/issues/273" target="_blank" rel="noopener" title=".toParallelAgents() and .toParallelWorkflows() with SpawnPolicy, maxItems, maxConcurrency, and .join().">Parallel waves &amp; joins</a></li><li><a href="https://github.com/agbossjs/agboss/issues/279" target="_blank" rel="noopener" title=".joinQuorum() and .joinQuorumGroups() with deadline and @Arbiter chains (.acceptedBy(anyOf())).">Quorums &amp; @Arbiter</a></li><li><a href="https://github.com/agbossjs/agboss/issues/263" target="_blank" rel="noopener" title="Child workflows via .toWorkflow(Child) and direct recursion via ThisWorkflow (maxDepth soft stop, maxConcurrentExecutions).">Subworkflows &amp; recursion</a></li><li><a href="https://github.com/agbossjs/agboss/issues/339" target="_blank" rel="noopener" title="Declarative compensateWith & committedBy on @Action, [flow.uncompensated-action], and automatic LIFO saga unwinding on abort or quorum surplus.">Transactional LIFO sagas (#339, #340)</a></li></ul></div>
+<div class="agp-shipped-row"><p class="agp-phase-group">Safety, FinOps &amp; Scale</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/383" target="_blank" rel="noopener" title="@PiiPolicy classes, deterministic HMAC replaceWithToken(), and DecidedBy.Model / DecidedBy.Code @InputGuardrail & @OutputGuardrail.">@PiiPolicy &amp; Code/Model Guardrails (#383)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/384" target="_blank" rel="noopener" title="Cascading @ToolInterceptor with BeforeToolCall (ToolCallDecision.replyToModel / block) and AfterToolCall.">@ToolInterceptor (#384)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/385" target="_blank" rel="noopener" title="@ModelProvider with OpenRouter pinning, custom ModelProviderHandler transport, RateLimitPolicy.of(), circuit breakers, and automatic catch-all yielding (#454).">@ModelProvider &amp; custom transport (#385, #454)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/261" target="_blank" rel="noopener" title="@Budget components across Application, Tenant, and Execution scopes with UTC periods and immediate parallel branch abort.">@Budget FinOps caps (#261, #338)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/267" target="_blank" rel="noopener" title="@ChannelRole, @ReplyInterpreter, ChannelHandler.send(ask) & withdraw(ask), PendingPause records, and two-phase app.resume({ pauseId, reply }).">Channels, @ReplyInterpreter &amp; pauses (#267, #337)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/265" target="_blank" rel="noopener" title="10 repository contracts with Sqlite* WAL implementations, 30s leases, CAS, cross-instance app.cancel, and SIGTERM drain.">Multi-instance SQLite &amp; leases (#265, #360)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/333" target="_blank" rel="noopener" title="ChildPlacement.AnyInstance, ChildExecutionQueueRepository, shared tree slots in RateLimitRepository, parent lease yielding, and per-child crash recovery.">Distributed child work-stealing (#333)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/300" target="_blank" rel="noopener" title="@HealthCheck components, checkLiveness(), checkReadiness(), and maxConcurrentSteps saturation probes.">@HealthCheck &amp; K8s probes (#300, #332)</a></li></ul></div>
+<div class="agp-shipped-row"><p class="agp-phase-group">Test, Eval &amp; AI DX</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/395" target="_blank" rel="noopener" title="testWith, 10 unit runners (including testCompaction & testToolInterceptor), tool trajectory matchers, and [vcr.stale-cassette].">10 unit runners &amp; trajectory matchers (#395)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/396" target="_blank" rel="noopener" title="@EvalSuite, pass@k & pass^k, --baseline regression gates, Cohen's kappa calibration, --chaos, --metamorphic, generate eval-case --from-execution, and agboss eval ui.">@EvalSuite, pass^k &amp; eval ui (#396, #397)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/305" target="_blank" rel="noopener" title="Committed AGENTS.md + CLAUDE.md, 13 reference modules (including LangGraph migration), agboss/eslint flat config, and offline auto-sync.">Built-in AI coding skills (13 modules) &amp; ESLint (#305, #388, #424)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/268" target="_blank" rel="noopener" title="agboss describe --json with configHash, promptHash, and schemaHash join keys on every model component and execution trace.">Crystallization join keys &amp; describe --json (#268, #395)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/420" target="_blank" rel="noopener" title="Full $0 examples/flow-patterns harness and 7 verified standalone apps in agbossjs/agboss-examples (including path-scope-proof).">7 verified examples &amp; flow-patterns (#419, #420)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/125" target="_blank" rel="noopener" title="Bidirectional A/B YAML profile comparisons with [judge.same-model-family] verification.">A/B profile comparisons (#125, #396)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/59" target="_blank" rel="noopener" title="Self-hosted Langfuse tracing with scripts/langfuse.sh.">Langfuse tracing</a></li></ul></div>
+<div class="agp-shipped-row"><p class="agp-phase-group">Connect, Mesh &amp; Context</p><ul class="agp-chips"><li><a href="https://github.com/agbossjs/agboss/issues/164" target="_blank" rel="noopener" title="@McpServer, @McpTool, @McpExpose, and idempotent _meta.callId deduplication.">MCP client, server &amp; dedupe (#164, #398)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/163" target="_blank" rel="noopener" title="agboss generate openapi creates typed DTOs, tools, and services.">Tools from OpenAPI</a></li><li><a href="https://github.com/agbossjs/agboss/issues/398" target="_blank" rel="noopener" title="Multi-tenant a2aHttpListener(app, { expose, callerResolver }), @A2AExpose, typed @A2AAgent, wireCode (#457), signed MeshEnvelope (mesh extension), and agboss check --federation.">Agent Mesh, @A2AExpose &amp; check --federation (#387, #398, #457)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/401" target="_blank" rel="noopener" title="ExecutionHistoryRepository, agboss records export, and agboss hub show --html / agboss hub ui (Global Mesh Graph, Cross-Service Trees, Crystallization Radar, Blast Radius).">AGBoss Mesh Hub (agboss hub) (#401)</a></li><li><a href="https://github.com/agbossjs/agboss/issues/382" target="_blank" rel="noopener" title="@Rag contract, SqliteFtsConnector (BM25), and @Compaction (SummaryQueue, SingleSummary, Custom CompactionHandler, None).">@Rag &amp; Custom @Compaction (#382)</a></li></ul></div>
+</div>
+</div>
+</li>
+<li class="agp-phase is-now">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">Now</p>
+<h3>External Cluster Storage, Worker Pool Affinity &amp; Cloud IAM Adapters</h3>
+<p class="agp-phase-goal">Dedicated storage packages for PostgreSQL/Redis/DynamoDB, tag-based worker pools, native cloud model transports, hybrid vector RAG, and autoscaling telemetry.</p>
+<ul class="agp-phase-items"><li><strong>Tag-Based Worker Pool Affinity &amp; Weighted Fair-Share Scheduling</strong><span>Extend <code>ChildPlacement.AnyInstance</code> and <code>ChildExecutionQueueRepository</code> with capability tags (<code>gpu-worker</code>, <code>browser-sandbox</code>, regional compliance zones) and weighted tenant fair-share queue scheduling across specialized Kubernetes node pools.</span></li>
+<li><strong>Relational &amp; In-Memory Cluster Stores (<code>@agboss/postgres</code>, <code>@agboss/redis</code>)</strong><span>Official PostgreSQL (Aurora, Cloud SQL, Neon, Supabase) implementations using <code>FOR UPDATE SKIP LOCKED</code> and atomic CAS upserts, plus Redis / Valkey (<code>@agboss/redis</code>) sub-millisecond Lua (<code>EVALSHA</code>) scripts for cluster-wide <code>RateLimitRepository</code> sliding windows, <code>ExecutionLeaseRepository</code>, and <code>MeshRequestRepository</code> deduplication.</span></li>
+<li><strong>Serverless, Geo-Distributed &amp; Cold-Archive Stores (<code>@agboss/dynamodb</code>, <code>@agboss/firestore</code>, <code>@agboss/cockroachdb</code>, <code>@agboss/s3-archive</code>)</strong><span>Zero-ops conditional-write adapters for AWS Lambda/Fargate and Cloud Run, multi-region active-active state with tenant data-residency pinning, and automatic S3 / GCS / R2 WORM cold-tiering for completed <code>ExecutionRecord</code> trajectories and checkpoints.</span></li>
+<li><strong>Cloud IAM Model Transports &amp; 50% Batch Offload (<code>@agboss/bedrock</code>, <code>@agboss/vertex</code>, <code>@agboss/azure-openai</code>)</strong><span>Keyless AWS SigV4, GCP Workload Identity, and Azure Managed Identity <code>@ModelProvider</code> packages with cross-region failover and automatic provider Batch API routing (<code>-50%</code> token cost) for background workflows and nightly <code>agboss eval</code> suites.</span></li>
+<li><strong>Hybrid Vector <code>@Rag</code> &amp; KEDA Autoscaling (<code>@agboss/pgvector</code>, <code>@agboss/qdrant</code>, <code>@agboss/opensearch</code>, <code>@agboss/metrics</code>)</strong><span>Dense + BM25 Reciprocal Rank Fusion (RRF) connectors with strict <code>ExecutionContext.tenant</code> isolation, plus Prometheus / OpenTelemetry queue-depth exporters and KEDA <code>ScaledObject</code> manifests for <code>0 → N</code> pod autoscaling.</span></li></ul>
+</div>
+</li>
+<li class="agp-phase-break">
+<div></div>
+<div class="agp-break-box">
+<p class="agp-break-kicker">Built independently · funding takes it further</p>
+<p>Everything above is built in the open. What comes next scales adoption and enterprise operations — microVM code sandboxes, time-travel replay, model distillation, event-bus and Physical AI bridges, KMS cryptographic erasure, managed Mesh Hub deployments, and dedicated SLA support.</p>
+</div>
+</li>
+<li class="agp-phase is-next">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">Next</p>
+<h3>Sandboxes, Time-Travel Replay, Event Ingress &amp; Physical AI Bridges</h3>
+<p class="agp-phase-goal">Ephemeral microVM tool isolation, mid-graph checkpoint forking, automated SFT/DPO distillation, broker backpressure, and robotics/IoT protocols.</p>
+<ul class="agp-phase-items"><li><strong>Isolated Code &amp; Browser Sandboxes (<code>@agboss/sandbox</code> — Firecracker, Docker, E2B, Playwright)</strong><span>Run untrusted LLM-generated code, shell commands, and Computer-Use browser actions inside ephemeral microVMs with strict network egress allowlists and automatic filesystem snapshot rollback on saga <code>compensateWith</code>.</span></li>
+<li><strong>Time-Travel Debugger &amp; Mid-Graph Forking (<code>agboss replay --from-step &lt;node&gt;</code>)</strong><span>Fork any historical production <code>ExecutionRecord</code> from an arbitrary node in the graph — replaying upstream steps at <code>$0</code> from the checkpoint while testing a new prompt, model, or tool fix on the downstream branches.</span></li>
+<li><strong>Crystallization Distillation &amp; Fine-Tuning Exporter (<code>agboss distill</code>)</strong><span>One-command export of verified <code>JudgeVerdict.passed()</code> trajectories and human-labeled <code>eval ui</code> runs (with <code>@PiiPolicy</code> tokens masked) into SFT / DPO JSONL datasets to distill expensive frontier <code>@Agent</code> and <code>@Router</code> nodes into compact in-house models or <code>DecidedBy.Code</code> handlers.</span></li>
+<li><strong>Event-bus &amp; streaming ingress (<code>@agboss/kafka</code>, <code>@agboss/nats</code>, <code>@agboss/rabbitmq</code>, <code>@agboss/sqs</code>, <code>@agboss/pubsub</code>)</strong><span>Consumer/producer adapters wired directly to <code>maxConcurrentSteps</code> backpressure (pausing partitions when pod slots saturate), <code>MeshEnvelope</code> propagation (the mesh extension), and idempotent deduplication.</span></li>
+<li><strong>Turnkey Human-in-the-Loop <code>@Channel</code> packages (<code>@agboss/slack</code>, <code>@agboss/teams</code>, <code>@agboss/telegram</code>, <code>@agboss/github</code>, <code>@agboss/linear</code>, <code>@agboss/pagerduty</code>)</strong><span>Signed webhook verification, interactive approval modals for two-phase <code>app.resume(&#123; pauseId, reply &#125;)</code>, and automatic message withdrawal (<code>ChannelHandler.withdraw</code>) when a parallel quorum branch becomes <code>BranchVerdict.Surplus</code>.</span></li>
+<li><strong>Envelope PII Encryption &amp; Cryptographic Erasure (<code>@agboss/kms</code>)</strong><span>AWS KMS, GCP KMS, Azure KeyVault, and HashiCorp Vault providers encrypting <code>PiiTokensRepository</code> with per-tenant DEKs — enabling instant GDPR Right-to-be-Forgotten compliance by rotating or destroying a tenant key without rewriting historical traces.</span></li>
+<li><strong>Physical AI, Robotics &amp; Industrial IoT Bridges (<code>@agboss/ros2</code>, <code>@agboss/mqtt</code>, <code>@agboss/opcua</code>)</strong><span>Low-latency telemetry ingestion and hardware safety-interlock bridges connecting System-2 HDSL mission planners to physical robot fleets, drones, and warehouse automation.</span></li>
+<li><strong>Federation contract registry &amp; CI gates</strong><span>Automated snapshot publishing and pull-request blast-radius checks for <code>agboss check --federation</code> across multi-repo organizations.</span></li></ul>
+</div>
+</li>
+<li class="agp-phase is-later" id="enterprise">
+<div class="agp-phase-mark"></div>
+<div class="agp-phase-body">
+<p class="agp-phase-label">Then</p>
+<h3>AGBoss Mesh Hub (Enterprise Control Plane) &amp; SLA Support</h3>
+<p class="agp-phase-goal">Fleet-wide control plane and paid guarantees for engineering organizations — while the core framework remains 100% <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a> open source.</p>
+<ul class="agp-phase-items"><li><strong>Global Agent Mesh Graph</strong><span>Interactive map of all <code>@Application</code> services across the company (<code>describe --json</code> + <code>MeshEnvelope</code>), with live RPS, latency, <code>pass^k</code>, and USD spend per node.</span></li>
+<li><strong>Cross-Service Execution Trees</strong><span>Unified execution tree across <code>rootExecutionId</code> (<code>Service A → A2A → Service B → MCP → Service C</code>) with human pauses, retries, and LIFO saga rollbacks.</span></li>
+<li><strong>Blast Radius &amp; Federation + Progressive Crystallization Radar</strong><span>Preview who breaks across the federation when a DTO or prompt changes, plus automatic heatmaps of <code>DecidedBy.Model</code> / low-<code>pass^k</code> steps with one-click PR generation for <code>DecidedBy.Code</code> or <code>@ToolInterceptor</code>.</span></li>
+<li><strong>Dedicated SLA, LTS &amp; Day-0 security patches</strong><span>Extended maintenance windows, backported fixes, signed advisories, and compliance audit packs.</span></li></ul>
+</div>
+</li>
+</ol>
+</section>
+
+<div class="agp-cta">
+<div><h2>Want something on this list?</h2><p>Open an issue or upvote an existing one on GitHub.</p></div>
+<div class="agp-actions"><a class="agp-btn" href="https://github.com/agbossjs/agboss/issues" target="_blank" rel="noopener">Open issues →</a></div>
+</div>
+
+</div>

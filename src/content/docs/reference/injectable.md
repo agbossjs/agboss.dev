@@ -3,7 +3,7 @@ title: "@Injectable"
 description: Complete API reference for @Injectable in AGBoss — constructor dependency injection, OnInit/OnStart/OnStop/OnDestroy lifecycle hooks, and DI overrides.
 ---
 
-The `@Injectable` decorator marks a TypeScript class (`services/*.service.ts` or `observers/*.observer.ts`) as a managed singleton in the AGBoss dependency injection container. Injectable classes receive their constructor dependencies via `deps: [...]`, participate in the four application lifecycle phases (`OnInit`, `OnStart`, `OnStop`, `OnDestroy`), can implement `ExecutionObserver` hooks (`OnExecutionEnd`, `OnToolEnd`, `OnModelEnd`, `OnValuesOutdated`), and are replaced in tests by class inheritance via `override(BaseService, FakeService)`.
+The `@Injectable` decorator marks a TypeScript class (`services/*.service.ts`) as a managed singleton in the AGBoss dependency injection container. Injectable classes receive their constructor dependencies via `deps: [...]`, participate in the four application lifecycle phases (`OnInit`, `OnStart`, `OnStop`, `OnDestroy`), and are replaced in tests by a fake class that `extends` the real one (`testWith(App, { services: [FakeService] })`). An execution observer is not an `@Injectable` any more: it is an [`@Observer`](/reference/application/#what-options-does-application-accept) class with a method per hook, listed in `@Application({ observers })`.
 
 ## Complete `@Injectable` example with lifecycle hooks and DI
 
@@ -11,7 +11,6 @@ The `@Injectable` decorator marks a TypeScript class (`services/*.service.ts` or
 import {
   ApplicationContext,
   Clock,
-  EmptyEnvironment,
   ExecutionContext,
   Injectable,
   LogLevel,
@@ -23,11 +22,10 @@ import {
 } from "@agboss/core";
 
 @Injectable({
-  deps: [EmptyEnvironment, ApplicationContext, ExecutionContext, Clock, Logger],
+  deps: [ApplicationContext, ExecutionContext, Clock, Logger],
 })
 export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
   constructor(
-    private readonly _env: EmptyEnvironment,
     private readonly appContext: ApplicationContext,
     private readonly executionContext: ExecutionContext,
     private readonly clock: Clock,
@@ -44,10 +42,11 @@ export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
   }
 
   async onStart(): Promise<void> {
+    const startedAt = this.clock.now();
     this.logger.write({
       level: LogLevel.Info,
       code: "job-index.ready",
-      message: `Ready to accept traffic at ${this.clock.now().toISOString()}`,
+      message: `Ready to accept traffic at ${String(startedAt.getTime())}`,
       time: this.clock.now(),
     });
   }
@@ -78,8 +77,8 @@ export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
 ```
 
 ```ts title="src/tools/search-jobs.tool.ts" file=src/tools/search-jobs.tool.ts
-import { Tool, type ToolHandler } from "@agboss/core";
-import { ListOf, Text } from "@agboss/core/dto";
+import { Tool } from "@agboss/core";
+import { List, Text } from "@agboss/core/dto";
 import { JobIndexService } from "../services/job-index.service.js";
 
 export class JobSearchInputDto {
@@ -88,7 +87,7 @@ export class JobSearchInputDto {
 }
 
 export class JobSearchOutputDto {
-  @ListOf(Text, { prompt: "Matching roles" })
+  @List(Text, { prompt: "Matching roles" })
   jobs!: string[];
 }
 
@@ -99,13 +98,28 @@ export class JobSearchOutputDto {
   output: JobSearchOutputDto,
   deps: [JobIndexService],
 })
-export class SearchJobsTool implements ToolHandler<JobSearchInputDto, JobSearchOutputDto> {
+export class SearchJobsTool {
   constructor(private readonly index: JobIndexService) {}
 
-  async run(input: JobSearchInputDto): Promise<JobSearchOutputDto> {
+  async execute(input: JobSearchInputDto): Promise<JobSearchOutputDto> {
     return { jobs: await this.index.searchByTenant(input.query) };
   }
 }
+```
+
+```ts title="src/job-scout.model-provider.ts" file=src/job-scout.model-provider.ts
+import { secret } from "@agboss/core";
+import { ModelCost, ModelProvider, OpenRouterDriver } from "@agboss/core/models";
+import { minutes } from "@agboss/core/units";
+
+@ModelProvider({
+  name: "job-scout-model-provider",
+  description: "OpenRouter for the job scout",
+  driver: OpenRouterDriver({ apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: minutes(2),
+  cost: ModelCost.fromResponse(),
+})
+export class JobScoutModelProvider {}
 ```
 
 ```ts title="src/job-scout.application.ts" file=src/job-scout.application.ts
@@ -120,6 +134,7 @@ import {
 import { usd, type Usd } from "@agboss/core/units";
 import { JobIndexService } from "./services/job-index.service.js";
 import { JobScoutWorkflow } from "./workflows/job-scout.workflow.js";
+import { JobScoutModelProvider } from "./job-scout.model-provider.js";
 
 @Budget({ name: "js-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
 export class JsAppBudget implements BudgetHandler { maxSpend(): Usd { return usd(20); } }
@@ -133,7 +148,8 @@ export class JsExecBudget implements BudgetHandler { maxSpend(): Usd { return us
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [JobScoutWorkflow],
-  providers: [JobIndexService],
+  modelProvider: JobScoutModelProvider,
+  providers: [JobScoutModelProvider, JobIndexService],
   budgets: [JsAppBudget, JsTenantBudget, JsExecBudget],
 })
 export class JobScoutApplication {}
@@ -141,30 +157,30 @@ export class JobScoutApplication {}
 
 ```ts title="test/job-index.service.test.ts" file=test/job-index.service.test.ts
 import { expect } from "vitest";
-import { override, testWith } from "@agboss/core/testing";
+import { ApplicationContext, Clock, ExecutionContext, Injectable, Logger } from "@agboss/core";
+import { testWith } from "@agboss/core/testing";
 import { JobScoutApplication } from "../src/job-scout.application.js";
 import { JobIndexService } from "../src/services/job-index.service.js";
 import { ChatWorkflowStart } from "../src/workflows/job-scout.workflow.js";
 
+@Injectable({ deps: [ApplicationContext, ExecutionContext, Clock, Logger] })
 class FakeJobIndexService extends JobIndexService {
   override searchByTenant(): Promise<string[]> {
     return Promise.resolve(["Stubbed Staff Engineer Role"]);
   }
 }
 
-const test = testWith(JobScoutApplication, {
-  overrides: [override(JobIndexService, FakeJobIndexService)],
-});
+const test = testWith(JobScoutApplication, { services: [FakeJobIndexService] });
 
-test("uses FakeJobIndexService and spies on calls via mockOf", async ({ app, mockOf }) => {
+test("uses FakeJobIndexService and spies on calls via mockService", async ({ app, mockService }) => {
   await app.execute(ChatWorkflowStart, { text: "Find TypeScript roles" });
-  expect(mockOf(JobIndexService).searchByTenant).toHaveBeenCalledOnce();
+  expect(mockService(JobIndexService).searchByTenant).toHaveBeenCalledOnce();
 });
 ```
 
 <!--
 ```ts file=src/workflows/job-scout.workflow.ts
-import { Agent, Workflow, WorkflowFinish, WorkflowStart, start } from "@agboss/core";
+import { Agent, Workflow, WorkflowFinish, WorkflowStart, onStart, inline, Ttl } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
 import { SearchJobsTool } from "../tools/search-jobs.tool.js";
 
@@ -178,7 +194,7 @@ export class ChatWorkflowFinish {}
   name: "scout-agent",
   description: "Searches jobs",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Search jobs using search_jobs.",
+  prompt: inline("Search jobs using search_jobs."),
   tools: [SearchJobsTool],
 })
 export class ScoutAgent {}
@@ -186,9 +202,9 @@ export class ScoutAgent {}
 @Workflow({
   name: "job-scout-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(ChatWorkflowStart)
-      .returns(WorkflowStartTextDto)
+    onStart(ChatWorkflowStart)
       .toAgent(ScoutAgent)
       .toFinish(ChatWorkflowFinish),
   ],
@@ -201,7 +217,9 @@ export class JobScoutWorkflow {}
 
 | Option | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `deps` | `readonly Token[]` | No | Ordered list of constructor dependency tokens (`AppEnvironment`, `ExecutionContext`, `TenantContext`, `ApplicationContext`, `Clock`, `Logger`, `ROUTER_FACTORY`, or other `@Injectable` classes) verified against constructor parameters by TypeScript. |
+| `deps` | `readonly Token[]` | No | Ordered list of constructor dependency tokens (`ApplicationContext`, `ExecutionContext`, `TenantContext`, `Clock`, `Logger`, `Idempotency`, `DecisionModel`, a `defineEnv` dictionary, or other `@Injectable` classes) verified against constructor parameters by TypeScript. |
+| `injectAs` | `readonly Class[]` | No | The port(s) this class serves: a dependant that asks for the port gets this class, and a test replaces it by another class naming the same port. |
+| `environmentFields` | `EnvironmentFields` | No | Environment fields the service reads (for example `EnvironmentField.secret()`), checked against the environment contract. |
 
 ## What related entities work with `@Injectable`?
 
@@ -210,5 +228,6 @@ export class JobScoutWorkflow {}
 | `OnInit`, `OnStart`, `OnStop`, `OnDestroy` | `"@agboss/core"` | Four deterministic container lifecycle hooks executed during `createApp()` startup and `app.close()` shutdown on every container element. |
 | `ExecutionContext`, `TenantContext`, `ApplicationContext` | `"@agboss/core"` | Built-in context classes injectable into any service constructor (`ExecutionContext` reads current step metadata via `AsyncLocalStorage`). |
 | `Clock` & `Logger` | `"@agboss/core"` | Built-in time and PII-redacted structured logging singletons (`Clock` is replaced by `VirtualClock` in `testWith()`). |
-| `InjectionToken<T>` & `provide(TOKEN, value)` | `"@agboss/core"` | Binds non-class configuration values or factory tokens (`ROUTER_FACTORY`) in `@Workflow({ providers })`. |
-| `override(BaseClass, SubClass)` & `mockOf(ServiceClass)` | `"@agboss/core/testing"` | Replaces a service with a subclass or spy in `testWith()`, `testTool()`, `testAction()`, or `testRouter()`. |
+| `InjectionToken<T>` & `provide(TOKEN, value)` | `"@agboss/core"` | Binds non-class configuration values in `@Workflow({ providers })` or `@Application({ providers })`. |
+| `@Observer` | `"@agboss/core"` | A class with a method per execution hook (`onExecutionEnd`, `onToolEnd`, …), optionally limited to `workflows` and `agents`; listed in `@Application({ observers })`. |
+| `services: [FakeClass]` & `mockService(ServiceClass)` | `"@agboss/core/testing"` | Replaces a service with a fake class that `extends` it, or with a spy, in `testWith()` and `testUnit()`. |

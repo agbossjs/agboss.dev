@@ -81,6 +81,8 @@ jobs:
       - name: 4. Install agboss.dev dependencies
         run: npm ci
 
+      # The archived 0.1.0 snapshot (src/content/docs/0.1.0) is excluded from check:docs: its snippets target the
+      # published 0.1.0 API, not the pinned framework commit. Everything else is compiled against the pinned SHA.
       - name: 5. Compile and verify all documentation TypeScript snippets (check:docs)
         env:
           AGBOSS_REPO_DIR: .agboss-framework

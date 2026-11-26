@@ -1,0 +1,35 @@
+---
+title: Changelog & Release Notes
+description: Release history, architectural milestones, and npm package versioning (@agboss/core and @agboss/cli) for the AGBoss TypeScript agent framework.
+slug: 0.1.0/changelog
+---
+
+This page tracks releases and architectural milestones of the AGBoss framework. Every code snippet in the AGBoss documentation is compiled and verified against the current public package exports by `check:docs` in CI.
+
+## What is in AGBoss `v0.1.0` (Latest Release)
+
+> **Release status:** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on the public npm registry (`registry.npmjs.org`) under the `latest` dist-tag.
+
+AGBoss is organized as two Apache 2.0 packages — `@agboss/core` (the core runtime, decorators, **HarnessDSL (`HDSL`)** flow syntax, SQLite stores, testing harness, and bundled coding-agent skills) and `@agboss/cli` (the `agboss` / `agb` CLI). Key capabilities in `v0.1.0` include:
+
+| Area | Shipped Capabilities |
+| :--- | :--- |
+| **Application Root & Governance (`#261`, `#300`, `#388`, `#389`)** | `@Application` (`*.application.ts`) wires `workflows`, typed `environment` (`secret()`, `env()`, `env.optional()`), `providers`, mandatory `@Budget` classes, `piiPolicies`, `guardrails`, `toolInterceptors`, `exposes`, `observers`, `@HealthCheck` (`checkLiveness()`, `checkReadiness()`), `maxConcurrentSteps`, `@agboss/core/eslint` flat config, and `[name.kind-suffix]` enforcement on both `name` and class identifiers |
+| **Path Scope HDSL (`#272`, `#289`)** | One-call-per-line `HarnessDSL` paths (`start(Start).returns(Dto).toAgent(Agent).toFinish(Finish)`), `.chooseOne(route())`, `.switch(caseOf())`, and compile-time Path Scope verification via generated `.agboss/types.d.ts` (`Produced<Dto, Producer>`) |
+| **Review Loops & Provenance (`#271`)** | `.returns(Dto, { about })`, `caseOf(Dto, { about })`, `optional(Dto)`, `historyOf(Dto, { limit })`, and runtime `outdatedValues` cascades (`[input.outdated-on-path]`) |
+| **Parallel, Quorums & Transactional Sagas (`#273`, `#279`, `#339`, `#340`)** | `.toParallelAgents()`, `.toParallelWorkflows()`, `SpawnPolicy.Always` / `OnDemand`, `.acceptedBy().joinQuorum({ min, max, deadline })`, `.joinQuorumGroups(group(...).priority(1))`, `.onJoinError()`, declarative `compensateWith` / `committedBy` on `@Action` (`[flow.uncompensated-action]`), and automatic LIFO saga unwinding on cancellation, `FailFast`, quorum surplus, and limit abort |
+| **Child, Recursive & Federated Mesh Flows (`#263`, `#333`, `#387`, `#398`, `#401`, `#457`)** | `.toWorkflow(ChildWorkflow, { placement })`, `.toParallelWorkflows(ChildWorkflow, { placement: ChildPlacement.AnyInstance })`, recursive `ThisWorkflow` (`maxDepth`), multi-tenant `a2aHttpListener(app, { expose, callerResolver })` (`A2ACallerResolver`, `A2ACallerRejectedError.wireCode`), `@A2AExpose`, typed `@A2AAgent({ target, input, output, price })`, signed Agent Mesh Envelope (`agboss-mesh` JWS propagating `origin`, `budget.remaining`, `deadline.remaining`, `callChain`), `agboss check --federation`, `agboss records export`, and `agboss hub show --html` / `agboss hub ui` |
+| **Channels, Guardrails & Tool Interceptors (`#267`, `#337`, `#383`, `#384`)** | `@ChannelRole`, `@ReplyInterpreter`, `@Channel` (with `withdraw` on surplus quorum branches), atomic two-phase `app.resume({ pauseId, decision })`, `DecidedBy.Code` `@InputGuardrail` / `@OutputGuardrail` (`GuardrailHandler`, `GuardrailVerdict`), and cascading `@ToolInterceptor` (`BeforeToolCall` / `AfterToolCall`, `ToolCallDecision.replyToModel`) |
+| **Model Providers, Custom Compaction & FinOps (`#202`, `#261`, `#266`, `#382`, `#385`, `#395`, `#454`)** | `@ModelProvider` pools (`OpenRouterProvider` with host/quantization pinning, `OpenAiCompatibleProvider`, custom `ModelProviderHandler.complete(request)` transports, and automatic yielding of claimed models by built-in catch-alls `OpenRouterModelProvider` / `DecisionsModelProvider`), `CompactionStrategy.Custom` (`CompactionHandler`), KV-cache prefix invariance (`[prompt.input-in-instructions]`), and pre-call `@Budget` reservation |
+| **Durability, Distributed Child Work-Stealing & Multi-Instance (`#265`, `#268`, `#333`, `#360`, `#401`)** | 10 repository contracts (`Sqlite*Repository`, including `SqliteChildExecutionQueueRepository`, `SqliteExecutionHistoryRepository`, `SqliteMeshRequestRepository`), `ChildPlacement.AnyInstance` distributed child queue with parent lease yielding, shared tree concurrency slots in `RateLimitRepository`, per-child 30s leases & per-child crash recovery, cross-instance `app.cancel(threadId)`, CAS completion (`completeIfStatus`), 30s recovery sweeps, and `agboss describe --json` (`configHash`, `promptHash`, `schemaHash` join keys) |
+| **Testing, Trajectories & Evals (`#262`, `#297`, `#395`, `#396`, `#397`, `#419`, `#420`, `#458`)** | `testWith(Application, { instances })`, `VirtualClock`, 10 unit runners (`testTool`, `testToolInterceptor`, `testAction`, `testRouter`, `testArbiter`, `testRag`, `testJudge`, `testCompaction`, `testPii`, `testGuardrail`), trajectory matchers (`toHaveCalledTools`, `toHaveToolCallMatching`), VCR `[vcr.stale-cassette]`, `@EvalSuite` (`pass@k` / `pass^k`, `--baseline --fail-on-regression`, Cohen's $\kappa$ calibration, `--chaos`, `--metamorphic`, `generate eval-case --from-execution`, `agboss eval show --html`, `agboss eval ui`), `$0` `examples/flow-patterns`, and the 7 standalone verified examples in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) |
+| **Built-in AI Skills (`#305`, `#424`)** | `npx --yes --package=@agboss/cli agboss create` scaffolds committed `AGENTS.md` and `CLAUDE.md` (`@AGENTS.md`), while `npm install` (`postinstall`), `agboss check`, and `agboss generate` auto-sync gitignored `.claude/skills/agboss/` (`SKILL.md` + 13 reference guides, including `13-migrating-from-langgraph.md`) offline from `node_modules/@agboss/core/skills/agboss/` |
+
+## Package naming and version history
+
+AGBoss publishes the official scoped [`@agboss/core`](https://www.npmjs.com/package/@agboss/core) and [`@agboss/cli`](https://www.npmjs.com/package/@agboss/cli) packages under the `agboss` npm organization on `registry.npmjs.org`:
+
+- **`0.1.0` (Latest Published Release):** First substantive public release of the `@agboss/core` framework and `@agboss/cli` toolkit on `registry.npmjs.org`, verified against the 7-project executable proof suite in [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples).
+- **`0.0.1` (Historical npm Placeholder):** Initial package-name reservation published during repository setup; superseded by `0.1.0`.
+
+When upgrading from earlier pre-release layouts that imported deprecated subpath entry points such as `@agboss/core/graph` or `@agboss/core/memory`, run `npx agboss migrate imports` to rewrite imports to the canonical entry points (`@agboss/core`, `@agboss/core/dto`, `@agboss/core/models`, `@agboss/core/units`, `@agboss/core/rag`, `@agboss/core/mcp`, `@agboss/core/a2a`, `@agboss/core/testing`, `@agboss/core/eval`, `@agboss/core/eslint`).

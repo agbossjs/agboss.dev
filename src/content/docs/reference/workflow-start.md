@@ -1,14 +1,14 @@
 ---
 title: "@WorkflowStart"
-description: Complete API reference for the @WorkflowStart decorator in AGBoss — input DTO shapes, start() flow chains, and app.execute() options.
+description: Complete API reference for the @WorkflowStart decorator in AGBoss — input DTO shapes, onStart() flow chains, and app.execute() options.
 ---
 
-The `@WorkflowStart` decorator defines a typed entry point (`workflows/<workflow-name>/<start-name>.workflow-start.ts`) for starting a `@Workflow`. A workflow can declare multiple `@WorkflowStart` classes (for example, an interactive chat start and a batch webhook start), each seeding its own initial DTOs into the workflow's Path Scope via `start(StartClass).returns(InputDto)`.
+The `@WorkflowStart` decorator defines a typed entry point (`workflows/<workflow-name>/<start-name>.workflow-start.ts`) for starting a `@Workflow`. A workflow can declare multiple `@WorkflowStart` classes (for example, an interactive chat start and a batch webhook start), each seeding its own initial DTOs into the workflow's Path Scope: `onStart(StartClass)` gives the start's `input` (one value per field of a map), with nothing written on the edge.
 
 ## Complete `@WorkflowStart` examples (single DTO, list input, and multi-field input)
 
 ```ts title="src/workflows/role-match/role-match.workflow-start.ts" file=src/workflows/role-match/role-match.workflow-start.ts
-import { WorkflowStart, listOf, optional } from "@agboss/core";
+import { WorkflowStart, listOf, optional, inline } from "@agboss/core";
 import { Text, Url } from "@agboss/core/dto";
 
 export class CandidateProfileDto {
@@ -32,7 +32,7 @@ export class JobRoleDto {
 })
 export class SingleCandidateWorkflowStart {}
 
-// 2. List of DTOs input (for .toParallelAgents({ each })):
+// 2. List of DTOs input (for `.forEachItem(…)`):
 @WorkflowStart({
   name: "batch-candidates-workflow-start",
   description: "Screens a batch of candidates in parallel",
@@ -53,7 +53,7 @@ export class RoleMatchWorkflowStart {}
 ```
 
 ```ts title="src/agents/matcher/matcher.agent.ts" file=src/agents/matcher/matcher.agent.ts
-import { Agent, optional } from "@agboss/core";
+import { Agent, optional, inline } from "@agboss/core";
 import {
   CandidateProfileDto,
   JobRoleDto,
@@ -63,7 +63,7 @@ import {
   name: "matcher-agent",
   description: "Scores candidate profile against open roles",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Rank the candidate profile against open roles.",
+  prompt: inline("Rank the candidate profile against open roles."),
   input: {
     profile: CandidateProfileDto,
     role: optional(JobRoleDto),
@@ -73,7 +73,7 @@ export class MatcherAgent {}
 ```
 
 ```ts title="src/workflows/role-match/role-match.workflow.ts" file=src/workflows/role-match/role-match.workflow.ts
-import { Workflow, WorkflowFinish, optional, start } from "@agboss/core";
+import { Workflow, WorkflowFinish, optional, onStart, Ttl } from "@agboss/core";
 import { WorkflowFinishTextDto } from "@agboss/core/dto";
 import {
   CandidateProfileDto,
@@ -92,10 +92,9 @@ export class MatchWorkflowFinish {}
 @Workflow({
   name: "role-match-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(RoleMatchWorkflowStart)
-      .returns(CandidateProfileDto)
-      .returns(optional(JobRoleDto))
+    onStart(RoleMatchWorkflowStart)
       .toAgent(MatcherAgent)
       .toFinish(MatchWorkflowFinish),
   ],
@@ -137,8 +136,8 @@ import { RoleMatchWorkflowStart } from "../src/workflows/role-match/role-match.w
 
 const test = testWith(RoleMatchApplication);
 
-test("validates RoleMatchWorkflowStart input before entering the graph", async ({ app, mockLlm }) => {
-  mockLlm(MatcherAgent).thenReturn(replyWith("Strong match for Principal Systems Engineer"));
+test("validates RoleMatchWorkflowStart input before entering the graph", async ({ app, mockModel }) => {
+  mockModel(MatcherAgent).thenReturn(replyWith("Strong match for Principal Systems Engineer"));
   const res = await app.execute(
     RoleMatchWorkflowStart,
     {
@@ -149,7 +148,7 @@ test("validates RoleMatchWorkflowStart input before entering the graph", async (
       threadId: "candidate-ada-01",
       ownerId: "recruiter-7",
       tenant: { tenantId: "acme" },
-      record: true,
+      includeRecord: true,
     },
   );
   expect(res.status).toBe(ExecutionStatus.Finished);
@@ -170,8 +169,8 @@ Every `@WorkflowStart` class name ends with `WorkflowStart` and its `name` optio
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `start(StartClass)` | `"@agboss/core"` | Starts a flow path in `@Workflow({ flow })` and chains `.returns(...)` to place the start's input DTOs into Path Scope. |
+| `onStart(StartClass)` | `"@agboss/core"` | Starts a flow path in `@Workflow({ flow })`; the start's `input` DTOs (one value per field of a map) are placed into Path Scope with nothing written after it. |
 | `WorkflowStartTextDto` | `"@agboss/core/dto"` | Standard built-in DTO (`{ text: string }`) for chat and text-first workflow entry points. |
 | `app.execute(StartClass, input, options?)` | `"@agboss/core"` | Executes the workflow owning `StartClass` with compile-checked `InputOf<StartClass>` payload. |
-| `ExecutionOptions` | `"@agboss/core"` | Optional third argument to `app.execute`: `{ threadId, ownerId, tenant, execution, signal, record }`. |
-| `ExecutionOutput` | `"@agboss/core"` | Return value of `app.execute`: discriminated by `status` (`ExecutionStatus.Finished` or `ExecutionStatus.Paused`). |
+| `ExecutionOptions` | `"@agboss/core"` | Optional third argument to `app.execute`: `{ threadId, ownerId, tenant, execution, signal, includeRecord }`. |
+| `ExecutionOutput` | `"@agboss/core"` | Return value of `app.execute`: discriminated by `status` (`Finished`, `Paused`, `Stopped` or `Cancelled`). |

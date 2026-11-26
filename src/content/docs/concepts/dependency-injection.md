@@ -3,18 +3,18 @@ title: Dependency Injection, Custom Implementations & Overrides
 description: "How @Injectable constructor injection, custom @Rag / @ModelProvider / @Channel / Store adapters, class overrides, and lifecycle hooks work in AGBoss."
 ---
 
-AGBoss includes a deterministic dependency injection container modeled on Angular and NestJS. Every component (`@Injectable`, `@Tool`, `@ToolInterceptor`, `@Action`, `@Router`, `@Arbiter`, `@Judge`, `@Compaction`, `@InputGuardrail`, `@OutputGuardrail`, `@PiiPolicy`, `@ModelProvider`, `@Channel`, `@ReplyInterpreter`, `@Rag`, `@Budget`, `@HealthCheck`) declares its constructor dependencies in `deps: [...]`, and the container resolves them at application startup.
+AGBoss includes a deterministic dependency injection container modeled on Angular and NestJS. Every component (`@Injectable`, `@Tool`, `@ToolInterceptor`, `@Action`, `@Router`, `@Arbiter`, `@Judge`, `@Memory`, `@InputGuardrail`, `@OutputGuardrail`, `@PiiPolicy`, `@ModelProvider`, `@Channel`, `@ChannelInterpreter`, `@Rag`, `@Budget`, `@HealthCheck`) declares its constructor dependencies in `deps: [...]`, and the container resolves them at application startup.
 
-Because AGBoss resolves infrastructure contracts by **class inheritance** or typed handler interfaces rather than hardcoding vendor SDKs, you can plug in your own custom `@Rag` vector databases, custom `@ModelProvider` gateways (OpenRouter, vLLM, Ollama, LiteLLM, or custom SDK transports via `ModelProviderHandler`), custom `@Compaction` knowledge-graph handlers (`CompactionStrategy.Custom`), custom `@Channel` transports, and custom Postgres/Redis stores — and swap any dependency in tests with `override(Base, Fake)`.
+Because AGBoss resolves infrastructure contracts by **class inheritance** or typed handler interfaces rather than hardcoding vendor SDKs, you can plug in your own custom `@Rag` vector databases, custom `@ModelProvider` gateways (a driver for OpenRouter, vLLM, Ollama and LiteLLM, or a class with `complete(request)` for a custom SDK transport), custom `@Channel` transports for the pause targets, and custom storage drivers — and swap any dependency in tests with a fake class that `extends` the real one (`testWith(App, { services: [Fake] })`).
 
 ---
 
-## Complete example: DI, custom `@Rag`, custom `@ModelProvider` & `override()` test
+## Complete example: DI, custom `@Rag`, custom `@ModelProvider` & test doubles
 
 <!-- snippet-context
-import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, start, type BudgetHandler } from "@agboss/core";
+import { Budget, BudgetPeriod, BudgetScope, Workflow, WorkflowFinish, WorkflowStart, onStart, Ttl, type BudgetHandler } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
-import type { Usd } from "@agboss/core/units";
+import { usd, type Usd } from "@agboss/core/units";
 // @snippet
 @WorkflowStart({ name: "di-audit-workflow-start", description: "Start", input: WorkflowStartTextDto })
 export class DiAuditStart {}
@@ -23,7 +23,8 @@ export class DiAuditFinish {}
 @Workflow({
   name: "di-audit-workflow",
   version: "1.0.0",
-  flow: [start(DiAuditStart).returns(WorkflowStartTextDto).toFinish(DiAuditFinish)],
+  historyTtl: Ttl.Forever,
+  flow: [onStart(DiAuditStart).toFinish(DiAuditFinish)],
 })
 export class AuditWorkflow {}
 @Budget({ name: "di-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
@@ -43,20 +44,11 @@ import {
   type OnInit,
   type OnStart,
   type OnStop,
-  type ToolHandler,
 } from "@agboss/core";
-import { Rag, RagTenancy, type RagConnector, type RagRetrieval } from "@agboss/core/rag";
+import { Rag, RagScope, RagSource, type RagRetrieval, type RagRetrieveOptions } from "@agboss/core/rag";
 import { Text } from "@agboss/core/dto";
-import { minutes, seconds, usd } from "@agboss/core/units";
-import {
-  DecisionsModelProvider,
-  ModelCost,
-  ModelProvider,
-  OpenAiCompatibleProvider,
-  PromptCaching,
-  Reasoning,
-  RetryPolicy,
-} from "@agboss/core/models";
+import { ModelCost, ModelProvider, OpenAiCompatibleDriver } from "@agboss/core/models";
+import { seconds } from "@agboss/core/units";
 
 export class JobQueryDto {
   @Text({ prompt: "Search query for indexed jobs" })
@@ -110,80 +102,54 @@ export class JobIndexService implements OnInit, OnStart, OnStop, OnDestroy {
   }
 }
 
-// Custom @Rag implementation backed by your own vector/hybrid store:
+// A custom @Rag backed by your own vector/hybrid store: extend RagSource, implement `retrieve`.
 @Rag({
   name: "custom_vector_docs",
   description: "Custom vector search over architecture runbooks",
-  tenancy: RagTenancy.PerTenant,
+  scope: RagScope.Tenant,
   topK: 3,
-  deps: [ConnectionPool, ExecutionContext],
+  deps: [ConnectionPool],
 })
-export class CustomVectorDocsRag implements RagConnector {
-  constructor(
-    private readonly pool: ConnectionPool,
-    private readonly executionContext: ExecutionContext,
-  ) {}
+export class CustomVectorDocsRag extends RagSource {
+  constructor(private readonly pool: ConnectionPool) {
+    super();
+  }
 
-  async retrieve(
-    query: string,
-    options: { readonly topK: number; readonly signal: AbortSignal },
-  ): Promise<RagRetrieval> {
-    void this.executionContext.tenant.tenantId;
-    const rows = await this.pool.queryJobs(query);
-    return {
-      results: rows.slice(0, options.topK).map((text, idx) => ({
-        text,
-        source: `doc-${String(idx + 1)}`,
-        score: 0.95,
-      })),
-      costUsd: 0.0002,
-    };
+  protected override async retrieve(query: string, options: RagRetrieveOptions): Promise<RagRetrieval> {
+    const rows = (await this.pool.queryJobs(query)).slice(0, options.topK);
+    const results = rows.map((text, idx) => ({ text, source: `doc-${String(idx + 1)}`, score: 0.95 }));
+    return { results, costUsd: usd(0.0002) };
   }
 }
 
-// Custom @ModelProvider for a local/self-hosted vLLM or LiteLLM server:
+// A model provider for a local/self-hosted vLLM or LiteLLM server: a driver, no base class to extend.
 @ModelProvider({
   name: "local-vllm-model-provider",
   description: "Self-hosted vLLM OpenAI-compatible inference cluster",
-  serves: [/^local\//, /^moonshotai\//],
-  baseUrl: "http://localhost:8000/v1",
+  driver: OpenAiCompatibleDriver({ baseUrl: "http://localhost:8000/v1" }),
+  model: "local/qwen-32b",
   timeout: seconds(60),
   cost: ModelCost.fromPrices({
     "local/qwen-32b": {
       inputPerMillion: usd(0.1),
       outputPerMillion: usd(0.2),
     },
-    "moonshotai/kimi-k2.6": {
-      inputPerMillion: usd(0.5),
-      outputPerMillion: usd(1.5),
-    },
   }),
-  reasoning: Reasoning.off(),
-  promptCaching: PromptCaching.off(),
-  retryPolicy: RetryPolicy.none(),
-  circuitBreakerPolicy: {
-    failureThreshold: 5,
-    window: minutes(1),
-    openFor: seconds(30),
-  },
 })
-export class LocalVllmModelProvider extends OpenAiCompatibleProvider {
-  override readonly requestFields = {};
-}
-
-export const modelProviders = [LocalVllmModelProvider, DecisionsModelProvider];
+export class LocalVllmModelProvider {}
 
 @Tool({
   name: "search_jobs",
   description: "Searches indexed jobs using a warmed connection pool",
   input: JobQueryDto,
   output: JobQueryDto,
-  deps: [ConnectionPool],
+  deps: [ConnectionPool, ExecutionContext],
 })
-export class SearchJobsTool
-  implements ToolHandler<JobQueryDto, JobQueryDto>, OnInit, OnDestroy
-{
-  constructor(private readonly pool: ConnectionPool) {}
+export class SearchJobsTool implements OnInit, OnDestroy {
+  constructor(
+    private readonly pool: ConnectionPool,
+    private readonly executionContext: ExecutionContext,
+  ) {}
 
   async onInit(): Promise<void> {
     await this.pool.ping();
@@ -193,7 +159,8 @@ export class SearchJobsTool
     await this.pool.drain();
   }
 
-  async run(input: JobQueryDto): Promise<JobQueryDto> {
+  async execute(input: JobQueryDto): Promise<JobQueryDto> {
+    this.executionContext.signal.throwIfAborted();
     const hits = await this.pool.queryJobs(input.query);
     return { query: hits[0] ?? input.query };
   }
@@ -208,12 +175,15 @@ import {
   DiExecBudget,
   DiTenantBudget,
 } from "./services/audit-trail.service.js";
+import { LocalVllmModelProvider } from "./services/audit-trail.service.js";
 
 @Application({
   name: "audit-application",
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [AuditWorkflow],
+  modelProvider: LocalVllmModelProvider, // there is no default provider: the application names one
+  providers: [LocalVllmModelProvider],
   budgets: [DiAppBudget, DiTenantBudget, DiExecBudget],
 })
 export class AuditApplication {}
@@ -221,13 +191,15 @@ export class AuditApplication {}
 
 ```ts title="test/custom-overrides.test.ts" file=test/custom-overrides.test.ts
 import { expect, it } from "vitest";
-import { override, testRag, testTool } from "@agboss/core/testing";
+import { Injectable } from "@agboss/core";
+import { testUnit } from "@agboss/core/testing";
 import {
   ConnectionPool,
   CustomVectorDocsRag,
   SearchJobsTool,
 } from "../src/services/audit-trail.service.js";
 
+@Injectable()
 class FakeConnectionPool extends ConnectionPool {
   override queryJobs(q: string): Promise<string[]> {
     return Promise.resolve([`fake-hit:${q}`]);
@@ -235,14 +207,14 @@ class FakeConnectionPool extends ConnectionPool {
 }
 
 it("overrides ConnectionPool in both @Tool and custom @Rag unit runners", async () => {
-  const runTool = testTool(SearchJobsTool, {
-    overrides: [override(ConnectionPool, FakeConnectionPool)],
+  const runTool = testUnit(SearchJobsTool, {
+    services: [FakeConnectionPool],
   });
   const toolRes = await runTool({ query: "staff-ts" });
   expect(toolRes.output).toEqual({ query: "fake-hit:staff-ts" });
 
-  const runRag = testRag(CustomVectorDocsRag, {
-    overrides: [override(ConnectionPool, FakeConnectionPool)],
+  const runRag = testUnit(CustomVectorDocsRag, {
+    services: [FakeConnectionPool],
   });
   const ragRes = await runRag("runbook", { topK: 2 });
   expect(ragRes.output[0]?.text).toBe("fake-hit:runbook");
@@ -259,14 +231,14 @@ AGBoss never locks you into built-in adapters. Every external integration is def
 
 | Contract Type | How to Implement Your Own in Production | How to Register It | How to Override / Test It |
 | :--- | :--- | :--- | :--- |
-| **Knowledge Base ([`@Rag`](/reference/rag/))** | Decorate with `@Rag({ name, description, topK, deps })` and either `implements RagConnector` (`retrieve(query, { topK, signal })` for Pinecone, Qdrant, pgvector, Elasticsearch) or `extends SqliteFtsConnector` (built-in BM25). | Referenced in `@Agent({ rag: [{ use: MyRag, mode: RagMode.Tool \| RagMode.Context }] })`; its `deps` go in `@Workflow({ providers })`. | `testRag(MyRag, { overrides: [override(VectorClient, FakeVectorClient)] })` or `mockRag(MyRag)` in `testWith(App)`. |
-| **Model Gateway ([`@ModelProvider`](/reference/model-provider/))** | Decorate with `@ModelProvider({ name: "...-model-provider", serves, cost, reasoning, promptCaching, retryPolicy, rateLimitPolicy, circuitBreakerPolicy })` and extend `OpenRouterProvider`, `OpenAiCompatibleProvider` (vLLM, Ollama, LiteLLM, Azure), or `implements ModelProviderHandler` (`complete(request)` with `deps: [...]` for AWS Bedrock / Vertex AI / mTLS gateways). | Listed in `@Application({ providers: [MyModelProvider, DecisionsModelProvider] })`. | `testWith(App)` automatically intercepts model calls above the transport so unit tests never hit live endpoints. |
-| **Custom Compaction ([`@Compaction`](/reference/compaction/))** | Decorate with `@Compaction({ name: "...-compaction", strategy: CompactionStrategy.Custom, turnsBetweenCompactions, deps })` and implement `CompactionHandler` (`compact(input)`). | Bound on `@Application`, `@Workflow`, `@Agent`, or `@Router` via `compaction: MyCompaction`. | `testCompaction(MyCompaction, { overrides })` or `mockOf(Service)` in `testWith(App)`. |
-| **Tool Interceptor ([`@ToolInterceptor`](/reference/tool-interceptor/))** | Decorate with `@ToolInterceptor({ name: "...-tool-interceptor", description, deps })` and implement `BeforeToolCall` and/or `AfterToolCall`. | Bound via `toolInterceptors: [MyToolInterceptor]` on `@Application`, `@Workflow`, `@Agent`, `@Tool`, or `@McpTool`. | `testToolInterceptor(MyToolInterceptor, { overrides })`. |
-| **Approval Channel ([`@Channel`](/reference/channel/))** | Declare `@ChannelRole({ approves, answerer, replyInterpreter }) export abstract class MyRole extends ChannelOf<MyRole> {}`, then implement `@Channel({ name, deps }) export class SlackChannel extends MyRole` (`send()` and optional `onPauseClosed()`). | Listed in `@Application({ providers: [SlackChannel] })` (matched to `MyRole` by class inheritance). | In `testWith(App)`, pass `overrides: [override(MyRole, AutoApproveChannel)]` or override `SlackService` via `override(SlackService, FakeSlackService)`. |
-| **7 Durable Stores ([Persistence](/guides/persistence-and-recovery/))** | Subclass any of the 7 contracts (`extends BaseCheckpointSaver`, `PausedExecutionRepository`, `ExecutionRecordRepository`, `CostLedgerRepository`, `ExecutionLeaseRepository`, `ExecutionTreeRepository`, `RateLimitRepository`) or subclass a `Sqlite*` class (`extends SqliteExecutionLeaseRepository`). | Listed in `@Application({ providers: [PostgresLeaseRepository, ...] })`. | Default `InMemory*` stores run automatically when omitted; or pass `overrides: [override(ExecutionLeaseRepository, FaultyLeaseRepo)]` in `testWith`. |
-| **Domain Services ([`@Injectable`](/reference/injectable/))** | Decorate with `@Injectable({ deps: [...] })` (and optional `OnInit`, `OnStart`, `OnStop`, `OnDestroy` hooks). | Listed in `@Workflow({ providers: [MyService] })` (or `@Application({ providers })` when shared by app-level guards/observers). | `override(MyService, FakeMyService)` or `mockOf(MyService, { method: vi.fn() })` in `testWith` and all 10 unit runners. |
-| **Value Tokens (`InjectionToken<T>`)** | Create `const CONFIG = new InjectionToken<MyConfig>("CONFIG")` and bind with `provide(CONFIG, { ... })`. (Note: passing a class to `provide(Class, instance)` is rejected by `[di.instance-provider]`). | Listed in `@Workflow({ providers: [provide(CONFIG, value)] })`. | Pass `provide(CONFIG, testValue)` in `overrides`. |
+| **Knowledge Base ([`@Rag`](/reference/rag/))** | Decorate with `@Rag({ name, description, scope, topK, deps })` and `extends RagSource` (implement `protected retrieve(query, options)` for Pinecone, Qdrant, pgvector, Elasticsearch) or `extends SqliteFtsRagSource` (built-in BM25). | Referenced in `@Agent({ rag: [MyRag] })` (the core retrieves before the agent's first model call), or injected into a `@Tool` / `@Action` that calls `search(query)`; its `deps` go in `@Workflow({ providers })`. | `testUnit(MyRag, { services: [FakeVectorClient] })` or `mockRag(MyRag)` in `testWith(App)`. |
+| **Model Gateway ([`@ModelProvider`](/reference/model-provider/))** | Decorate with `@ModelProvider({ name: "...-model-provider", driver, model, timeout, cost, … })` where `driver` is `OpenRouterDriver`, `OpenAiCompatibleDriver` (vLLM, Ollama, LiteLLM, Azure) or `DecisionsDriver`; or, for AWS Bedrock / Vertex AI / mTLS gateways, a class with `complete(request)` and `deps: [...]` instead of a `driver`. | Listed in `@Application({ providers: [MyModelProvider] })` and named by `modelProvider` (the application's, a workflow's or a component's). There are no built-in providers. | `testWith(App)` automatically intercepts model calls above the transport so unit tests never hit live endpoints. |
+| **Memory ([`@Memory`](/reference/memory/))** | Decorate with `@Memory({ name: "...-memory", … })` — what a workflow, an agent or a model router remembers of its thread: the window, the summaries and the `ttl`. | Bound on `@Workflow`, `@Agent`, or `@Router` via `memory: MyMemory`. A workflow without `memory` is stateless. | `testUnit(MyMemory, { services })` or `mockService(Service)` in `testWith(App)`. |
+| **Tool Interceptor ([`@ToolInterceptor`](/reference/tool-interceptor/))** | Decorate with `@ToolInterceptor()` and mark methods `@BeforeTool(Tool)` / `@AfterTool(Tool)` (per tool) or `beforeAnyTool` / `afterAnyTool` (every tool); it fails closed. | Bound via `toolInterceptors: [MyToolInterceptor]` on `@Application`, `@Workflow`, `@Agent` or `@Tool`. | `testUnit(MyToolInterceptor, { services })`. |
+| **Approval Channel ([`@Channel`](/reference/channel/))** | Declare the **target** — `@ToolApproval({ input, respondent, timeout })` or `@ExternalTask({ input, output, respondent, timeout })` — then implement `@Channel({ name, target, ttl, deps }) export class SlackChannel` (`send(ask)` and optional `onPauseClosed(event)`). | Listed in `@Application({ channels: [SlackChannel] })`; a `@Tool({ approval: MyApproval })` names the target, never the channel. | In `testWith(App)`, a channel is replaced by `AutoApproveChannel` / `AutoRejectChannel`, or override `SlackService` via a fake class in `services`. |
+| **Durable Storage ([Persistence](/guides/persistence-and-recovery/))** | A `@DatabaseStorage({ driver, auditLogTtl, ledgerEntriesTtl })` class with `SqliteDriver`, or the store packages' `PostgresDriver` / `MongoDriver`; `@ClusterStorage` (Redis) for leases and the child queue. A driver of your own is built with `defineStorageDriver` from `@agboss/core/stores`. | `@Application({ storage: MyDatabaseStorage })` — a store class in `providers` beside it is `[storage.providers-conflict]`. | The in-memory database runs automatically when `storage` is omitted. |
+| **Domain Services ([`@Injectable`](/reference/injectable/))** | Decorate with `@Injectable({ deps: [...] })` (and optional `OnInit`, `OnStart`, `OnStop`, `OnDestroy` hooks). | Listed in `@Workflow({ providers: [MyService] })` (or `@Application({ providers })` when shared by app-level guards/observers). | A fake class that `extends MyService` in `services: [FakeMyService]` of `testWith` and of `testUnit`, or `mockService(MyService)` in `testWith`. |
+| **Value Tokens (`InjectionToken<T>`)** | Create `const CONFIG = new InjectionToken<MyConfig>("CONFIG")` and bind with `provide(CONFIG, { ... })`. (Note: passing a class to `provide(Class, instance)` is rejected by `[di.instance-provider]`). | Listed in `@Workflow({ providers: [provide(CONFIG, value)] })`. | Pass `provide(CONFIG, testValue)` in `services`. |
 
 ---
 
@@ -277,7 +249,7 @@ Instead of calling `Date.now()`, `process.env`, or global singletons, AGBoss com
 - **`Clock` (`deps: [Clock]`):** Every timestamp and sleep (`this.clock.now()`, `await this.clock.sleep(seconds(30))`) goes through the application's `Clock`. Under `testWith`, the container provides a `VirtualClock` that advances instantly with `await clock.advance(seconds(30))`.
 - **`ApplicationContext` (`deps: [ApplicationContext]`):** Provides `this.applicationContext.environment` (typed by your `AppEnvironment` contract), `environmentName`, and `instanceId`. Components always inject `ApplicationContext` rather than `AppEnvironment` directly.
 - **`ExecutionContext` (`deps: [ExecutionContext]`):** Provides read-only access to the current step's frame (`executionId`, `rootExecutionId`, `parentExecutionId`, `depth`, `threadId`, `ownerId`, `tenant.tenantId`, `signal`, and `step.idempotencyKey`), isolated via `AsyncLocalStorage` across concurrent runs and parallel branches.
-- **`TenantContext` (`deps: [MyTenantContext]`):** Subclass `TenantContext` to pass typed per-request tenant metadata (`plan`, `region`, `dailyBudgetUsd`) into tools, actions, and budgets.
+- **`TenantContext` (`deps: [MyTenantContext]`):** Subclass `TenantContext` and name it in `@Application({ tenantContext })` to pass typed per-request tenant metadata (`plan`, `region`, `dailyBudgetUsd`) into tools, actions, and budgets. Declaring it is also what switches on the tenant gate: the point calls of `App` then require `{ tenantId }`.
 
 ---
 
@@ -289,5 +261,5 @@ Every component the container creates can implement any combination of `OnInit`,
 | :--- | :--- | :--- |
 | `onInit()` | After the component's own `deps` have been created and completed their `onInit` | Opening database pools, preparing statements, warming caches (failing `onInit` aborts startup and runs `onDestroy` on already-initialized dependencies) |
 | `onStart()` | After every component in the application has completed `onInit`, before `execute` | Starting background listeners, readiness checks, or startup audit logs |
-| `onStop()` | When `app.close()` or `SIGTERM` arrives (new executions refused with `ApplicationStoppingError`, active ones draining up to `shutdownTimeout`) | Stopping intake queues and flushing pending operations |
+| `onStop()` | When `app.close()` or `SIGTERM` arrives (new executions refused with `ApplicationStoppingError`, active ones draining up to `executionLimits.shutdownTimeout`) | Stopping intake queues and flushing pending operations |
 | `onDestroy()` | After all running executions have finished, paused, or released their 30s leases to another instance | Closing database pools, sockets, and telemetry exporters |

@@ -1,0 +1,312 @@
+{
+  "sidebar": [
+    {
+      "label": "Getting Started",
+      "items": [
+        {
+          "label": "Introduction",
+          "slug": "getting-started/introduction"
+        },
+        {
+          "label": "Installation",
+          "slug": "getting-started/installation"
+        },
+        {
+          "label": "Quick start",
+          "slug": "getting-started/quick-start"
+        },
+        {
+          "label": "Interactive Feature Explorer",
+          "slug": "features"
+        }
+      ]
+    },
+    {
+      "label": "Core Concepts",
+      "items": [
+        {
+          "label": "7 Architectural Principles",
+          "slug": "concepts/architecture"
+        },
+        {
+          "label": "AI Coding Skills (AGENTS.md)",
+          "slug": "concepts/ai-coding-skills"
+        },
+        {
+          "label": "Progressive Crystallization",
+          "slug": "concepts/progressive-crystallization"
+        },
+        {
+          "label": "Application & Lifecycle",
+          "slug": "concepts/application"
+        },
+        {
+          "label": "Digital & Physical Missions",
+          "slug": "concepts/mission-orchestration"
+        },
+        {
+          "label": "Decorators & Role Segregation",
+          "slug": "concepts/decorators"
+        },
+        {
+          "label": "Workflow HDSL & Topology",
+          "slug": "concepts/workflow"
+        },
+        {
+          "label": "Path Scope (SSA) & Provenance",
+          "slug": "concepts/path-scope"
+        },
+        {
+          "label": "DI & Custom Overrides",
+          "slug": "concepts/dependency-injection"
+        },
+        {
+          "label": "Contexts & Authorization",
+          "slug": "concepts/contexts"
+        },
+        {
+          "label": "Environments, Secrets & Units",
+          "slug": "concepts/environments"
+        }
+      ]
+    },
+    {
+      "label": "Testing & Evaluation (5 Loops)",
+      "items": [
+        {
+          "label": "5-Loop Verification Funnel",
+          "slug": "concepts/verification-funnel"
+        },
+        {
+          "label": "Loop 0–1: Unit Runners, testWith & VCR",
+          "slug": "guides/testing-agents"
+        },
+        {
+          "label": "Loop 2–4: Evals, pass^k & Calibration",
+          "slug": "guides/evaluation-and-profiles"
+        }
+      ]
+    },
+    {
+      "label": "Production Guides",
+      "items": [
+        {
+          "label": "Parallel, Quorums & Child Workflows",
+          "slug": "guides/parallel-quorums-and-child-workflows"
+        },
+        {
+          "label": "Channels, Pauses & Webhooks",
+          "slug": "guides/channels-and-pauses"
+        },
+        {
+          "label": "Multi-Instance, Leases & SQLite",
+          "slug": "guides/persistence-and-recovery"
+        },
+        {
+          "label": "Error Handling & Rollback",
+          "slug": "guides/error-handling-and-rollback"
+        },
+        {
+          "label": "FinOps & Model Providers",
+          "slug": "guides/finops-and-providers"
+        },
+        {
+          "label": "PII Policies & Guardrails",
+          "slug": "guides/security-and-pii"
+        },
+        {
+          "label": "Memory & Compaction",
+          "slug": "guides/memory-and-compaction"
+        },
+        {
+          "label": "Observability & Tracing",
+          "slug": "guides/observability-and-tracing"
+        },
+        {
+          "label": "MCP, RAG & A2A Protocols",
+          "slug": "guides/mcp-rag-and-a2a"
+        }
+      ]
+    },
+    {
+      "label": "A2A Extension Specifications",
+      "items": [
+        {
+          "label": "Mesh extension (a2a/mesh/v1)",
+          "slug": "a2a/mesh/v1"
+        },
+        {
+          "label": "Skills extension (a2a/skills/v1)",
+          "slug": "a2a/skills/v1"
+        }
+      ]
+    },
+    {
+      "label": "Decorators: App & Workflow",
+      "items": [
+        {
+          "label": "@Application",
+          "slug": "reference/application"
+        },
+        {
+          "label": "@Workflow",
+          "slug": "reference/workflow"
+        },
+        {
+          "label": "@WorkflowStart",
+          "slug": "reference/workflow-start"
+        },
+        {
+          "label": "@WorkflowFinish",
+          "slug": "reference/workflow-finish"
+        },
+        {
+          "label": "@HealthCheck",
+          "slug": "reference/health-check"
+        }
+      ]
+    },
+    {
+      "label": "Decorators: Flow & Routing",
+      "items": [
+        {
+          "label": "@Agent",
+          "slug": "reference/agent"
+        },
+        {
+          "label": "@Action",
+          "slug": "reference/action"
+        },
+        {
+          "label": "@Router",
+          "slug": "reference/router"
+        },
+        {
+          "label": "@Arbiter",
+          "slug": "reference/arbiter"
+        },
+        {
+          "label": "@OnAnswer",
+          "slug": "reference/on-answer"
+        },
+        {
+          "label": "@Compaction",
+          "slug": "reference/compaction"
+        }
+      ]
+    },
+    {
+      "label": "Decorators: Tools, Quality & DI",
+      "items": [
+        {
+          "label": "@Tool",
+          "slug": "reference/tool"
+        },
+        {
+          "label": "@BindTool",
+          "slug": "reference/bind-tool"
+        },
+        {
+          "label": "@ToolInterceptor",
+          "slug": "reference/tool-interceptor"
+        },
+        {
+          "label": "@Judge",
+          "slug": "reference/judge"
+        },
+        {
+          "label": "@Injectable",
+          "slug": "reference/injectable"
+        },
+        {
+          "label": "DTO Field Decorators",
+          "slug": "reference/dto"
+        }
+      ]
+    },
+    {
+      "label": "Decorators: Governance & Safety",
+      "items": [
+        {
+          "label": "@ModelProvider",
+          "slug": "reference/model-provider"
+        },
+        {
+          "label": "@Budget",
+          "slug": "reference/budget"
+        },
+        {
+          "label": "@PiiPolicy",
+          "slug": "reference/pii-policy"
+        },
+        {
+          "label": "@InputGuardrail & @OutputGuardrail",
+          "slug": "reference/guardrail"
+        },
+        {
+          "label": "@ChannelRole",
+          "slug": "reference/channel-role"
+        },
+        {
+          "label": "@Channel",
+          "slug": "reference/channel"
+        },
+        {
+          "label": "@ReplyInterpreter",
+          "slug": "reference/reply-interpreter"
+        }
+      ]
+    },
+    {
+      "label": "Decorators: Knowledge & Protocols",
+      "items": [
+        {
+          "label": "@Rag",
+          "slug": "reference/rag"
+        },
+        {
+          "label": "@McpServer",
+          "slug": "reference/mcp"
+        },
+        {
+          "label": "@McpTool",
+          "slug": "reference/mcp-tool"
+        },
+        {
+          "label": "@McpExpose",
+          "slug": "reference/mcp-expose"
+        },
+        {
+          "label": "@A2AAgent",
+          "slug": "reference/a2a-agent"
+        }
+      ]
+    },
+    {
+      "label": "CLI, Examples & Releases",
+      "items": [
+        {
+          "label": "agboss CLI",
+          "slug": "cli"
+        },
+        {
+          "label": "7 Verified Examples & job-scout",
+          "slug": "examples/verified-examples"
+        },
+        {
+          "label": "Showcase: Distributed Agent Recovery",
+          "slug": "examples/distributed-agent-recovery"
+        },
+        {
+          "label": "Changelog & Releases",
+          "slug": "changelog"
+        },
+        {
+          "label": "About AGBoss",
+          "slug": "about"
+        }
+      ]
+    }
+  ],
+  "excluded": []
+}

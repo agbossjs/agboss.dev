@@ -1,26 +1,34 @@
 ---
-title: "@Arbiter & @OnAnswer"
-description: Complete API reference for the @Arbiter and @OnAnswer decorators in AGBoss — quorum voting, DecidedBy.Code vs DecidedBy.Model, and testArbiter().
+title: "@Arbiter & @Arbitrate"
+description: Complete API reference for the @Arbiter and @Arbitrate decorators in AGBoss — quorum voting by code, by model or hybrid, and testUnit().
 ---
 
-The `@Arbiter` class decorator and `@OnAnswer(AgentClass)` method decorator (`arbiters/*.arbiter.ts`) evaluate individual answers arriving from a parallel agent launch (`.toParallelAgents(...)`) to decide whether each answer counts toward a `.joinQuorum()` or `.joinQuorumGroups()` consensus. Unlike a `@Router`, an `@Arbiter` never chooses where the graph goes next — it votes `true` (accept) or `false` (reject) as each parallel branch finishes so the quorum can resolve immediately and cancel slower branches.
+The `@Arbiter` class decorator and `@Arbitrate(…targets)` method decorator (`arbiters/*.arbiter.ts`) evaluate individual answers arriving from a parallel launch (`.inParallel([…])` or `.forEachItem(…)`) to decide whether each answer counts toward a `.joinQuorum()` or `.joinQuorumGroups()` consensus. Unlike a `@Router`, an `@Arbiter` never chooses where the graph goes next — it votes `true` (accept) or `false` (reject) as each parallel branch finishes so the quorum can resolve immediately and cancel slower branches.
 
-## Complete `@Arbiter` and `@OnAnswer` examples (`DecidedBy.Code` and `DecidedBy.Model`)
+## Complete `@Arbiter` and `@Arbitrate` examples (by code, by model, and by code that asks a model)
 
 ```ts title="src/arbiters/risk-quorum.arbiter.ts" file=src/arbiters/risk-quorum.arbiter.ts
-import { Arbiter, DecidedBy, ExecutionContext, OnAnswer } from "@agboss/core";
+import {
+  Arbiter,
+  ArbiterModel,
+  Arbitrate,
+  Decision,
+  ExecutionContext,
+  inline,
+  type ArbitratedAnswerOf,
+} from "@agboss/core";
 import {
   BackupRiskAgent,
+  DecisionsModelProvider,
   FastRiskAgent,
   PrimaryRiskAgent,
   RiskThresholdService,
 } from "../agents/risk.agents.js";
 import { RiskScoreDto } from "../dto/risk.dto.js";
 
-// 1. Code Arbiter (DecidedBy.Code — uses @OnAnswer(AgentClass) methods + constructor DI):
+// 1. Code arbiter (@Arbitrate(…targets) methods, no decidedBy; the method name is yours) + constructor DI:
 @Arbiter({
   name: "confidence-threshold-arbiter",
-  decidedBy: DecidedBy.Code,
   deps: [ExecutionContext, RiskThresholdService],
 })
 export class ConfidenceThresholdArbiter {
@@ -29,55 +37,66 @@ export class ConfidenceThresholdArbiter {
     private readonly thresholds: RiskThresholdService,
   ) {}
 
-  @OnAnswer(PrimaryRiskAgent)
-  fromPrimaryRisk(answer: RiskScoreDto): boolean {
+  // one method judges the answers of one target; the parameter is Tracked as that target gave it
+  @Arbitrate(PrimaryRiskAgent)
+  isPrimaryConfident(answer: RiskScoreDto): boolean {
     void this.executionContext.executionId;
     return answer.confidence >= this.thresholds.primaryMinConfidence();
   }
 
-  @OnAnswer(FastRiskAgent)
-  fromFastRisk(answer: RiskScoreDto): boolean {
-    return answer.confidence >= 0.85 && answer.score >= 0;
-  }
-
-  @OnAnswer(BackupRiskAgent)
-  fromBackupRisk(answer: RiskScoreDto): boolean {
+  // or one method for several targets: the parameter is the union of their outputs
+  @Arbitrate(FastRiskAgent, BackupRiskAgent)
+  isConfident(answer: RiskScoreDto): boolean {
     return answer.confidence >= 0.8;
   }
 }
 
-// 2. Model Arbiter (DecidedBy.Model — declarative per-agent criteria, no methods):
+// 2. Model arbiter (declarative: `criteria`, one per target, no methods):
 @Arbiter({
   name: "rationale-quality-arbiter",
-  decidedBy: DecidedBy.Model,
   model: "typesafe/jev-1.13",
-  prompt: "Accept the risk assessment only if its rationale cites specific financial metrics.",
+  modelProvider: DecisionsModelProvider,
+  prompt: inline("Accept the risk assessment only if its rationale cites specific financial metrics."),
   criteria: [
-    {
-      agent: PrimaryRiskAgent,
-      prompt: "The rationale cites debt-to-income and cash-flow figures from the input",
-    },
-    {
-      agent: FastRiskAgent,
-      prompt: "The rationale names at least one concrete risk factor and a numeric score",
-    },
-    {
-      agent: BackupRiskAgent,
-      prompt: "The rationale is complete and non-contradictory",
-    },
+    { target: PrimaryRiskAgent, prompt: "The rationale cites debt-to-income and cash-flow figures from the input" },
+    { target: FastRiskAgent, prompt: "The rationale names at least one concrete risk factor and a numeric score" },
+    { target: BackupRiskAgent, prompt: "The rationale is complete and non-contradictory" },
   ],
 })
 export class RationaleQualityArbiter {}
+
+// 3. Hybrid: code decides at $0 where it can and asks its own model (ArbiterModel) only where it must:
+@Arbiter({
+  name: "hybrid-risk-arbiter",
+  model: "typesafe/jev-1.13",
+  modelProvider: DecisionsModelProvider,
+  deps: [ArbiterModel],
+})
+export class HybridRiskArbiter {
+  constructor(private readonly arbiterModel: ArbiterModel) {}
+
+  @Arbitrate(PrimaryRiskAgent, FastRiskAgent, BackupRiskAgent)
+  async isSound(
+    answer: ArbitratedAnswerOf<[typeof PrimaryRiskAgent, typeof FastRiskAgent, typeof BackupRiskAgent]>,
+  ): Promise<boolean> {
+    if (answer.confidence >= 0.95) return true; // no model call
+    const verdict = await this.arbiterModel.decide({
+      state: { rationale: answer.rationale },
+      questions: { cited: Decision.boolean("The rationale cites a concrete metric") },
+    });
+    return verdict.cited.probability >= 0.5;
+  }
+}
 ```
 
 ```ts title="src/dto/risk.dto.ts" file=src/dto/risk.dto.ts
-import { Decimal, Integer, Text } from "@agboss/core/dto";
+import { Float, Integer, Text } from "@agboss/core/dto";
 
 export class RiskScoreDto {
   @Integer({ min: 0, max: 100 })
   score!: number;
 
-  @Decimal({ min: 0, max: 1 })
+  @Float({ min: 0, max: 1 })
   confidence!: number;
 
   @Text()
@@ -86,9 +105,29 @@ export class RiskScoreDto {
 ```
 
 ```ts title="src/agents/risk.agents.ts" file=src/agents/risk.agents.ts
-import { Agent, Injectable } from "@agboss/core";
+import { Agent, Injectable, inline, secret } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
+import { DecisionsDriver, ModelCost, ModelProvider, OpenRouterDriver } from "@agboss/core/models";
+import { minutes, seconds } from "@agboss/core/units";
 import { RiskScoreDto } from "../dto/risk.dto.js";
+
+@ModelProvider({
+  name: "risk-model-provider",
+  description: "OpenRouter chat models",
+  driver: OpenRouterDriver({ apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: minutes(2),
+  cost: ModelCost.fromResponse(),
+})
+export class RiskModelProvider {}
+
+@ModelProvider({
+  name: "risk-decisions-model-provider",
+  description: "Decision models on OpenRouter's Decisions API",
+  driver: DecisionsDriver({ baseUrl: "https://openrouter.ai/api/v1", apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: seconds(30),
+  cost: ModelCost.fromResponse(),
+})
+export class DecisionsModelProvider {}
 
 @Injectable()
 export class RiskThresholdService {
@@ -101,7 +140,7 @@ export class RiskThresholdService {
   name: "primary-risk-agent",
   description: "Deep credit risk evaluation",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Score credit risk from 0 to 100.",
+  prompt: inline("Score credit risk from 0 to 100."),
   input: { req: WorkflowStartTextDto },
   output: RiskScoreDto,
 })
@@ -111,7 +150,7 @@ export class PrimaryRiskAgent {}
   name: "fast-risk-agent",
   description: "Fast heuristic credit risk evaluation",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Score credit risk quickly from 0 to 100.",
+  prompt: inline("Score credit risk quickly from 0 to 100."),
   input: { req: WorkflowStartTextDto },
   output: RiskScoreDto,
 })
@@ -121,7 +160,7 @@ export class FastRiskAgent {}
   name: "backup-risk-agent",
   description: "Backup credit risk evaluation",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Provide backup credit risk score from 0 to 100.",
+  prompt: inline("Provide backup credit risk score from 0 to 100."),
   input: { req: WorkflowStartTextDto },
   output: RiskScoreDto,
 })
@@ -131,17 +170,19 @@ export class BackupRiskAgent {}
 ```ts title="src/workflows/risk-quorum.workflow.ts" file=src/workflows/risk-quorum.workflow.ts
 import {
   Action,
-  QuorumNotReachedError,
+  StepError,
   Workflow,
   WorkflowFinish,
   WorkflowStart,
-  action,
-  group,
   listOf,
-  start,
+  onAction,
+  onStart,
   toAction,
+  toAgent,
+  toFinish,
   type ActionHandler,
   type InputOf,
+  Ttl,
 } from "@agboss/core";
 import { WorkflowStartTextDto } from "@agboss/core/dto";
 import { seconds } from "@agboss/core/units";
@@ -167,8 +208,8 @@ export class RiskFinish {}
   output: RiskScoreDto,
 })
 export class MergeRiskScoresAction implements ActionHandler<MergeRiskScoresAction> {
-  execute(input: InputOf<MergeRiskScoresAction>): Promise<RiskScoreDto> {
-    return Promise.resolve(input.scores[0]!.value);
+  execute(input: InputOf<MergeRiskScoresAction>): RiskScoreDto {
+    return input.scores[0]!;
   }
 }
 
@@ -179,40 +220,38 @@ export class MergeRiskScoresAction implements ActionHandler<MergeRiskScoresActio
   output: RiskScoreDto,
 })
 export class FallbackRiskAction implements ActionHandler<FallbackRiskAction> {
-  execute(_input: InputOf<FallbackRiskAction>): Promise<RiskScoreDto> {
-    return Promise.resolve({ score: 50, confidence: 0.5, rationale: "Fallback assessment" });
+  execute(_input: InputOf<FallbackRiskAction>): RiskScoreDto {
+    return { score: 50, confidence: 0.5, rationale: "Fallback assessment" };
   }
 }
 
 @Workflow({
   name: "risk-quorum-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   providers: [RiskThresholdService],
   flow: [
-    start(RiskStart)
-      .returns(WorkflowStartTextDto)
-      .toParallelAgents(PrimaryRiskAgent, FastRiskAgent, BackupRiskAgent)
-      .acceptedBy(ConfidenceThresholdArbiter)
-      .joinQuorumGroups(
-        group(PrimaryRiskAgent, FastRiskAgent)
-          .priority(1)
-          .returns(listOf(RiskScoreDto))
-          .toAction(MergeRiskScoresAction),
-        group(PrimaryRiskAgent, BackupRiskAgent)
-          .priority(2)
-          .returns(listOf(RiskScoreDto))
-          .toAction(MergeRiskScoresAction),
-        { deadline: seconds(6) },
-      )
-      .onJoinError(
-        QuorumNotReachedError,
+    onStart(RiskStart)
+      .inParallel([toAgent(PrimaryRiskAgent), toAgent(FastRiskAgent), toAgent(BackupRiskAgent)])
+      .arbitratedBy(ConfidenceThresholdArbiter) // one arbiter class, once per launch
+      .joinQuorumGroups({ deadline: seconds(6) })
+      .onError(
+        StepError.QuorumNotReached,
         toAction(FallbackRiskAction)
-          .returns(RiskScoreDto)
           .toFinish(RiskFinish),
+      )
+      .onGroup(
+        [PrimaryRiskAgent, FastRiskAgent],
+        { priority: 1 },
+        toAction(MergeRiskScoresAction),
+      )
+      .onGroup(
+        [PrimaryRiskAgent, BackupRiskAgent],
+        { priority: 2 },
+        toAction(MergeRiskScoresAction),
       ),
 
-    action(MergeRiskScoresAction)
-      .returns(RiskScoreDto)
+    onAction(MergeRiskScoresAction)
       .toFinish(RiskFinish),
   ],
 })
@@ -223,6 +262,7 @@ export class RiskQuorumWorkflow {}
 ```ts file=src/risk.application.ts
 import { Application, Budget, BudgetPeriod, BudgetScope, EmptyEnvironment, type BudgetHandler } from "@agboss/core";
 import { usd, type Usd } from "@agboss/core/units";
+import { DecisionsModelProvider, RiskModelProvider } from "./agents/risk.agents.js";
 import { RiskQuorumWorkflow } from "./workflows/risk-quorum.workflow.js";
 
 @Budget({ name: "rq-app-budget", scope: BudgetScope.Application, period: BudgetPeriod.Day })
@@ -237,6 +277,8 @@ export class RqExecBudget implements BudgetHandler { maxSpend(): Usd { return us
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [RiskQuorumWorkflow],
+  modelProvider: RiskModelProvider,
+  providers: [RiskModelProvider, DecisionsModelProvider],
   budgets: [RqAppBudget, RqTenantBudget, RqExecBudget],
 })
 export class RiskQuorumApplication {}
@@ -245,12 +287,12 @@ export class RiskQuorumApplication {}
 
 ```ts title="test/risk-quorum.arbiter.test.ts" file=test/risk-quorum.arbiter.test.ts
 import { expect, it } from "vitest";
-import { testArbiter } from "@agboss/core/testing";
+import { testUnit } from "@agboss/core/testing";
 import { ConfidenceThresholdArbiter } from "../src/arbiters/risk-quorum.arbiter.js";
 import { FastRiskAgent } from "../src/agents/risk.agents.js";
 
-it("unit-tests @OnAnswer handlers on ConfidenceThresholdArbiter", async () => {
-  const runArbiter = testArbiter(ConfidenceThresholdArbiter);
+it("unit-tests @Arbitrate handlers on ConfidenceThresholdArbiter", async () => {
+  const runArbiter = testUnit(ConfidenceThresholdArbiter);
 
   const { output } = await runArbiter(FastRiskAgent, {
     score: 72,
@@ -261,26 +303,27 @@ it("unit-tests @OnAnswer handlers on ConfidenceThresholdArbiter", async () => {
 });
 ```
 
-## What options do `@Arbiter` and `@OnAnswer` accept?
+## What options do `@Arbiter` and `@Arbitrate` accept?
 
-Every `@Arbiter` class name ends with `Arbiter` and its `name` option ends with `-arbiter`:
+An `@Arbiter` takes no `decidedBy`: `criteria` makes a model arbiter, `@Arbitrate` methods make a code arbiter, `@Arbiter()` alone is allowed. `name` and `description` are optional (the class name in kebab-case by default; `[name.kind-suffix]` is not raised for it).
 
 | Option / Decorator | Applies To | Type | Required | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `name` | Both | `string` | Yes | Unique kebab-case identifier ending with `-arbiter` (e.g., `"valid-score-arbiter"`). |
-| `decidedBy` | Both | `DecidedBy.Code \| DecidedBy.Model` | Yes | Whether TypeScript `@OnAnswer` methods (`Code`) or a decision/chat model (`Model`) judges each arriving answer. |
-| `deps` | `DecidedBy.Code` | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `@Injectable` services) for a code arbiter. |
-| `@OnAnswer(AgentClass)` | `DecidedBy.Code` | `MethodDecorator` | Yes | Decorates one method per launched `@Agent` (`(answer: OutputDto) => boolean \| Promise<boolean>`); missing an agent fails compilation with `[arbiter.unhandled-agent]`. |
-| `model` | `DecidedBy.Model` | `string` | Yes | Decision model (`"typesafe/jev-1.13"`) or chat model used to judge each arriving answer. |
-| `prompt` | `DecidedBy.Model` | `string` | Yes | General instructions explaining how the model arbiter evaluates answers. |
-| `criteria` | `DecidedBy.Model` | `readonly [ArbiterCriterion, ...]` | Yes | Array of `{ agent: AgentClass, prompt: string }` entries covering every agent in the parallel launch. |
+| `name` | All | `string` | No | Kebab-case identifier (default: the class name, `ScoreRangeArbiter` becomes `score-range-arbiter`). |
+| `description` | All | `string` | No | Describes the rule for traces and `agboss describe`. |
+| `deps` | Code | `readonly Token[]` | No | Constructor dependencies (`ExecutionContext`, `@Injectable` services). Listing `ArbiterModel` makes the arbiter hybrid: it decides at `$0` where it can and calls `arbiterModel.decide(…)` / `.invoke(…)` where it must; each call is checked against the execution's budgets and charged under `arbiter:<name>`. |
+| `@Arbitrate(…targets)` | Code | `MethodDecorator` | Yes | Decorates a method (`(answer) => boolean \| Promise<boolean>`, its name is yours) that judges the answers of one or more launched targets; the parameter is the union of their outputs, `Tracked` as that target gave it (`ArbitratedAnswerOf<[typeof A, typeof B]>` names the union, `Metadata.createdBy(answer)` tells the targets apart). Every target of the launch must be covered once: `[arbiter.unhandled-target]`, `[arbiter.unknown-target]`, `[arbiter.duplicate-target]`. |
+| `model` / `modelProvider` | Model, hybrid | `string` / `Class` | No | Decision model (`"typesafe/jev-1.13"`) or chat model, and the provider that serves it (the cascade: the arbiter's, its workflow's, its application's). |
+| `prompt` | Model | `PromptSource` | Yes | General instructions explaining how the model arbiter evaluates answers. |
+| `criteria` | Model | `readonly [ArbiterCriterion, ...]` | Yes | Array of `{ target: Class, prompt: string }` entries covering every target of the launch. |
 
 ## What related entities work with `@Arbiter`?
 
 | Related Entity | Import Path | Purpose |
 | :--- | :--- | :--- |
-| `.acceptedBy(Arbiter)` & `.acceptedBy(anyOf(A, B))` | `"@agboss/core"` | Chains arbiter gates after `.toParallelAgents(...)`; multiple `.acceptedBy()` calls form a logical `AND`, while `anyOf(A, B)` forms a logical `OR`. |
-| `.joinQuorum({ min, max?, deadline? })` | Flow chain | Collects accepted answers as soon as `max` (default `min`) answers pass all arbiters, cancelling remaining branches (`BranchVerdict.Surplus`). |
-| `.joinQuorumGroups(group(A, B).priority(1)..., { deadline? })` | `"@agboss/core"` | Enforces prioritized group quorum rules where each `group(...)` declares its own `.returns(...)` and continuation path. |
-| `QuorumNotReachedError` | `"@agboss/core"` | Thrown when fewer than `min` answers are accepted or the `deadline` expires; catchable via `.onJoinError(QuorumNotReachedError, sidePath)`. |
-| `testArbiter(ArbiterClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that tests an arbiter's verdict for any agent and answer payload. |
+| `.arbitratedBy(Arbiter)` | `"@agboss/core"` | Names the one arbiter class that decides which answers of a launch count, right after `.inParallel([…])` or `.forEachItem(…)`, once per launch. It is followed by a quorum join, never `.join()`. There is no `anyOf`, no AND of several arbiters and no predicate tree: how a rule escalates from code to a model lives in the class. `.acceptedBy(…)` is gone. |
+| `.joinQuorum({ min, max?, deadline? })` | Flow chain | Collects accepted answers as soon as `max` (default `min`) answers pass the arbiter, cancelling remaining branches (`BranchVerdict.Surplus`). Also follows `.forEachItem(…)`. |
+| `.joinQuorumGroups({ deadline })` + `.onGroup([targets], { priority }, subPath)` | Flow chain | Enforces prioritized group quorum rules: the first complete group, by priority, continues its own path. Refused after `.forEachItem(…)`. |
+| `ArbiterModel` | `"@agboss/core"` | Injectable model of a hybrid arbiter. |
+| `StepError.QuorumNotReached` | `"@agboss/core"` | Thrown when fewer than `min` answers are accepted or the `deadline` expires; catchable via `.onError(StepError.QuorumNotReached, sidePath)` right after the join. |
+| `testUnit(ArbiterClass, options?)` | `"@agboss/core/testing"` | Isolated unit runner that tests an arbiter's verdict for any target and answer payload; `testUnit(HybridArbiter, { model })` scripts its model. |

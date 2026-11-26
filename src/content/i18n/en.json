@@ -1,0 +1,7 @@
+{
+	"starlightVersions.outdated.label": "This is the {{label}} documentation.",
+	"starlightVersions.outdated.slug": "This is the {{slug}} documentation.",
+	"starlightVersions.link.latest": "Switch to <a href={{link}}>0.1.1</a>.",
+	"starlightVersions.search.outdated.label": "Search limited to the {{label}} documentation.",
+	"starlightVersions.search.link.latest": "Switch to <a href={{link}}>0.1.1</a> to search the current docs."
+}

@@ -5,7 +5,7 @@ description: Build, statically verify with agboss check, run, and unit-test your
 
 Building an AGBoss application takes four small building blocks: `@WorkflowStart` and `@WorkflowFinish` endpoints typed with DTOs from `@agboss/core/dto`, an `@Agent` (or `@Action` / `@Router`) component, a `@Workflow` module whose **HarnessDSL (`HDSL`)** `flow` chains steps one call per line, and an `@Application` entry point with `@Budget` ceilings booted via `createApp`.
 
-> **Current Release (`v0.1.0`):** `@agboss/core@0.1.0` and `@agboss/cli@0.1.0` are published on `registry.npmjs.org`. Run `npx --yes --package=@agboss/cli agboss create my-app` to scaffold a new project or clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`cd 01-hello-agboss && npm install`) to run the verified starter.
+> **Current Release (`v0.1.1`):** `@agboss/core@0.1.1` and `@agboss/cli@0.1.1` are published on `registry.npmjs.org`. Run `npx --yes --package=@agboss/cli agboss create my-app` to scaffold a new project or clone [`agbossjs/agboss-examples`](https://github.com/agbossjs/agboss-examples) (`cd 01-hello-agboss && npm install`) to run the verified starter.
 
 ### Progressive Learning Path
 
@@ -13,8 +13,8 @@ Building an AGBoss application takes four small building blocks: `@WorkflowStart
 | :--- | :---: | :--- |
 | **1. First 5 Minutes** | `5 min` | Install `@agboss/core` + `@agboss/cli` (or run `01-hello-agboss`), verify the graph with `npx agboss check`, and run your first deterministic workflow test (`npm test`). |
 | **2. Next 15 Minutes** | `15 min` | Add constructor dependency injection (`@Injectable`), narrow `@Dto` contracts (`@Text`, `@Integer`), and compose a `@Router` + `@Agent` + `@Tool` workflow inside `@Application`. |
-| **3. At 30 Minutes** | `30 min` | Understand **Path Scope** (`Produced<Dto, Producer>`) and trigger intentional build-time graph failures (`[input.missing-on-path]`, `[input.outdated-on-path]`, `[flow.uncompensated-action]`) in [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof). |
-| **4. Advanced Guides** | `30+ min` | Scale to LIFO sagas ([`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)), distributed `ChildPlacement.AnyInstance` work-stealing ([`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)), multi-run `@EvalSuite` ([`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)), and A2A + MCP federation ([`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)). |
+| **3. At 30 Minutes** | `30 min` | Understand **Path Scope** (`Tracked<Dto, Producer>`) and trigger intentional build-time graph failures (`[input.missing-on-path]`, `[input.outdated-on-path]`, `[flow.uncompensated-action]`) in [`02-path-scope-proof`](https://github.com/agbossjs/agboss-examples/tree/main/02-path-scope-proof). |
+| **4. Advanced Guides** | `30+ min` | Scale to LIFO sagas ([`04-travel-booking-saga`](https://github.com/agbossjs/agboss-examples/tree/main/04-travel-booking-saga)), distributed `ChildPlacement.AnyWorker` work-stealing ([`05-cluster-work-stealing`](https://github.com/agbossjs/agboss-examples/tree/main/05-cluster-work-stealing)), multi-run `@EvalSuite` ([`03-support-refund-desk`](https://github.com/agbossjs/agboss-examples/tree/main/03-support-refund-desk)), and A2A + MCP federation ([`06-enterprise-agent-mesh`](https://github.com/agbossjs/agboss-examples/tree/main/06-enterprise-agent-mesh)). |
 
 ## 5 Minutes: Install, check, and run
 
@@ -41,12 +41,22 @@ npx agboss check
 
 ## 15 Minutes: Dependency injection, typed DTOs, and workflow composition
 
-The example below defines a customer support workflow and its enclosing `@Application`, then executes a turn via `app.execute`:
+The example below defines a customer support workflow and its enclosing `@Application`, then executes a turn via `app.execute`. There is no built-in model provider: the application names the `@ModelProvider` that serves its models (here OpenRouter through its driver), and the key is a `secret(…)` reference read once at start.
 
 ```ts title="src/support.workflow.ts" file=src/support.workflow.ts
-import { Agent, Application, Budget, BudgetPeriod, BudgetScope, createApp, EmptyEnvironment, start, Workflow, WorkflowFinish, WorkflowStart, type BudgetHandler } from "@agboss/core";
+import { Agent, Application, Budget, BudgetPeriod, BudgetScope, createApp, EmptyEnvironment, inline, onStart, secret, Ttl, Workflow, WorkflowFinish, WorkflowStart, type BudgetHandler } from "@agboss/core";
 import { WorkflowFinishTextDto, WorkflowStartTextDto } from "@agboss/core/dto";
-import { usd, type Usd } from "@agboss/core/units";
+import { ModelCost, ModelProvider, OpenRouterDriver } from "@agboss/core/models";
+import { minutes, usd, type Usd } from "@agboss/core/units";
+
+@ModelProvider({
+  name: "openrouter-model-provider",
+  description: "OpenRouter — many chat models behind one OpenAI-compatible API",
+  driver: OpenRouterDriver({ apiKey: secret("OPENROUTER_API_KEY") }),
+  timeout: minutes(2),
+  cost: ModelCost.fromResponse(),
+})
+export class OpenRouterModelProvider {}
 
 @WorkflowStart({
   name: "support-workflow-start",
@@ -65,7 +75,7 @@ export class SupportWorkflowFinish {}
 @Agent({
   name: "support-agent",
   description: "Answers customer questions concisely",
-  prompt: "Answer customer questions concisely and accurately.",
+  prompt: inline("Answer customer questions concisely and accurately."),
   model: "moonshotai/kimi-k2.6",
 })
 export class SupportAgent {}
@@ -73,9 +83,9 @@ export class SupportAgent {}
 @Workflow({
   name: "support-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(SupportWorkflowStart)
-      .returns(WorkflowStartTextDto)
+    onStart(SupportWorkflowStart)
       .toAgent(SupportAgent)
       .toFinish(SupportWorkflowFinish),
   ],
@@ -119,6 +129,8 @@ export class SupportExecutionBudget implements BudgetHandler {
   version: "1.0.0",
   environment: EmptyEnvironment,
   workflows: [SupportWorkflow],
+  modelProvider: OpenRouterModelProvider,
+  providers: [OpenRouterModelProvider],
   budgets: [
     SupportAppBudget,
     SupportTenantBudget,
@@ -139,6 +151,8 @@ export async function runOnce() {
 }
 ```
 
+Three things in this file are new in 0.1.1 and each fails `agboss check` when left out: the workflow's `historyTtl` (how long the history of its finished executions is kept: a duration such as `days(90)`, `Ttl.Forever` or `Ttl.None`), the application's `modelProvider` (the provider of every model that names none), and the `inline(…)` around a prompt that is text in the class (a file prompt is the path `"./support.prompt.md"`).
+
 ```ts title="test/support.workflow.test.ts" file=test/support.workflow.test.ts
 import { expect } from "vitest";
 import { ExecutionStatus } from "@agboss/core";
@@ -147,8 +161,8 @@ import { SupportAgent, SupportApplication, SupportWorkflowStart } from "../src/s
 
 const test = testWith(SupportApplication);
 
-test("executes SupportWorkflow deterministically without an API key", async ({ app, mockLlm }) => {
-  mockLlm(SupportAgent).thenReturn(
+test("executes SupportWorkflow deterministically without an API key", async ({ app, mockModel }) => {
+  mockModel(SupportAgent).thenReturn(
     replyWith("Open Settings > API Keys > Rotate."),
   );
   const res = await app.execute(SupportWorkflowStart, { text: "How do I rotate my API token?" });

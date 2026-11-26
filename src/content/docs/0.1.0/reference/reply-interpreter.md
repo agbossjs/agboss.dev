@@ -1,9 +1,10 @@
 ---
 title: "@ReplyInterpreter"
 description: "Complete API reference for the @ReplyInterpreter decorator, ReplyInterpreterHandler, and testReplyInterpreter() for structured model output extraction."
+slug: 0.1.0/reference/reply-interpreter
 ---
 
-`@ReplyInterpreter` (`"@agboss/core"`) declares the component that converts a free-text human reply (`app.resume({ pauseId, reply })`) into the typed decision required by a [`@ChannelRole`](/reference/channel-role/). Each `@ReplyInterpreter` belongs to a single `@ChannelRole({ replyInterpreter })` and can be driven either by a model (`DecidedBy.Model`) or by deterministic TypeScript (`DecidedBy.Code`).
+`@ReplyInterpreter` (`"@agboss/core"`) declares the component that converts a free-text human reply (`app.resume({ pauseId, reply })`) into the typed decision required by a [`@ChannelRole`](/0.1.0/reference/channel-role/). Each `@ReplyInterpreter` belongs to a single `@ChannelRole({ replyInterpreter })` and can be driven either by a model (`DecidedBy.Model`) or by deterministic TypeScript (`DecidedBy.Code`).
 
 ## How to declare a `@ReplyInterpreter` (`DecidedBy.Model` & `DecidedBy.Code`)
 

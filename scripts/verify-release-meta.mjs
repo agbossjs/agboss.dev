@@ -18,66 +18,66 @@ import { fileURLToPath } from "node:url";
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const PUBLISHED_ONLY_PATTERNS = [
-  "v0.1.0 (latest)",
-  "<strong>New in v0.1.0:</strong>",
-  "**Current Release (`v0.1.0`):**",
-  "What is in AGBoss `v0.1.0` (Latest Release)",
-  "**`0.1.0` (Latest Published Release):**",
-  "See what shipped in v0.1.0 and what is currently in progress.",
-  "> **Setup (`v0.1.0`):**",
-  "| `0.1.0` (latest) | Yes |",
+  "v0.1.1 (latest)",
+  "<strong>New in v0.1.1:</strong>",
+  "**Current Release (`v0.1.1`):**",
+  "What is in AGBoss `v0.1.1` (Latest Release)",
+  "**`0.1.1` (Latest Published Release):**",
+  "See what shipped in v0.1.1 and what is currently in progress.",
+  "> **Setup (`v0.1.1`):**",
+  "| `0.1.1` (latest) | Yes |",
 ];
 
 const PRE_RELEASE_ONLY_PATTERNS = [
-  "0.1.0-rc",
-  "Pre-Release v0.1.0-rc:",
-  "Pre-Release Status (`v0.1.0-rc`):",
-  "What is in AGBoss `v0.1.0-rc` (Pre-Release Source)",
-  "Pre-Release Setup (`v0.1.0-rc`):",
-  "| `0.1.0-rc` (pre-release) | Yes |",
+  "0.1.1-rc",
+  "Pre-Release v0.1.1-rc:",
+  "Pre-Release Status (`v0.1.1-rc`):",
+  "What is in AGBoss `v0.1.1-rc` (Pre-Release Source)",
+  "Pre-Release Setup (`v0.1.1-rc`):",
+  "| `0.1.1-rc` (pre-release) | Yes |",
 ];
 
 const DOC_EXPECTATIONS = [
   {
     file: "src/content/docs/index.mdx",
-    preReleaseRequired: ["Pre-Release v0.1.0-rc:", "v0.1.0-rc (pre-release)"],
-    publishedRequired: ["<strong>New in v0.1.0:</strong>", "v0.1.0 (latest)"],
+    preReleaseRequired: ["Pre-Release v0.1.1-rc:", "v0.1.1-rc (pre-release)"],
+    publishedRequired: ["<strong>New in v0.1.1:</strong>", "v0.1.1 (latest)"],
   },
   {
     file: "src/content/docs/getting-started/installation.md",
-    preReleaseRequired: ["**Pre-Release Status (`v0.1.0-rc`):**"],
-    publishedRequired: ["**Current Release (`v0.1.0`):**"],
+    preReleaseRequired: ["**Pre-Release Status (`v0.1.1-rc`):**"],
+    publishedRequired: ["**Current Release (`v0.1.1`):**"],
   },
   {
     file: "src/content/docs/getting-started/quick-start.md",
-    preReleaseRequired: ["**Pre-Release Status (`v0.1.0-rc`):**"],
-    publishedRequired: ["**Current Release (`v0.1.0`):**"],
+    preReleaseRequired: ["**Pre-Release Status (`v0.1.1-rc`):**"],
+    publishedRequired: ["**Current Release (`v0.1.1`):**"],
   },
   {
     file: "src/content/docs/changelog.md",
     preReleaseRequired: [
-      "What is in AGBoss `v0.1.0-rc` (Pre-Release Source)",
-      "**`0.1.0-rc` (Current Pre-Release in Source):**",
+      "What is in AGBoss `v0.1.1-rc` (Pre-Release Source)",
+      "**`0.1.1-rc` (Current Pre-Release in Source):**",
     ],
     publishedRequired: [
-      "What is in AGBoss `v0.1.0` (Latest Release)",
-      "**`0.1.0` (Latest Published Release):**",
+      "What is in AGBoss `v0.1.1` (Latest Release)",
+      "**`0.1.1` (Latest Published Release):**",
     ],
   },
   {
     file: "src/content/docs/community.mdx",
-    preReleaseRequired: ["See what is in v0.1.0-rc and what is currently in progress."],
-    publishedRequired: ["See what shipped in v0.1.0 and what is currently in progress."],
+    preReleaseRequired: ["See what is in v0.1.1-rc and what is currently in progress."],
+    publishedRequired: ["See what shipped in v0.1.1 and what is currently in progress."],
   },
   {
     file: "src/content/docs/examples/verified-examples.md",
-    preReleaseRequired: ["> **Pre-Release Setup (`v0.1.0-rc`):**"],
-    publishedRequired: ["> **Setup (`v0.1.0`):**"],
+    preReleaseRequired: ["> **Pre-Release Setup (`v0.1.1-rc`):**"],
+    publishedRequired: ["> **Setup (`v0.1.1`):**"],
   },
   {
     file: "SECURITY.md",
-    preReleaseRequired: ["| `0.1.0-rc` (pre-release) | Yes |"],
-    publishedRequired: ["| `0.1.0` (latest) | Yes |"],
+    preReleaseRequired: ["| `0.1.1-rc` (pre-release) | Yes |"],
+    publishedRequired: ["| `0.1.1` (latest) | Yes |"],
   },
 ];
 
@@ -103,7 +103,7 @@ export function verifyReleaseMeta({ root = DEFAULT_ROOT, mode }) {
     "utf8",
   );
 
-  // 1. Ensure components import RELEASE_META and have zero hardcoded v0.1.0-rc literals
+  // 1. Ensure components import RELEASE_META and have zero hardcoded v0.1.1-rc literals
   for (const [name, content] of [
     ["src/components/nav.ts", navTs],
     ["src/components/Header.astro", headerAstro],
@@ -116,9 +116,9 @@ export function verifyReleaseMeta({ root = DEFAULT_ROOT, mode }) {
       `${name} must reference RELEASE_META from src/config/release.ts`,
     );
     assert.equal(
-      content.includes("v0.1.0-rc"),
+      content.includes("v0.1.1-rc"),
       false,
-      `${name} must not hardcode 'v0.1.0-rc'; derive version labels from RELEASE_META`,
+      `${name} must not hardcode 'v0.1.1-rc'; derive version labels from RELEASE_META`,
     );
   }
 
@@ -150,8 +150,8 @@ export function verifyReleaseMeta({ root = DEFAULT_ROOT, mode }) {
   if (!isPublishedToRegistry) {
     assert.equal(
       displayVersion,
-      "v0.1.0-rc",
-      `When isPublishedToRegistry is false, displayVersion must be 'v0.1.0-rc' (found '${displayVersion}')`,
+      "v0.1.1-rc",
+      `When isPublishedToRegistry is false, displayVersion must be 'v0.1.1-rc' (found '${displayVersion}')`,
     );
     assert.equal(
       releaseChannelLabel,
@@ -160,8 +160,8 @@ export function verifyReleaseMeta({ root = DEFAULT_ROOT, mode }) {
     );
     assert.equal(
       softwareVersion,
-      "0.1.0-rc",
-      `When isPublishedToRegistry is false, softwareVersion must be '0.1.0-rc' (found '${softwareVersion}')`,
+      "0.1.1-rc",
+      `When isPublishedToRegistry is false, softwareVersion must be '0.1.1-rc' (found '${softwareVersion}')`,
     );
     for (const doc of DOC_EXPECTATIONS) {
       const text = readFileSync(join(root, doc.file), "utf8");
@@ -183,8 +183,8 @@ export function verifyReleaseMeta({ root = DEFAULT_ROOT, mode }) {
   } else {
     assert.equal(
       displayVersion,
-      "v0.1.0",
-      `When isPublishedToRegistry is true, displayVersion must be 'v0.1.0' with no '-rc' suffix (found '${displayVersion}')`,
+      "v0.1.1",
+      `When isPublishedToRegistry is true, displayVersion must be 'v0.1.1' with no '-rc' suffix (found '${displayVersion}')`,
     );
     assert.equal(
       releaseChannelLabel,
@@ -193,8 +193,8 @@ export function verifyReleaseMeta({ root = DEFAULT_ROOT, mode }) {
     );
     assert.equal(
       softwareVersion,
-      "0.1.0",
-      `When isPublishedToRegistry is true, softwareVersion must be '0.1.0' with no '-rc' suffix (found '${softwareVersion}')`,
+      "0.1.1",
+      `When isPublishedToRegistry is true, softwareVersion must be '0.1.1' with no '-rc' suffix (found '${softwareVersion}')`,
     );
     for (const doc of DOC_EXPECTATIONS) {
       const text = readFileSync(join(root, doc.file), "utf8");
@@ -237,9 +237,9 @@ export function verifyReleaseMeta({ root = DEFAULT_ROOT, mode }) {
           `${relHtml} must not render data-release-mode="published" when isPublishedToRegistry is false`,
         );
         assert.equal(
-          html.includes("0.1.0-rc"),
+          html.includes("0.1.1-rc"),
           true,
-          `${relHtml} must include '0.1.0-rc' when isPublishedToRegistry is false`,
+          `${relHtml} must include '0.1.1-rc' when isPublishedToRegistry is false`,
         );
         for (const forbidden of PUBLISHED_ONLY_PATTERNS) {
           assert.equal(

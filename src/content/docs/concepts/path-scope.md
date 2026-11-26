@@ -1,19 +1,19 @@
 ---
 title: Path Scope & Provenance
-description: "How AGBoss and HarnessDSL track Static Single Assignment (SSA) DTO slots, Produced<T, P> provenance, { about } review loops, and compile-time Path Scope."
+description: "How AGBoss and HarnessDSL track Static Single Assignment (SSA) DTO slots, Tracked<T, P> provenance, outdating in review loops, and compile-time Path Scope."
 ---
 
-Every path in an AGBoss `@Workflow` written in **HarnessDSL (`HDSL`)** carries a compile-time and runtime **Path Scope**: the Static Single Assignment (SSA) set of DTO values guaranteed to have been produced along that path so far. Components declare what they read by DTO class (`input: { draft: OfferDraftDto }`) and what they produce (`output: OfferDraftDto`), while the workflow writes each transition explicitly with `.returns(OfferDraftDto)` so `agboss check` and TypeScript verify every read before a single model call runs.
+Every path in an AGBoss `@Workflow` written in **HarnessDSL (`HDSL`)** carries a compile-time and runtime **Path Scope**: the Static Single Assignment (SSA) set of DTO values guaranteed to have been produced along that path so far. Components declare what they read by DTO class (`input: { draft: OfferDraftDto }`) and what they produce (`output: OfferDraftDto`), while the runtime puts each step's declared output on the path (nothing is written on the edge: there is no `.returns`) so `agboss check` and TypeScript verify every read before a single model call runs.
 
-## How slots, writes, and narrowed `Produced<T, P>` reads work
+## How slots, writes, and narrowed `Tracked<T, P>` reads work
 
-A Path Scope stores **one slot per shape**: `OfferDraftDto` and `listOf(OfferDraftDto)` are distinct slots, and `listOf(oneOf(ApprovedDto, CritiqueDto))` is a single polymorphic list slot. Multiple outputs from a step or join are declared strictly by chaining `.returns(DtoA).returns(DtoB)` (the multi-argument `.returns(A, B)` form is not supported). Each write (`start(S).returns(...)`, `.returns(Dto)`, or `caseOf(Dto)`) replaces the current value in that slot while preserving earlier versions in the slot history.
+A Path Scope stores **one slot per shape**: `OfferDraftDto` and `listOf(OfferDraftDto)` are distinct slots, and `listOf(ApprovedDto, CritiqueDto)` (variadic; `listOf(oneOf(…))` is gone) is a single polymorphic list slot, and a step that gives one also gives a typed slice `listOf(ApprovedDto)` per class. What a step writes is derived from its declaration: a start its `input` (one value per field of a map), an agent, action, external task or child workflow its `output`, a join the branches' values. Each write replaces the current value in that slot while preserving earlier versions in the slot history.
 
 When you run `npx agboss check`, the compiler performs dominance analysis (`[input.missing-on-path]`, `[input.never-produced]`, `[flow.unused-output]`, `[input.outdated-on-path]`, `[launch.branch-outdates-sibling]`) over every `@Workflow` and writes `.agboss/types.d.ts`:
 
 - **`@Agent` inputs** receive each declared `input` field rendered as a structured Markdown/JSON section in the user message frame (keeping the system prompt 100% static for KV-cache hits).
-- **Code handlers reading from Path Scope (`@Action`, `@Router` with `DecidedBy.Code`, and `FinishHandler` `@WorkflowFinish`)** receive each field from `InputOf<Self>` wrapped as `Produced<T, P>` (`{ value: T, producer: P }`), where `P` is the exact TypeScript union of step classes that could have produced that DTO on the incoming paths (e.g., `typeof DraftAgent | typeof EditorAgent`).
-- **Fixed-source handlers (`@OnAnswer(Agent)`, `ToolHandler.run`, `ChannelAsk.value`, `ReplyInterpreterHandler.interpret({ ask, reply })`)** receive the bare `Dto` directly because the producer is single and fixed.
+- **Code handlers reading from Path Scope (`@Action`, `@Router` with `DecidedBy.Code`, and `@Arbiter`)** receive each field from `InputOf<Self>` as the DTO itself, typed `Tracked<T, P>`, where `P` is the exact TypeScript union of step classes that could have produced that DTO on the incoming paths (e.g., `typeof DraftAgent | typeof EditorAgent`). A handler writes `input.draft.text`; who made the value is read with `Metadata.createdBy(input.draft)`.
+- **Fixed-source handlers (`@Arbitrate(Agent)`, a tool's `execute`, `ChannelAsk.input`, a channel interpreter's `interpret({ ask, reply })`)** receive the bare `Dto` directly because the producer is single and fixed.
 
 <!-- snippet-context
 import {
@@ -31,39 +31,33 @@ import {
 } from "./offer.components.js";
 -->
 ```ts title="src/workflows/offer-scope.workflow.ts" file=offer-scope.workflow.ts
-import { Workflow, agent, caseOf, start } from "@agboss/core";
-import { oneOf } from "@agboss/core/dto";
+import { Workflow, onAgent, onStart, toAction, toAgent, toFinish, Ttl } from "@agboss/core";
 
 @Workflow({
   name: "offer-scope-workflow",
   version: "1.0.0",
+  historyTtl: Ttl.Forever,
   flow: [
-    start(OfferStart)
-      .returns(CandidateBriefDto)
+    onStart(OfferStart)
       .toAgent(DraftAgent)
-      .returns(OfferDraftDto)
       .toAgent(ReviewerAgent),
 
-    agent(ReviewerAgent)
-      .returns(oneOf(DraftApprovedDto, ChangesRequestedDto))
-      .switch(
-        caseOf(DraftApprovedDto, { about: OfferDraftDto })
-          .toAction(SendOfferAction)
-          .returns(OfferSentDto)
+    onAgent(ReviewerAgent)
+      .toOneOf([
+        toAction(SendOfferAction)
           .toFinish(OfferFinish),
-        caseOf(ChangesRequestedDto, { about: OfferDraftDto })
-          .toAgent(EditorAgent)
-          .returns(OfferDraftDto)
+        toAgent(EditorAgent)
           .toAgent(ReviewerAgent),
-      ),
+      ]),
   ],
+  executionLimits: { maxSteps: 10 },
 })
 export class OfferScopeWorkflow {}
 ```
 
 ```ts title="src/workflows/offer.components.ts" file=offer.components.ts
-import { Action, Agent, WorkflowFinish, WorkflowStart, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
-import { Text, historyOf, oneOf } from "@agboss/core/dto";
+import { Action, Agent, Metadata, WorkflowFinish, WorkflowStart, historyOf, oneOf, inline, type ActionHandler, type InputOf, type OutputOf } from "@agboss/core";
+import { Text } from "@agboss/core/dto";
 
 export class CandidateBriefDto {
   @Text({ prompt: "Candidate summary and target role" })
@@ -111,7 +105,7 @@ export class OfferFinish {}
   name: "draft-agent",
   description: "Writes the initial offer draft from the candidate brief",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Write an initial offer draft for the candidate.",
+  prompt: inline("Write an initial offer draft for the candidate."),
   input: { brief: CandidateBriefDto },
   output: OfferDraftDto,
 })
@@ -121,10 +115,10 @@ export class DraftAgent {}
   name: "reviewer-agent",
   description: "Reviews the current offer draft",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Approve the draft or request specific changes.",
+  prompt: inline("Approve the draft or request specific changes."),
   input: { draft: OfferDraftDto },
   output: oneOf(DraftApprovedDto, ChangesRequestedDto),
-  maxVisits: 3,
+  executionLimits: { maxVisits: 3 },
 })
 export class ReviewerAgent {}
 
@@ -132,10 +126,10 @@ export class ReviewerAgent {}
   name: "editor-agent",
   description: "Revises the offer draft using bounded critique history",
   model: "moonshotai/kimi-k2.6",
-  prompt: "Revise the offer draft addressing all critiques.",
+  prompt: inline("Revise the offer draft addressing all critiques."),
   input: {
     draft: OfferDraftDto,
-    critiques: historyOf(ChangesRequestedDto, { limit: 3 }),
+    critiques: historyOf(ChangesRequestedDto, { maxPrevious: 3 }),
   },
   output: OfferDraftDto,
 })
@@ -143,7 +137,7 @@ export class EditorAgent {}
 
 @Action({
   name: "send-offer-action",
-  description: "Reads Produced<T, P> values with compile-checked provenance",
+  description: "Reads Tracked<T, P> values with compile-checked provenance",
   input: {
     draft: OfferDraftDto,
     approval: DraftApprovedDto,
@@ -151,15 +145,13 @@ export class EditorAgent {}
   output: OfferSentDto,
 })
 export class SendOfferAction implements ActionHandler<SendOfferAction> {
-  execute(
-    input: InputOf<SendOfferAction>,
-  ): Promise<OutputOf<SendOfferAction>> {
-    // input.draft.producer is narrowed by .agboss/types.d.ts to:
-    // typeof DraftAgent | typeof EditorAgent
-    return Promise.resolve({
-      sentText: input.draft.value.text,
-      draftedBy: input.draft.producer.name,
-    });
+  execute(input: InputOf<SendOfferAction>): OutputOf<SendOfferAction> {
+    // input.draft is a Tracked<OfferDraftDto, typeof DraftAgent | typeof EditorAgent>:
+    // the DTO itself, and Metadata.createdBy tells which of the two made it
+    return {
+      sentText: input.draft.text,
+      draftedBy: Metadata.createdBy(input.draft)?.name ?? "unknown",
+    };
   }
 }
 ```
@@ -202,18 +194,18 @@ export class OfferScopeApplication {}
 
 const test = testWith(OfferScopeApplication);
 
-test("tracks Produced<OfferDraftDto, P> producer across ReviewerAgent -> EditorAgent revision loop", async ({
+test("tracks the producer of OfferDraftDto across ReviewerAgent -> EditorAgent revision loop", async ({
   app,
-  mockLlm,
+  mockModel,
 }) => {
-  mockLlm(DraftAgent).thenReturn(
+  mockModel(DraftAgent).thenReturn(
     replyWith(OfferDraftDto, { text: "Draft v1" }),
   );
-  mockLlm(ReviewerAgent).thenReturn(
+  mockModel(ReviewerAgent).thenReturn(
     replyWith(ChangesRequestedDto, { notes: "Add equity cliff details" }),
     replyWith(DraftApprovedDto, { summary: "Approved v2" }),
   );
-  mockLlm(EditorAgent).thenReturn(
+  mockModel(EditorAgent).thenReturn(
     replyWith(OfferDraftDto, { text: "Draft v2 with equity cliff" }),
   );
 
@@ -228,16 +220,16 @@ test("tracks Produced<OfferDraftDto, P> producer across ReviewerAgent -> EditorA
 });
 ```
 
-## How `about`, `historyOf`, and `OutdatedReason` prevent stale-state bugs
+## How outdating and `historyOf` prevent stale-state bugs
 
-In cyclic review graphs (`DraftAgent -> ReviewerAgent -> EditorAgent -> ReviewerAgent`), an older approval or critique must never survive after `EditorAgent` produces a new draft. AGBoss solves this with **artifact provenance binding (`{ about: OfferDraftDto }`)**:
+In cyclic review graphs (`DraftAgent -> ReviewerAgent -> EditorAgent -> ReviewerAgent`), an older approval or critique must never survive after `EditorAgent` produces a new draft. Nothing is written in the flow for this: the runtime records, for every value, the values its step read (`Metadata.ancestors`), so a **new value outdates what was built from the old one**:
 
 | Mechanism | API | Behavior |
 | :--- | :--- | :--- |
-| **Artifact binding** | `.returns(VerdictDto, { about: OfferDraftDto })` & `caseOf(VerdictDto, { about: OfferDraftDto })` | Binds the reviewer output to the specific `OfferDraftDto` instance it evaluated (or an array of targets: `{ about: [OfferDraftDto, TermsDto] }`). |
-| **Automatic invalidation** | `OutdatedReason.AboutReplaced` & `OutdatedReason.TransitiveOutdated` | When `EditorAgent` runs and replaces `OfferDraftDto`, any value bound `{ about: OfferDraftDto }` (and anything transitively `{ about }` that value) is immediately marked outdated and evicted from current slots. |
+| **Provenance** | `Metadata.of`, `.createdBy`, `.ancestors`, `.with` | Every value a node reads or gives carries where it came from: its slot, its creator class, its visit number, its item index and the values it was built from. The facts live outside the value, so JSON and `structuredClone` see plain data. |
+| **Automatic invalidation** | `OutdatedReason.Replaced` & `OutdatedReason.BuiltFromReplaced` | When `EditorAgent` runs and replaces `OfferDraftDto`, the old draft is `Replaced`, and any value built from it (the reviewer's `ChangesRequestedDto`) is `BuiltFromReplaced`: marked outdated and evicted from current slots. |
 | **Compile-time guard** | `[input.outdated-on-path]` & `[input.missing-on-path]` | `agboss check` rejects any workflow path where a downstream step tries to read a slot that was not produced on every incoming branch or was invalidated along that path. |
-| **Bounded loop history** | `historyOf(ChangesRequestedDto, { limit: 3 })` | Gives the revising agent `{ current, previous }` over the last `limit` versions of a slot in chronological order, including values that were later outdated when a new draft was written. |
+| **Bounded loop history** | `historyOf(ChangesRequestedDto, { maxPrevious: 3 })` | Gives the revising agent `{ current, previous }` over at most `maxPrevious` earlier versions of a slot, oldest first, including values that were later outdated when a new draft was written. |
 
 ---
 
